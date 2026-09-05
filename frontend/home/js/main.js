@@ -11,6 +11,12 @@
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
+  // 只取“XX委员的发言”部分（去掉冒号后的副标题）
+  const shortTitle = (t) => {
+    const i = String(t).search(/[:：]/);
+    return i >= 0 ? t.slice(0, i) : t;
+  };
+
   // 旧站绝对地址补偿：相对路径拼域名
   function abs(u) {
     if (!u || u === "#") return u;
@@ -41,6 +47,14 @@
     const str = d.getFullYear() + "年" + (d.getMonth()+1) + "月" + d.getDate() + "日 " + week[d.getDay()];
     const node = el("topbarDate");
     if (node) node.textContent = str;
+  }
+
+  function renderMarquee(text) {
+    const t = el("marqueeTrack");
+    if (!t) return;
+    t.innerHTML = text
+      ? '<span>' + esc(text) + '</span><span>' + esc(text) + '</span>'
+      : '<span class="empty-item">暂无要闻</span>';
   }
 
   function renderNav(nav) {
@@ -127,21 +141,56 @@
     const body = el("leadersBody");
     if (!body) return;
     let html = '<div class="leaders-box">';
+    // 主席（固定展示）
     html += '<div class="leader-chair">' +
       '<img src="' + esc(abs(leaders.chairman.img)) + '" alt="主席 ' + esc(leaders.chairman.name) + '">' +
       '<div><a href="' + esc(abs(leaders.chairman.url)) + '"><span class="leader-name">' + esc(leaders.chairman.name) + '</span></a>' +
       '<span class="leader-role">主&nbsp;席</span></div></div>';
-    html += '<div class="leader-row-label">副主席</div>';
-    html += '<div class="leader-vices">' + leaders.viceChairmen.map(function (v) {
+    // 副主席 / 秘书长 可切换标签
+    html += '<div class="leader-tabs" role="tablist" aria-label="政协领导">' +
+      '<button type="button" class="leader-tab active" data-tab="vice" role="tab" aria-selected="true">副主席</button>' +
+      '<button type="button" class="leader-tab" data-tab="sec" role="tab" aria-selected="false">秘书长</button>' +
+      '</div>';
+    // 副主席面板
+    html += '<div class="leader-panel active" data-panel="vice" role="tabpanel">';
+    const viceItems = leaders.viceChairmen.map(function (v) {
       return '<a class="leader-vice" href="' + esc(abs(v.url)) + '" title="' + esc(v.name) + '">' +
         '<img src="' + esc(abs(v.img)) + '" alt="' + esc(v.name) + '"><span>' + esc(v.name) + '</span></a>';
-    }).join("") + '</div>';
-    html += '<div class="leader-row-label">秘书长：<a href="' + esc(abs(leaders.secretaryGeneral.url)) + '">' + esc(leaders.secretaryGeneral.name) + '</a></div>';
-    html += '<div class="leader-extra">' + leaders.extraLinks.map(function (l) {
-      return '<a href="' + esc(abs(l.url)) + '">' + esc(l.title) + '</a>';
+    }).join("");
+    html += '<div class="leader-vices-marquee"><div class="leader-vices-track">' + viceItems + '</div></div>';
+    html += '</div>';
+    // 秘书长面板
+    const sg = leaders.secretaryGeneral;
+    html += '<div class="leader-panel" data-panel="sec" role="tabpanel" hidden>' +
+      '<div class="leader-sec">' +
+      '<img src="' + esc(abs(sg.img)) + '" alt="秘书长 ' + esc(sg.name) + '">' +
+      '<div><a href="' + esc(abs(sg.url)) + '"><span class="leader-name">' + esc(sg.name) + '</span></a>' +
+      '</div></div></div>';
+    // 三个通栏按钮
+    html += '<div class="leader-btns">' + leaders.extraLinks.map(function (l) {
+      return '<a class="leader-btn" href="' + esc(abs(l.url)) + '">' + esc(l.title) + '</a>';
     }).join("") + '</div>';
     html += '</div>';
     body.innerHTML = html;
+
+    // 标签切换
+    const tabs = body.querySelectorAll(".leader-tab");
+    const panels = body.querySelectorAll(".leader-panel");
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        const target = tab.dataset.tab;
+        tabs.forEach(function (t) {
+          const on = t === tab;
+          t.classList.toggle("active", on);
+          t.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        panels.forEach(function (p) {
+          const on = p.dataset.panel === target;
+          p.classList.toggle("active", on);
+          p.hidden = !on;
+        });
+      });
+    });
   }
 
   function listHtml(items, dated) {
@@ -171,38 +220,99 @@
     }).join("");
   }
 
+  function renderImageMarquee(containerId, items) {
+    const box = el(containerId);
+    if (!box) return;
+    const one = items.map(function (it) {
+      return '<a class="image-flow" href="' + esc(abs(it.url)) + '"' + ext(it.url) + ' title="' + esc(it.title) + '">' +
+        '<img src="' + esc(abs(it.img)) + '" alt="' + esc(it.title) + '" loading="lazy">' +
+        '<span class="flow-title">' + esc(it.title) + '</span></a>';
+    }).join("");
+    box.innerHTML = one;
+  }
+
   function renderMember(mw) {
     const body = el("memberBody");
     if (!body) return;
     const f = mw.featured[0] || null;
-    let html = '<div class="member-featured">';
+    // 大图 + 4张小图 拼成一组
+    let html = '<div class="member-media">';
+    html += '<div class="member-featured">';
     if (f) {
       html += '<a href="' + esc(abs(f.url)) + '"' + ext(f.url) + '>' +
         '<img src="' + esc(abs(f.img)) + '" alt="' + esc(f.title) + '">' +
         '<div class="feat-title">' + esc(f.title) + '</div></a>';
     }
     html += '</div>';
+    // 小图：默认显示 3 张，点击左右按钮手动滑动（不自动滚动）
+    const gal = mw.gallery.map(function (g) {
+      return '<a class="member-gallery-item" href="' + esc(abs(g.url)) + '"' + ext(g.url) + ' title="' + esc(shortTitle(g.title)) + '">' +
+        '<img src="' + esc(abs(g.img)) + '" alt="' + esc(shortTitle(g.title)) + '" loading="lazy"><span>' + esc(shortTitle(g.title)) + '</span></a>';
+    }).join("");
+    html += '<div class="member-gallery-ctrl">' +
+      '<button type="button" class="member-gallery-btn prev" data-dir="-1" aria-label="向左查看上一张">' +
+      '<svg class="member-gallery-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>' +
+      '<div class="member-gallery-marquee"><div class="member-gallery-track">' + gal + '</div></div>' +
+      '<button type="button" class="member-gallery-btn next" data-dir="1" aria-label="向右查看下一张">' +
+      '<svg class="member-gallery-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></button>' +
+      '</div>';
+    html += '</div>';
+    // 委员发言列表
     html += '<div class="member-list"><ul class="news-list news-list-dated">' + listHtml(mw.list, true) + '</ul></div>';
-    html += '<div class="member-gallery">' + mw.gallery.map(function (g) {
-      return '<a href="' + esc(abs(g.url)) + '"' + ext(g.url) + ' title="' + esc(g.title) + '">' +
-        '<img src="' + esc(abs(g.img)) + '" alt="' + esc(g.title) + '" loading="lazy"><span>' + esc(g.title) + '</span></a>';
-    }).join("") + '</div>';
     body.innerHTML = html;
+    initMemberGallery(body);
+
+    // 以左侧图片组高度为参考，动态确定右侧标题条数，并使两列底部对齐
+    const media = body.querySelector(".member-media");
+    const listUl = body.querySelector(".member-list ul");
+    if (media && listUl) {
+      media.style.alignSelf = "start";
+      const mediaH = media.offsetHeight;
+      media.style.alignSelf = "";
+      const firstLi = listUl.querySelector("li");
+      if (firstLi && mediaH > 0) {
+        const liH = firstLi.offsetHeight;
+        const target = Math.max(1, Math.round(mediaH / liH));
+        listUl.innerHTML = listHtml(mw.list.slice(0, target), true);
+      }
+    }
+  }
+
+  // 委员之窗小图：左右按钮手动滑动，不自动滚动
+  function initMemberGallery(scope) {
+    const wrap = scope.querySelector(".member-gallery-ctrl");
+    const marquee = scope.querySelector(".member-gallery-marquee");
+    const track = scope.querySelector(".member-gallery-track");
+    if (!wrap || !marquee || !track) return;
+    const first = track.querySelector(".member-gallery-item");
+    const step = first ? first.offsetWidth + parseFloat(getComputedStyle(first).marginRight || "0") : 149;
+    let pos = 0;
+    function update() {
+      const max = Math.max(0, track.scrollWidth - marquee.clientWidth);
+      const prev = wrap.querySelector(".member-gallery-btn.prev");
+      const next = wrap.querySelector(".member-gallery-btn.next");
+      if (prev) prev.disabled = pos <= 0;
+      if (next) next.disabled = pos >= max;
+      return max;
+    }
+    function slide(dir) {
+      const max = update();
+      pos = Math.max(0, Math.min(max, pos + dir * step));
+      track.style.transform = "translateX(" + (-pos) + "px)";
+      update();
+    }
+    wrap.querySelectorAll(".member-gallery-btn").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        slide(parseInt(btn.dataset.dir, 10));
+      });
+    });
+    // 无溢出时可隐藏控制按钮
+    if (update() <= 0) wrap.style.display = "none";
   }
 
   function renderCounty(countyZx) {
-    const body = el("countyBody");
-    if (!body) return;
-    let html = '<div class="county-cols">';
-    html += '<div class="county-dyn-title">' + esc(countyZx.dynamicTitle) +
-      ' <a class="more" href="' + esc(abs(countyZx.more)) + '" target="_blank" rel="noopener">更多&gt;&gt;</a></div>';
-    html += '<ul class="news-list news-list-compact">' + listHtml(countyZx.dynamic) + '</ul>';
-    html += '</div>';
-    html += '<div class="county-cols"><div class="county-dyn-title">' + esc(el("countyTitle") ? el("countyTitle").textContent : "县（区）政协") + '</div>';
-    html += '<div class="county-grid">' + countyZx.list.map(function (c) {
-      return '<a class="county-tag" href="' + esc(abs(c.url)) + '"' + ext(c.url) + '>' + esc(c.name) + '</a>';
-    }).join("") + '</div></div>';
-    body.innerHTML = html;
+    const dyn = el("countyDynamic");
+    if (dyn) dyn.innerHTML = listHtml(countyZx.dynamic, false);
   }
 
   function renderRanking(list) {
@@ -212,8 +322,6 @@
       return '<li><span class="rank-name">' + esc(r.name) + '</span>' +
         '<span class="rank-count">来稿' + esc(r.count) + '</span></li>';
     }).join("");
-    const t = el("rankingTitle");
-    if (t) t.textContent = "2026来稿排名（前五）";
   }
 
   function renderTopic(items) {
@@ -255,6 +363,54 @@
       '<p>建议使用 1024×768 或更高分辨率浏览</p>';
   }
 
+  // 滚动到末尾 → 停留 2 秒 → 回到第一张，循环
+  function startScrollLoop(track, container, speed) {
+    if (!track || !container) return;
+    let pos = 0, last = performance.now(), paused = false, dwelling = false, dwellTimer = null, raf;
+    function hold(ms, done) {
+      dwelling = true;
+      clearTimeout(dwellTimer);
+      dwellTimer = setTimeout(function () {
+        dwelling = false;
+        done();
+      }, ms);
+    }
+    function move(now) {
+      // 每帧重新计算可滚距离，避免初始化时布局未就绪导致误判
+      const max = Math.max(0, track.scrollWidth - container.clientWidth);
+      const dt = (now - last) / 1000;
+      last = now;
+      if (!paused && !dwelling && max > 2) {
+        pos += speed * dt;
+        if (pos >= max) {
+          pos = max;
+          track.style.transform = "translateX(" + (-max) + "px)";
+          hold(2000, function () {            // 滚到底 → 停留 2 秒
+            pos = 0;
+            track.style.transform = "translateX(0)";
+            hold(2000, function () {          // 回第一张 → 停留 2 秒
+              last = performance.now();
+            });
+          });
+        } else {
+          track.style.transform = "translateX(" + (-pos) + "px)";
+        }
+      }
+      raf = requestAnimationFrame(move);
+    }
+    container.addEventListener("mouseenter", function () { paused = true; });
+    container.addEventListener("mouseleave", function () { paused = false; last = performance.now(); });
+    raf = requestAnimationFrame(move);
+  }
+
+  function initMarquees() {
+    requestAnimationFrame(function () {
+      startScrollLoop(document.querySelector(".leader-vices-track"), document.querySelector(".leader-vices-marquee"), 60);
+      startScrollLoop(document.querySelector(".image-marquee-track"), document.querySelector(".image-marquee"), 60);
+      startScrollLoop(document.querySelector(".member-gallery-track"), document.querySelector(".member-gallery-marquee"), 60);
+    });
+  }
+
   /* ---------- 交互：导航汉堡 / 字号 / 对比度 ---------- */
   function bindInteractions() {
     const toggle = el("navToggle"), nav = el("siteNav");
@@ -288,6 +444,7 @@
       if (!res.ok) throw new Error("HTTP " + res.status);
       const d = await res.json();
       state.data = d;
+      renderMarquee(d.meta.marquee);
       renderNav(d.nav);
       renderCarousel(d.slides);
       renderLeaders(d.leaders);
@@ -298,7 +455,7 @@
       el("sxList").innerHTML = listHtml(d.sxNews, true);
       headLinks(d.zxMeeting.tabs, "meetingLinks");
       el("meetingList").innerHTML = listHtml(d.zxMeeting.items, false);
-      renderImageGrid("imageGrid", d.imageNews, 8);
+      renderImageMarquee("imageMarquee", d.imageNews);
 
       // 侧栏（标题已在 HTML 固定，这里填充列表与“更多”链接）
       fillBox("notice", d.notice);
@@ -324,6 +481,7 @@
       renderImageGrid("sceneryGrid", d.scenery, 8);
       renderLinks(d.links);
       renderFooter(d.meta);
+      initMarquees();
     } catch (err) {
       console.error("首页数据加载失败:", err);
       showDataError();

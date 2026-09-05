@@ -25,11 +25,6 @@
           <button type="button" data-font="large" aria-label="放大字号">A+</button>
         </div>
         <button type="button" class="contrast-btn" id="contrastBtn" aria-label="切换高对比度">无障碍</button>
-        <form class="search-form" action="https://www.gxhczx.gov.cn/search.php" method="get" target="_blank" role="search">
-          <input type="text" name="key" id="key" placeholder="搜索站内内容…" aria-label="搜索站内内容">
-          <input type="hidden" name="type" value="1">
-          <button type="submit">搜索</button>
-        </form>
       </div>
     </div>
   </div>
@@ -58,7 +53,26 @@
         <ul class="nav-list" id="mainNav" role="menubar" aria-label="主导航"></ul>
       </div>
     </nav>
+
   </header>
+
+  <!-- 滚动要闻 + 搜索（参照旧版导航下方横栏） -->
+  <div class="run-bar">
+    <div class="container run-bar-inner">
+      <div class="run-marquee" aria-label="滚动公告">
+        <span class="run-label" aria-hidden="true">公告</span>
+        <div class="marquee-viewport"><span class="marquee-track" id="marqueeTrack"></span></div>
+      </div>
+      <form class="run-search" action="https://www.gxhczx.gov.cn/search.php" method="get" target="_blank" role="search">
+        <input type="text" name="key" placeholder="搜索站内内容…" aria-label="搜索站内内容">
+        <select name="type" aria-label="搜索范围">
+          <option value="1">标题</option>
+          <option value="2">内容</option>
+        </select>
+        <button type="submit">搜索</button>
+      </form>
+    </div>
+  </div>
 
   <main id="main">
     <div class="container">
@@ -80,7 +94,7 @@
           <!-- 政协动态 -->
           <section class="section-card" id="zxdtSection" aria-label="政协动态">
             <div class="card-head"><h2>政协动态</h2><div class="head-links" id="zxdtLinks"></div></div>
-            <div class="card-body"><ul class="news-list" id="zxdtList"></ul></div>
+            <div class="card-body"><ul class="news-list news-list-dated" id="zxdtList"></ul></div>
           </section>
 
           <!-- 时政要闻 -->
@@ -95,11 +109,6 @@
             <div class="card-body"><ul class="news-list" id="meetingList"></ul></div>
           </section>
 
-          <!-- 图片新闻 -->
-          <section class="section-card" id="imageSection" aria-label="图片新闻">
-            <div class="card-head"><h2>图片新闻</h2><a class="more" target="_blank" rel="noopener" href="https://www.gxhczx.gov.cn/news_list.php?id=314">更多&gt;&gt;</a></div>
-            <div class="card-body"><div class="image-grid" id="imageGrid"></div></div>
-          </section>
         </div>
 
         <aside class="side-col" aria-label="快捷栏目">
@@ -123,11 +132,6 @@
             <div class="card-body"><ul class="news-list news-list-compact" id="videoList"></ul></div>
           </section>
 
-          <!-- 来稿排名 -->
-          <section class="section-card" id="rankingCard" aria-label="来稿排名">
-            <div class="card-head"><h2 id="rankingTitle">来稿排名</h2><a class="more" id="rankingMore" target="_blank" rel="noopener">全部排名</a></div>
-            <div class="card-body"><ol class="ranking-list" id="rankingList"></ol></div>
-          </section>
         </aside>
       </div>
 
@@ -147,6 +151,16 @@
         </section>
       </div>
 
+      <!-- 图片新闻 -->
+      <section class="section-card" id="imageSection" aria-label="图片新闻">
+        <div class="card-head"><h2>图片新闻</h2><a class="more" target="_blank" rel="noopener" href="https://www.gxhczx.gov.cn/news_list.php?id=314">更多&gt;&gt;</a></div>
+        <div class="card-body">
+          <div class="image-marquee">
+            <div class="image-marquee-track" id="imageMarquee"></div>
+          </div>
+        </div>
+      </section>
+
       <!-- 委员之窗 -->
       <section class="section-card" id="memberSection" aria-label="委员之窗">
         <div class="card-head"><h2>委员之窗</h2><a class="more" target="_blank" rel="noopener" href="https://www.gxhczx.gov.cn/news_list.php?id=311">更多&gt;&gt;</a></div>
@@ -157,7 +171,34 @@
       <section class="section-card" id="countySection" aria-label="县（区）政协">
         <div class="card-head"><h2 id="countyTitle">县（区）政协</h2><a class="more" id="countyMore" target="_blank" rel="noopener">更多&gt;&gt;</a></div>
         <div class="card-body">
-          <div class="county-body" id="countyBody"></div>
+          <div class="county-body">
+            <div class="county-panel county-map-panel">
+              <div class="county-map">
+                <img src="images/map.jpg" usemap="#imgMap" alt="河池市县（区）政协地图，点击区域跳转对应县（区）政协网站">
+                <map name="imgMap" id="imgMap">
+                  <area shape="poly" coords="154,156,180,144,178,127,193,121,225,145,249,148,244,160,251,176,209,173,178,203" href="#" alt="金城江政协网" title="金城江政协网" />
+                  <area shape="poly" coords="234,184,257,182,258,151,280,151,291,137,306,155,319,150,322,168,347,170,344,180,370,198,350,212,332,203,304,263,295,225,261,198,240,199" href="#" alt="宜州政协网" title="宜州政协网" />
+                  <area shape="poly" coords="295,121,352,83,369,83,380,74,384,83,380,100,364,113,372,120,388,116,390,129,376,130,360,146,363,159,350,164,337,157,330,163,325,161,321,140,306,145,296,120" href="http://lc.gxhczx.gov.cn/" target="_blank" rel="noopener" alt="罗城政协网" title="罗城政协网" />
+                  <area shape="poly" coords="203,86,240,73,249,38,277,23,320,86,286,103,277,142,211,127" href="http://hj.gxhczx.gov.cn/" target="_blank" rel="noopener" alt="环江政协网" title="环江政协网" />
+                  <area shape="poly" coords="75,23,100,5,139,71,166,60,201,100,168,122,173,138,166,142,160,131,121,139,113,122,125,115,103,67,93,65,90,43,96,38,93,31,84,32" href="http://nd.gxhczx.gov.cn/" target="_blank" rel="noopener" alt="南丹政协网" title="南丹政协网" />
+                  <area shape="poly" coords="23,79,70,63,65,31,72,29,113,113,106,117,110,127,77,134,70,129,53,141,50,163,30,144,49,128,30,103,34,96" href="http://te.gxhczx.gov.cn/" target="_blank" rel="noopener" alt="天峨政协网" title="天峨政协网" />
+                  <area shape="poly" coords="114,182,100,136,115,134,122,159,138,149,170,209,114,226,105,204,91,206,89,193" href="http://dl.gxhczx.gov.cn/" target="_blank" rel="noopener" alt="东兰政协网" title="东兰政协网" />
+                  <area shape="poly" coords="101,213,134,291,48,242,81,211" href="#" alt="巴马政协网" title="巴马政协网" />
+                  <area shape="poly" coords="21,166,39,161,55,172,59,166,61,151,98,146,99,166,105,176,79,193,79,203,50,224" href="#" alt="凤山政协网" title="凤山政协网" />
+                  <area shape="poly" coords="234,297,193,253,193,214,218,184,237,211,262,208,287,236,292,267,226,300" href="http://da.gxhczx.gov.cn/" target="_blank" rel="noopener" alt="都安政协网" title="都安政协网" />
+                  <area shape="poly" coords="127,254,178,211,181,266,194,271,197,289,222,308,218,323,175,341" href="http://dh.gxhczx.gov.cn/" target="_blank" rel="noopener" alt="大化政协网" title="大化政协网" />
+                </map>
+              </div>
+            </div>
+            <div class="county-panel">
+              <div class="county-dyn-title">县（区）政协工作动态</div>
+              <ul class="news-list news-list-compact" id="countyDynamic"></ul>
+            </div>
+            <div class="county-panel county-rank-panel">
+              <div class="county-dyn-title">2026来稿排名（前五）<a class="more" id="rankingMore" target="_blank" rel="noopener">全部排名</a></div>
+              <ol class="ranking-list" id="rankingList"></ol>
+            </div>
+          </div>
         </div>
       </section>
 
