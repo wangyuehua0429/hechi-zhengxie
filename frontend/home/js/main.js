@@ -350,7 +350,7 @@
     const strip = el("topicStrip");
     if (!strip) return;
     strip.innerHTML = items.map(function (it) {
-      return '<a class="topic-item" href="' + esc(abs(it.url)) + '" target="_blank" rel="noopener">' +
+      return '<a class="topic-item" href="' + esc(abs(it.url)) + '" target="_blank" rel="noopener" data-label="专题">' +
         '<img src="' + esc(abs(it.img)) + '" alt="' + esc(it.title) + '" loading="lazy"></a>';
     }).join("");
   }
@@ -413,7 +413,7 @@
       '<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">' + esc(meta.icp) + '</a>' +
       '<span class="footer-police"><img src="images/ghs.png" alt="公安备案徽标">' + esc(meta.police) + '</span>' +
       '</div>' +
-      '<p>建议使用 1024×768 或更高分辨率浏览</p>' +
+      '<p>建议使用 Chrome / Edge 等现代浏览器访问，分辨率 1280×768 及以上</p>' +
       '<div class="footer-badges">' +
       '<img class="badge-tall" src="images/td1.gif" alt="广西网络警察">' +
       '<img class="badge-wide" src="images/td3.gif" alt="广西网警虚拟岗亭">' +
