@@ -1,0 +1,1206 @@
+{
+  "meta": {
+    "title": "广西河池政协网",
+    "domain": "www.gxhczx.gov.cn",
+    "owner": "中国人民政治协商会议河池市委员会",
+    "icp": "桂ICP备11004006号-2",
+    "police": "京公网安备45120202000126号",
+    "copyright": "Copyright © 2017 www.gxhczx.gov.cn All Rights Reserved"
+  },
+  "nav": [
+    {
+      "title": "首页",
+      "url": "http://www.gxhczx.gov.cn/index.html"
+    },
+    {
+      "title": "政协概况",
+      "url": "http://www.gxhczx.gov.cn/news_list_about.php?id=202"
+    },
+    {
+      "title": "政协动态",
+      "url": "http://www.gxhczx.gov.cn/news_list.php?id=904"
+    },
+    {
+      "title": "政协会议",
+      "url": "http://www.gxhczx.gov.cn/news_list.php?id=401"
+    },
+    {
+      "title": "规章制度",
+      "url": "http://www.gxhczx.gov.cn/news_list.php?id=307"
+    },
+    {
+      "title": "政协提案",
+      "url": "http://www.gxhczx.gov.cn/news_list.php?id=501"
+    },
+    {
+      "title": "社情民意",
+      "url": "http://www.gxhczx.gov.cn/news_list.php?id=310"
+    },
+    {
+      "title": "专委会工作",
+      "url": "http://www.gxhczx.gov.cn/news_list.php?id=308"
+    },
+    {
+      "title": "党派团体",
+      "url": "http://www.gxhczx.gov.cn/news_list.php?id=601"
+    },
+    {
+      "title": "视察调研",
+      "url": "http://www.gxhczx.gov.cn/news_list.php?id=312"
+    },
+    {
+      "title": "委员风采",
+      "url": "http://www.gxhczx.gov.cn/news_list.php?id=311"
+    },
+    {
+      "title": "友好往来",
+      "url": "http://www.gxhczx.gov.cn/news_list.php?id=313"
+    },
+    {
+      "title": "县（区）政协",
+      "url": "http://www.gxhczx.gov.cn/qy_list.php"
+    },
+    {
+      "title": "理论研究",
+      "url": "http://www.gxhczx.gov.cn/news_list.php?id=317"
+    },
+    {
+      "title": "河池文史",
+      "url": "http://www.gxhczx.gov.cn/news_list.php?id=315"
+    },
+    {
+      "title": "政协艺苑",
+      "url": "http://www.gxhczx.gov.cn/news_list.php?id=803"
+    },
+    {
+      "title": "他山之石",
+      "url": "http://www.gxhczx.gov.cn/news_list.php?id=319"
+    },
+    {
+      "title": "政协文史馆",
+      "url": "http://www.expoon.com/e/kmapz79jhdu/"
+    }
+  ],
+  "leaders": {
+    "chairman": {
+      "name": "黄恩",
+      "url": "http://www.gxhczx.gov.cn/cq_view.php?id=39587",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260302/20260302122437471.jpg"
+    },
+    "viceChairmen": [
+      {
+        "name": "韦祖林",
+        "url": "http://www.gxhczx.gov.cn/cq_view.php?id=39585",
+        "img": "http://www.gxhczx.gov.cn/uploadfiles/20211014/20211014235218_495.jpg"
+      },
+      {
+        "name": "兰吉阳",
+        "url": "http://www.gxhczx.gov.cn/cq_view.php?id=39584",
+        "img": "http://www.gxhczx.gov.cn/uploadfiles/20211014/20211014235110_695.jpg"
+      },
+      {
+        "name": "黄大东",
+        "url": "http://www.gxhczx.gov.cn/cq_view.php?id=39583",
+        "img": "http://www.gxhczx.gov.cn/uploadfiles/20211014/20211014234936_947.jpg"
+      },
+      {
+        "name": "韦伟松",
+        "url": "http://www.gxhczx.gov.cn/cq_view.php?id=44459",
+        "img": "http://www.gxhczx.gov.cn/uploadfiles/20240321/20240321094939651.jpg"
+      },
+      {
+        "name": "蓝启章",
+        "url": "http://www.gxhczx.gov.cn/cq_view.php?id=39582",
+        "img": "http://www.gxhczx.gov.cn/uploadfiles/20211014/20211014234823_556.jpg"
+      },
+      {
+        "name": "潘秋琳",
+        "url": "http://www.gxhczx.gov.cn/cq_view.php?id=39580",
+        "img": "http://www.gxhczx.gov.cn/uploadfiles/20211014/20211014234615_914.jpg"
+      },
+      {
+        "name": "韦懿格",
+        "url": "http://www.gxhczx.gov.cn/cq_view.php?id=39579",
+        "img": "http://www.gxhczx.gov.cn/uploadfiles/20211014/20211014234510_197.jpg"
+      },
+      {
+        "name": "黄正华",
+        "url": "http://www.gxhczx.gov.cn/cq_view.php?id=61542",
+        "img": "http://www.gxhczx.gov.cn/uploadfiles/20260310/20260310163508737.jpg"
+      }
+    ],
+    "secretaryGeneral": {
+      "name": "黄正华",
+      "url": "http://www.gxhczx.gov.cn/cq_view.php?id=39578",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260302/20260302122653290.jpg"
+    },
+    "extraLinks": [
+      {
+        "title": "住河池自治区政协委员",
+        "url": "http://www.gxhczx.gov.cn/news_list.php?id=210"
+      },
+      {
+        "title": "政协常委",
+        "url": "http://www.gxhczx.gov.cn/html/news-view-39588.html"
+      },
+      {
+        "title": "政协委员",
+        "url": "http://www.gxhczx.gov.cn/html/news-view-2522.html"
+      }
+    ]
+  },
+  "slides": [
+    {
+      "title": "市政协党组会议暨五届第67次主席会议召开",
+      "url": "#",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260831/20260831161151861.jpg"
+    },
+    {
+      "title": "黄恩率队到都安开展专题调研",
+      "url": "#",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260825/20260825163205245.jpg"
+    },
+    {
+      "title": "市政协党组会议暨五届第六十六次主席会议召开",
+      "url": "http://www.gxhczx.gov.cn/html/news-view-63759.html",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260817/20260817120344157.jpg"
+    },
+    {
+      "title": "黄恩到宜州环江金城江开展专题调研",
+      "url": "http://www.gxhczx.gov.cn/html/news-view-63702.html",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260811/20260811115328695.jpg"
+    },
+    {
+      "title": "徐绍川率队到我市督导检查安全生产工作",
+      "url": "http://www.gxhczx.gov.cn/html/news-view-63586.html",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260803/20260803163536491.jpg"
+    },
+    {
+      "title": "市政协召开专题协商会",
+      "url": "http://www.gxhczx.gov.cn/html/news-view-63582.html",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260803/20260803162912201.jpg"
+    }
+  ],
+  "notice": [
+    {
+      "title": "名单公布！河池市表彰50个集体、74名个人",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=62919",
+      "date": ""
+    },
+    {
+      "title": "河池市政协组织和政协委员参与“化解历史矛盾维护群众利益”工作倡议书",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=61941",
+      "date": ""
+    },
+    {
+      "title": "中国人民政治协商会议第五届河池市委员会补选主席名单",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=61485",
+      "date": ""
+    },
+    {
+      "title": "中国人民政治协商会议第五届河池市委员会补选副主席名单",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=61486",
+      "date": ""
+    }
+  ],
+  "bookCity": [
+    {
+      "title": "河池市政协“书香政协 香飘八桂”委员读书实践活动推荐书目（2022年11-12月）",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=43087",
+      "date": ""
+    },
+    {
+      "title": "河池市政协“书香政协 香飘八桂”委员读书实践活动推荐书目（2022年9-10月）",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=42226",
+      "date": ""
+    },
+    {
+      "title": "自治区政协“书香政协 香飘八桂”委员读书实践活动推荐图书(资料)目录（6-8月）",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=42132",
+      "date": ""
+    },
+    {
+      "title": "河池市政协“书香政协 香飘八桂”委员读书实践活动推荐书目（2022年7-8月）",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=41556",
+      "date": ""
+    }
+  ],
+  "antiGang": [
+    {
+      "title": "我市召开深化扫黑除恶专项斗争动员部署会议",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=63969",
+      "date": ""
+    },
+    {
+      "title": "河池市扫黑除恶斗争领导小组会议召开",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=47447",
+      "date": ""
+    },
+    {
+      "title": "【扫黑除恶】常态化扫黑除恶斗争应知应会知识",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=43875",
+      "date": ""
+    }
+  ],
+  "videos": [],
+  "zxdt": {
+    "tabs": [
+      {
+        "title": "市政协动态",
+        "url": "http://www.gxhczx.gov.cn/news_list.php?id=904"
+      },
+      {
+        "title": "广西政协动态",
+        "url": "http://www.gxhczx.gov.cn/news_list.php?q=33&id=904"
+      },
+      {
+        "title": "全国政协动态",
+        "url": "http://www.gxhczx.gov.cn/news_list.php?q=55&id=904"
+      }
+    ],
+    "items": [
+      {
+        "title": "深情不负厚土 实干浇出硕果——河池市政协助力乡村振兴小记",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=64048",
+        "date": "2026-09-02 17:44:32"
+      },
+      {
+        "title": "黄恩参加巴马代表团第二次会议讨论",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63986",
+        "date": "2026-08-31 16:20:51"
+      },
+      {
+        "title": "市政协党组会议暨五届第67次主席会议召开",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63982",
+        "date": "2026-08-31 16:03:56"
+      },
+      {
+        "title": "市政协考察组赴玉林市考察学习清廉民企建设先进经验",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63980",
+        "date": "2026-08-31 15:25:34"
+      },
+      {
+        "title": "市政协开展专题调研 助力西部陆海新通道重要节点城市建设",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63946",
+        "date": "2026-08-27 17:05:39"
+      },
+      {
+        "title": "协商搭台聚民智法治赋能强善治——河池市政协履职创新助力市域治理现代化",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63922",
+        "date": "2026-08-26 15:15:34"
+      },
+      {
+        "title": "黄恩率队到都安开展专题调研",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63903",
+        "date": "2026-08-25 16:21:52"
+      },
+      {
+        "title": "潘秋琳到巴马调研",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63875",
+        "date": "2026-08-24 16:08:45"
+      },
+      {
+        "title": "市政协召开“推进人工智能与民族地区社会治理深度融合，赋能河池高质量发展”提案办理协商会",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63835",
+        "date": "2026-08-20 17:39:58"
+      },
+      {
+        "title": "河池市政协机关获颁市红十字会荣誉证书",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63839",
+        "date": "2026-08-20 17:35:57"
+      }
+    ]
+  },
+  "sxNews": [
+    {
+      "title": "黔桂铁路增建二线工程河池段项目征地拆迁安置工作推进会召开",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=64088",
+      "date": "2026-09-04 16:36:12"
+    },
+    {
+      "title": "我市名特优产品展销推介会暨京东平台上行活动顺利举办",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=64086",
+      "date": "2026-09-04 16:13:54"
+    },
+    {
+      "title": "汪东明组织召开2026年环广西世巡赛河池筹备工作推进会",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=64067",
+      "date": "2026-09-03 16:30:07"
+    },
+    {
+      "title": "黄开道到环江调研",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=64066",
+      "date": "2026-09-03 16:27:01"
+    },
+    {
+      "title": "我市落实耕地保护和粮食安全责任制工作成效显著",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=64065",
+      "date": "2026-09-03 16:16:29"
+    },
+    {
+      "title": "市五届政府第七次全体(扩大)会议召开",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=64050",
+      "date": "2026-09-02 17:51:38"
+    },
+    {
+      "title": "汪东明会见太平洋建设集团董事局主席严昊一行",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=64049",
+      "date": "2026-09-02 17:47:10"
+    },
+    {
+      "title": "河池推进矿业权整合取得历史性突破",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=64047",
+      "date": "2026-09-02 17:33:11"
+    },
+    {
+      "title": "新一届市委常委班子开展履新第一课党性教育活动",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=64026",
+      "date": "2026-09-01 16:18:32"
+    },
+    {
+      "title": "黔桂铁路增建二线项目建设专题协调会召开",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=64027",
+      "date": "2026-09-01 16:16:31"
+    }
+  ],
+  "zxMeeting": {
+    "tabs": [
+      {
+        "title": "其它会议",
+        "url": "http://www.gxhczx.gov.cn/news_list.php?id=404"
+      },
+      {
+        "title": "主席会议",
+        "url": "http://www.gxhczx.gov.cn/news_list.php?id=403"
+      },
+      {
+        "title": "常委会议",
+        "url": "http://www.gxhczx.gov.cn/news_list.php?id=402"
+      },
+      {
+        "title": "全体会议",
+        "url": "http://www.gxhczx.gov.cn/news_list.php?id=401"
+      }
+    ],
+    "items": [
+      {
+        "title": "政协第五届河池市委员会第一次会议选出新领导班子",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=45091",
+        "date": ""
+      },
+      {
+        "title": "市政协五届一次会议举行全体政协委员培训会",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=45089",
+        "date": ""
+      },
+      {
+        "title": "市政协党组会议暨五届第67次主席会议召开",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63984",
+        "date": ""
+      },
+      {
+        "title": "市政协党组会议暨五届第67次主席会议召开",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63985",
+        "date": ""
+      },
+      {
+        "title": "全市政协参与“化解历史矛盾维护群众利益”工作交流会召开",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63017",
+        "date": ""
+      },
+      {
+        "title": "市政协召开“推进人工智能与民族地区社会治理深度融合，赋能河池高质量发展”提案办理协商会",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63837",
+        "date": ""
+      },
+      {
+        "title": "市政协党组会议暨五届第六十六次主席会议召开",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63761",
+        "date": ""
+      }
+    ]
+  },
+  "zwhWork": [
+    {
+      "title": "全市政协提案和社会法制工作经验交流会举行",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=62464",
+      "date": ""
+    },
+    {
+      "title": "河池市政协召开2025年提案办理评议工作会议",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60368",
+      "date": ""
+    },
+    {
+      "title": "2025年河池市政协民族宗教委员会工作座谈会召开",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60319",
+      "date": ""
+    },
+    {
+      "title": "2025年市政协文化文史和学习委员会召开工作座谈会",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60316",
+      "date": ""
+    },
+    {
+      "title": "2025年河池市政协外事联谊委员会工作座谈会在宜州召开",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60286",
+      "date": ""
+    },
+    {
+      "title": "市政协经济和资源环境委员会召开工作座谈会",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60285",
+      "date": ""
+    },
+    {
+      "title": "2025年市政协农业和农村委、研究室、委员联络办工作座谈会召开",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60284",
+      "date": ""
+    },
+    {
+      "title": "市政协召开2025年提案法制工作座谈交流会",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60283",
+      "date": ""
+    },
+    {
+      "title": "市政协教科卫体委召开2025年工作座谈会",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60282",
+      "date": ""
+    }
+  ],
+  "partyGroups": [
+    {
+      "title": "民革河池市委会召开三届三次常委会议",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=63733",
+      "date": ""
+    },
+    {
+      "title": "民革河池市委员会课题组到都安调研2026年度重点课题",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=63414",
+      "date": ""
+    },
+    {
+      "title": "河池民盟捐助驰援广西抗洪救灾",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=63415",
+      "date": ""
+    },
+    {
+      "title": "聚焦“双碳”目标实现 民革中央理论学习中心组集体学习（扩大）会召开",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=47958",
+      "date": ""
+    },
+    {
+      "title": "民进河池市总支踊跃捐款 爱心助力广西抗洪救灾",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=63413",
+      "date": ""
+    },
+    {
+      "title": "民盟中央调研组来桂开展调研",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=52008",
+      "date": ""
+    },
+    {
+      "title": "民革十四届七次中常会在京召开",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=53244",
+      "date": ""
+    },
+    {
+      "title": "市工商联五届五次执委会议召开 促进民营经济行稳致远",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=61643",
+      "date": ""
+    },
+    {
+      "title": "民进广西区十二届四次全会召开",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=55975",
+      "date": ""
+    }
+  ],
+  "theory": [
+    {
+      "title": "汇聚跨界合力 主动攻坚克难",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=63418",
+      "date": ""
+    },
+    {
+      "title": "找准定位明方向 履职尽责显担当",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=62565",
+      "date": ""
+    },
+    {
+      "title": "从河池奋斗史中汲取政协履职的智慧力量",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60860",
+      "date": ""
+    },
+    {
+      "title": "以新谋远 向实而行——河池市政协以创新驱动赋能履职新实践",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=58542",
+      "date": ""
+    },
+    {
+      "title": "浅析政协协商议事室在基层社会治理中的时代贡献",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=58540",
+      "date": ""
+    },
+    {
+      "title": "创新改进政协调研工作的路径思考",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=58044",
+      "date": ""
+    },
+    {
+      "title": "聚焦“五大效应” 做大做强林业产业——河池市政协调研组考察调研体会与思考",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=57304",
+      "date": ""
+    },
+    {
+      "title": "以“政协之为”赋能“人道之光”",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=55955",
+      "date": ""
+    },
+    {
+      "title": "《桂在协商》平台聚焦民族地区职业教育“河池现象” 推动职业教育高质量发展",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=55274",
+      "date": ""
+    }
+  ],
+  "imageNews": [
+    {
+      "title": "市政协党组会议暨五届第67次主席会议召开",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=63983",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260831/20260831161514685.jpg"
+    },
+    {
+      "title": "市政协考察组赴玉林市考察学习清廉民企建设先进经",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=63981",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260831/20260831160207803.jpg"
+    },
+    {
+      "title": "市政协开展专题调研 助力西部陆海新通道重要节点城",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=63945",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260827/20260827132713573.jpg"
+    },
+    {
+      "title": "黄恩率队到都安开展专题调研",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=63904",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260825/20260825163425921.jpg"
+    },
+    {
+      "title": "潘秋琳到巴马调研",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=63876",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260824/20260824161158890.jpg"
+    },
+    {
+      "title": "市政协召开“推进人工智能与民族地区社会治理深度",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=63836",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260820/20260820114226225.jpg"
+    },
+    {
+      "title": "市政协党组会议暨五届第六十六次主席会议召开",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=63760",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260817/20260817120152662.jpg"
+    },
+    {
+      "title": "市政协召开重点提案办理协商座谈会 推动托育服务提",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=63754",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20260817/20260817113314983.jpg"
+    }
+  ],
+  "memberWindow": {
+    "featured": [
+      {
+        "title": "韦海良委员的发言：聚力机制创新　构建全域生态 奋力谱写河池关键金属产业高质量发展新篇章",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=61469",
+        "img": "http://www.gxhczx.gov.cn/uploadfiles/20260227/20260227114224326.png"
+      }
+    ],
+    "list": [
+      {
+        "title": "花锦鸿委员的发言：高水平打造红水河流域经济带",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=61464",
+        "date": "2026-02-27 10:30:15"
+      },
+      {
+        "title": "黄焕军委员的发言：大力推进全市移风易俗 助力乡村全面振兴",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=61463",
+        "date": "2026-02-27 10:28:07"
+      },
+      {
+        "title": "姜凤珍委员的发言：以桑蚕产业升级为突破 推动河池深度融入双循环市场经营便利地",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=61462",
+        "date": "2026-02-27 10:26:44"
+      },
+      {
+        "title": "黄丽琼委员的发言：弘扬优秀山歌文化 铸牢中华民族共同体意识",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=61461",
+        "date": "2026-02-27 10:24:02"
+      },
+      {
+        "title": "刘帆委员的发言：高质量打造金宜大道沿线特色产业示范带 加速金宜同城化发展",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=61460",
+        "date": "2026-02-27 10:21:18"
+      },
+      {
+        "title": "张文迪委员的发言：构建“金融创新　智享养老”体系 助推河池养老服务高质量发展",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=61459",
+        "date": "2026-02-27 10:18:55"
+      },
+      {
+        "title": "黄小耿委员的发言：推进龙滩航区建设 助力南丹试验区高质量发展",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=61458",
+        "date": "2026-02-27 10:15:43"
+      },
+      {
+        "title": "韦海良：不断推进家事司法工作 持续加强河池平安法治建设",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=55792",
+        "date": "2025-02-08 19:57:05"
+      },
+      {
+        "title": "梁 华：完善乡村集镇建设 助力乡村全面振兴",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=55791",
+        "date": "2025-02-08 19:54:00"
+      },
+      {
+        "title": "黄兰爱:强化“三项措施” 服务打造粤港澳大湾区重要战略腹地",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=55790",
+        "date": "2025-02-08 19:51:23"
+      }
+    ],
+    "gallery": [
+      {
+        "title": "黄兰爱委员的发言：构建“金融+科技+产业”良性循环体系 赋能河池高质量发展",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=61467",
+        "img": "http://www.gxhczx.gov.cn/uploadfiles/20260227/20260227113500734.png"
+      },
+      {
+        "title": "刘丽红委员的发言：进一步完善河池市中小学心理健康服务体系 护航青少年健康成长",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=61466",
+        "img": "http://www.gxhczx.gov.cn/uploadfiles/20260227/20260227113351983.png"
+      },
+      {
+        "title": "丁玎委员的发言：加大AI科普宣传力度 赋能河池农业高质量发展",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=61465",
+        "img": "http://www.gxhczx.gov.cn/uploadfiles/20260227/20260227113141534.png"
+      },
+      {
+        "title": "花锦鸿委员的发言：高水平打造红水河流域经济带",
+        "url": "http://www.gxhczx.gov.cn/news_view.php?id=61464",
+        "img": "http://www.gxhczx.gov.cn/uploadfiles/20260227/20260227113021206.png"
+      }
+    ]
+  },
+  "countyZx": {
+    "mapImg": "http://www.gxhczx.gov.cn/images/map.jpg",
+    "list": [
+      {
+        "name": "金城江区",
+        "url": "#"
+      },
+      {
+        "name": "宜州区",
+        "url": "#"
+      },
+      {
+        "name": "罗城",
+        "url": "http://lc.gxhczx.gov.cn/"
+      },
+      {
+        "name": "环江",
+        "url": "http://hj.gxhczx.gov.cn/"
+      },
+      {
+        "name": "南丹",
+        "url": "http://nd.gxhczx.gov.cn/"
+      },
+      {
+        "name": "天峨",
+        "url": "http://te.gxhczx.gov.cn/"
+      },
+      {
+        "name": "东兰",
+        "url": "http://dl.gxhczx.gov.cn/"
+      },
+      {
+        "name": "巴马",
+        "url": "#"
+      },
+      {
+        "name": "凤山",
+        "url": "#"
+      },
+      {
+        "name": "都安",
+        "url": "http://da.gxhczx.gov.cn/"
+      },
+      {
+        "name": "大化",
+        "url": "http://dh.gxhczx.gov.cn/"
+      }
+    ],
+    "dynamicTitle": "县（区）政协工作动态",
+    "more": "http://www.gxhczx.gov.cn/news_list.php?id=906",
+    "dynamic": [
+      {
+        "title": "破局“成长烦恼” 厚植兴业沃土——南丹县政协助力第三产业规上企业培育小记",
+        "url": "#",
+        "date": ""
+      },
+      {
+        "title": "环江毛南族自治县政协协商督办重点提案 提升文史馆服务功能",
+        "url": "#",
+        "date": ""
+      },
+      {
+        "title": "如何巧解十年土地积案?——广西河池南丹县政协将协商平台下沉至田间地头",
+        "url": "#",
+        "date": ""
+      },
+      {
+        "title": "都安政协：专题调研推动旅游环境综合整治",
+        "url": "#",
+        "date": ""
+      },
+      {
+        "title": "南丹县政协精准调研“开良方”",
+        "url": "#",
+        "date": ""
+      },
+      {
+        "title": "环江毛南族自治县政协民主监督农村污水治理",
+        "url": "#",
+        "date": ""
+      },
+      {
+        "title": "环江政协开展农村污水处理设施专题视察",
+        "url": "#",
+        "date": ""
+      },
+      {
+        "title": "南丹县乡镇政协工作联络站助解土地权属纠纷",
+        "url": "#",
+        "date": ""
+      },
+      {
+        "title": "罗城仫佬族自治县政协以“提案之力”促“惠民之实”",
+        "url": "#",
+        "date": ""
+      },
+      {
+        "title": "环江聚力激活政协文史馆研学服务功能",
+        "url": "#",
+        "date": ""
+      },
+      {
+        "title": "广西河池天峨县政协助推城区环境整治见成效 街道干净了 日子舒坦了",
+        "url": "#",
+        "date": ""
+      },
+      {
+        "title": "南丹县政协助推基层治理多元法治化",
+        "url": "#",
+        "date": ""
+      }
+    ]
+  },
+  "ranking": [
+    {
+      "rank": 1,
+      "name": "都安瑶族自治县",
+      "count": "28篇"
+    },
+    {
+      "rank": 2,
+      "name": "大化瑶族自治县",
+      "count": "21篇"
+    },
+    {
+      "rank": 3,
+      "name": "环江毛南族自治县",
+      "count": "20篇"
+    },
+    {
+      "rank": 4,
+      "name": "罗城仫佬族自治县",
+      "count": "17篇"
+    },
+    {
+      "rank": 5,
+      "name": "南丹县",
+      "count": "15篇"
+    }
+  ],
+  "topic": [
+    {
+      "title": "河池市政协五届六次会议",
+      "url": "http://www.gxhczx.gov.cn/zl20260225/",
+      "img": "http://www.gxhczx.gov.cn/zl20260225/images/zl.jpg"
+    },
+    {
+      "title": "河池市政协五届四次会议",
+      "url": "http://www.gxhczx.gov.cn/zl20240131/",
+      "img": "http://www.gxhczx.gov.cn/zl20240131/images/zl.jpg"
+    },
+    {
+      "title": "河池市政协五届二次会议",
+      "url": "http://www.gxhczx.gov.cn/zl20220108/",
+      "img": "http://www.gxhczx.gov.cn/zl20220108/images/zl1.jpg"
+    },
+    {
+      "title": "广西政协相关专题",
+      "url": "http://www.gxzx.gov.cn/index.php?m=content&c=index&a=lists&catid=178",
+      "img": "http://www.gxhczx.gov.cn/images/195.jpg"
+    }
+  ],
+  "scenery": [
+    {
+      "title": "牛角寨瀑布—千尺玉帘",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60377",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20251216/20251216154250644.png"
+    },
+    {
+      "title": "剑江——十里画廊",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60378",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20251216/20251216154220693.png"
+    },
+    {
+      "title": "九万大山——水源林区",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60379",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20251216/20251216154432805.png"
+    },
+    {
+      "title": "小三峡——南国第一峡",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60380",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20251216/20251216154645835.png"
+    },
+    {
+      "title": "会仙山——高峡流云",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60381",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20251216/20251216154818109.png"
+    },
+    {
+      "title": "红水河——广西母亲河",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60382",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20251216/20251216154943377.png"
+    },
+    {
+      "title": "武阳江——绿水盈盈",
+      "url": "http://www.gxhczx.gov.cn/news_view.php?id=60383",
+      "img": "http://www.gxhczx.gov.cn/uploadfiles/20251216/20251216155028967.png"
+    }
+  ],
+  "links": {
+    "logos": [
+      {
+        "title": "全国政协",
+        "url": "http://www.cppcc.gov.cn/",
+        "img": "http://www.gxhczx.gov.cn/logo/1.jpg"
+      },
+      {
+        "title": "人民网两会",
+        "url": "http://lianghui.people.com.cn",
+        "img": "http://www.gxhczx.gov.cn/logo/5.jpg"
+      },
+      {
+        "title": "广西政协",
+        "url": "http://www.gxzx.gov.cn/",
+        "img": "http://www.gxhczx.gov.cn/logo/2.gif"
+      },
+      {
+        "title": "河池市政府",
+        "url": "http://www.hechi.gov.cn/",
+        "img": "http://www.gxhczx.gov.cn/logo/3.jpg"
+      },
+      {
+        "title": "河池网",
+        "url": "http://www.hcwang.cn",
+        "img": "http://www.gxhczx.gov.cn/logo/4.gif"
+      }
+    ],
+    "groups": {
+      "全国政协": [
+        [
+          "北京",
+          "http://www.bjzx.gov.cn"
+        ],
+        [
+          "天津",
+          "http://www.tjszx.gov.cn/"
+        ],
+        [
+          "河北",
+          "http://www.hebzx.gov.cn"
+        ],
+        [
+          "山西",
+          "http://www.shanxizx.gov.cn"
+        ],
+        [
+          "内蒙古",
+          "http://www.nmgzx.gov.cn"
+        ],
+        [
+          "辽宁",
+          "http://www.lnzx.gov.cn"
+        ],
+        [
+          "吉林",
+          "http://www.jlszx.gov.cn/"
+        ],
+        [
+          "黑龙江",
+          "https://www.hljzx.gov.cn/"
+        ],
+        [
+          "上海",
+          "http://www.shszx.gov.cn/"
+        ],
+        [
+          "江苏",
+          "http://www.jszx.gov.cn"
+        ],
+        [
+          "浙江",
+          "http://www.zjzx.gov.cn"
+        ],
+        [
+          "安徽",
+          "http://www.ahzx.gov.cn"
+        ],
+        [
+          "福建",
+          "http://www.fjzx.gov.cn"
+        ],
+        [
+          "江西",
+          "http://jxzx.jxnews.com.cn/"
+        ],
+        [
+          "山东",
+          "http://www.sdzx.gov.cn"
+        ],
+        [
+          "湖北",
+          "http://www.hbzx.gov.cn"
+        ],
+        [
+          "湖南",
+          "http://www.hunanzx.gov.cn/"
+        ],
+        [
+          "广东",
+          "https://www.gdszx.gov.cn/"
+        ],
+        [
+          "广西",
+          "http://www.gxzx.gov.cn"
+        ],
+        [
+          "重庆",
+          "http://www.cqzx.gov.cn"
+        ],
+        [
+          "四川",
+          "http://www.sczx.gov.cn"
+        ],
+        [
+          "贵州",
+          "http://www.gzszx.gov.cn"
+        ],
+        [
+          "云南",
+          "http://www.ynzx.gov.cn"
+        ],
+        [
+          "陕西",
+          "http://www.sxzx.gov.cn/"
+        ],
+        [
+          "甘肃",
+          "http://www.gszx.gov.cn"
+        ],
+        [
+          "宁夏",
+          "http://www.nxzx.gov.cn/"
+        ],
+        [
+          "新疆",
+          "http://www.xjzx.gov.cn"
+        ],
+        [
+          "杭州",
+          "http://www.hzzx.gov.cn"
+        ],
+        [
+          "宁波",
+          "http://www.nbzx.gov.cn"
+        ],
+        [
+          "温州",
+          "http://www.wzzx.gov.cn/"
+        ],
+        [
+          "湖州",
+          "http://zxb.huzhou.gov.cn"
+        ],
+        [
+          "金华",
+          "http://www.jhzx.gov.cn"
+        ],
+        [
+          "衢州",
+          "http://www.quzhouzx.gov.cn"
+        ],
+        [
+          "台州",
+          "http://www.zjtzzx.gov.cn"
+        ]
+      ],
+      "广西区内政协": [
+        [
+          "南宁政协网",
+          "http://www.gxnnszx.gov.cn/"
+        ],
+        [
+          "柳州政协网",
+          "http://lzzx.liuzhou.gov.cn/"
+        ],
+        [
+          "桂林政协网",
+          "http://www.glszx.gov.cn/"
+        ],
+        [
+          "梧州政协网",
+          "http://www.gxwzzx.gov.cn/"
+        ],
+        [
+          "北海政协网",
+          "http://www.beihai.gov.cn/bhszfwfzdjq/bhszx/"
+        ],
+        [
+          "钦州政协网",
+          "http://www.zxqzsw.gov.cn/"
+        ],
+        [
+          "贵港政协网",
+          "http://www.gxggzx.gov.cn/"
+        ],
+        [
+          "玉林政协网",
+          "http://gxylzx.gov.cn/"
+        ],
+        [
+          "贺州政协网",
+          "http://www.gxhzzx.gov.cn/"
+        ],
+        [
+          "河池政协网",
+          "http://www.gxhczx.gov.cn/"
+        ],
+        [
+          "崇左政协网",
+          "http://www.gxczzx.gov.cn/"
+        ]
+      ],
+      "本地网站": [
+        [
+          "金城江政府网",
+          "http://www.jcj.gov.cn/"
+        ],
+        [
+          "罗城政府网",
+          "http://www.luocheng.gov.cn/"
+        ],
+        [
+          "环江政府网",
+          "http://www.hjzf.gov.cn/"
+        ],
+        [
+          "南丹政府网",
+          "http://www.gxnd.gov.cn/"
+        ],
+        [
+          "天峨政府网",
+          "http://www.tiane.gov.cn/"
+        ],
+        [
+          "东兰政府网",
+          "http://www.donglan.gov.cn/"
+        ],
+        [
+          "巴马政府网",
+          "http://www.bama.gov.cn/"
+        ],
+        [
+          "凤山政府网",
+          "http://www.gxfsx.gov.cn"
+        ],
+        [
+          "都安县政府",
+          "http://www.duan.gov.cn/"
+        ],
+        [
+          "大化县政府",
+          "http://www.gxdh.gov.cn/"
+        ]
+      ],
+      "新闻媒体": [
+        [
+          "人民网",
+          "http://www.people.com.cn/"
+        ],
+        [
+          "新华网",
+          "http://www.xinhuanet.com/"
+        ],
+        [
+          "广西新闻网",
+          "http://www.gxnews.com.cn/"
+        ],
+        [
+          "广西人事考试网",
+          "http://www.gxpta.com.cn/"
+        ],
+        [
+          "中新社广西网",
+          "http://www.gx.chinanews.com/"
+        ],
+        [
+          "广西法院网",
+          "http://gxfy.chinacourt.org/"
+        ],
+        [
+          "广西检察网",
+          "http://www.gx.jcy.gov.cn/"
+        ]
+      ],
+      "综合网站": [
+        [
+          "工业和信息化部",
+          "https://www.miit.gov.cn/"
+        ],
+        [
+          "凤凰网",
+          "http://www.ifeng.com/"
+        ],
+        [
+          "光明网",
+          "http://www.gmw.cn/"
+        ],
+        [
+          "南方科技网",
+          "http://www.nnst.gov.cn/html/index.html"
+        ],
+        [
+          "广西招生考试院",
+          "http://www.gxeea.cn/view/index.htm"
+        ],
+        [
+          "百度",
+          "http://www.baidu.com/"
+        ],
+        [
+          "新浪",
+          "http://www.sina.com.cn/"
+        ]
+      ]
+    },
+    "allLink": "http://www.gxhczx.gov.cn/"
+  }
+}

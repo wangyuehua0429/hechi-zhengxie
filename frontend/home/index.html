@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="广西河池政协网 - 中国人民政治协商会议河池市委员会官方门户">
+  <title>广西河池政协网 · 首页</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-font="default">
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <!-- 顶部工具条 -->
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="topbar-left">
+        <span class="topbar-date" id="topbarDate"></span>
+        <span class="topbar-org">中国人民政治协商会议河池市委员会</span>
+      </div>
+      <div class="topbar-right">
+        <div class="font-tools" role="group" aria-label="字号调整">
+          <span>适老化</span>
+          <button type="button" data-font="small" aria-label="缩小字号">A-</button>
+          <button type="button" data-font="default" aria-label="标准字号" class="active">默认</button>
+          <button type="button" data-font="large" aria-label="放大字号">A+</button>
+        </div>
+        <button type="button" class="contrast-btn" id="contrastBtn" aria-label="切换高对比度">无障碍</button>
+        <form class="search-form" action="https://www.gxhczx.gov.cn/search.php" method="get" target="_blank" role="search">
+          <input type="text" name="key" id="key" placeholder="搜索站内内容…" aria-label="搜索站内内容">
+          <input type="hidden" name="type" value="1">
+          <button type="submit">搜索</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- 站点品牌 -->
+  <header class="site-header">
+    <div class="container masthead">
+      <a href="./index.html" aria-label="广西河池政协网首页">
+        <img src="images/head.jpg" alt="广西河池政协网 政治协商 民主监督 参政议政">
+      </a>
+    </div>
+    <div class="container header-inner">
+      <a class="brand" href="./index.html" aria-label="广西河池政协网首页">
+        <span class="brand-badge" aria-hidden="true">政&nbsp;协</span>
+        <span class="brand-text">
+          <strong>广西河池政协网</strong>
+          <small>中国人民政治协商会议河池市委员会</small>
+        </span>
+      </a>
+      <button type="button" class="nav-toggle" id="navToggle" aria-label="打开菜单" aria-expanded="false" aria-controls="mainNav">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <nav class="site-nav" id="siteNav">
+      <div class="container">
+        <ul class="nav-list" id="mainNav" role="menubar" aria-label="主导航"></ul>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main">
+    <div class="container">
+
+      <!-- 首屏：要闻轮播 + 政协领导 -->
+      <section class="hero" aria-label="头条要闻">
+        <div class="hero-carousel" id="heroCarousel" aria-roledescription="轮播"></div>
+        <aside class="hero-side" aria-label="政协领导">
+          <div class="section-card" id="leadersCard">
+            <div class="card-head"><h2>政协领导</h2></div>
+            <div class="card-body" id="leadersBody"></div>
+          </div>
+        </aside>
+      </section>
+
+      <!-- 主体两栏 -->
+      <div class="content-grid">
+        <div class="main-col">
+          <!-- 政协动态 -->
+          <section class="section-card" id="zxdtSection" aria-label="政协动态">
+            <div class="card-head"><h2>政协动态</h2><div class="head-links" id="zxdtLinks"></div></div>
+            <div class="card-body"><ul class="news-list" id="zxdtList"></ul></div>
+          </section>
+
+          <!-- 时政要闻 -->
+          <section class="section-card" id="sxSection" aria-label="时政要闻">
+            <div class="card-head"><h2>时政要闻</h2><a class="more" target="_blank" rel="noopener" href="https://www.gxhczx.gov.cn/news_list.php?id=306">更多&gt;&gt;</a></div>
+            <div class="card-body"><ul class="news-list news-list-dated" id="sxList"></ul></div>
+          </section>
+
+          <!-- 政协会议 -->
+          <section class="section-card" id="meetingSection" aria-label="政协会议">
+            <div class="card-head"><h2>政协会议</h2><div class="head-links" id="meetingLinks"></div></div>
+            <div class="card-body"><ul class="news-list" id="meetingList"></ul></div>
+          </section>
+
+          <!-- 图片新闻 -->
+          <section class="section-card" id="imageSection" aria-label="图片新闻">
+            <div class="card-head"><h2>图片新闻</h2><a class="more" target="_blank" rel="noopener" href="https://www.gxhczx.gov.cn/news_list.php?id=314">更多&gt;&gt;</a></div>
+            <div class="card-body"><div class="image-grid" id="imageGrid"></div></div>
+          </section>
+        </div>
+
+        <aside class="side-col" aria-label="快捷栏目">
+          <section class="section-card" id="noticeCard" aria-label="公告通知">
+            <div class="card-head"><h2 id="noticeTitle">公告通知</h2><a class="more" id="noticeMore" target="_blank" rel="noopener">更多&gt;&gt;</a></div>
+            <div class="card-body"><ul class="news-list news-list-compact" id="noticeList"></ul></div>
+          </section>
+
+          <section class="section-card" id="bookCard" aria-label="网上书院">
+            <div class="card-head"><h2 id="bookTitle">网上书院</h2><a class="more" id="bookMore" target="_blank" rel="noopener">更多&gt;&gt;</a></div>
+            <div class="card-body"><ul class="news-list news-list-compact" id="bookList"></ul></div>
+          </section>
+
+          <section class="section-card" id="antiCard" aria-label="扫黑除恶">
+            <div class="card-head"><h2 id="antiTitle">扫黑除恶</h2><a class="more" id="antiMore" target="_blank" rel="noopener">更多&gt;&gt;</a></div>
+            <div class="card-body"><ul class="news-list news-list-compact" id="antiList"></ul></div>
+          </section>
+
+          <section class="section-card" id="videoCard" aria-label="政协视频">
+            <div class="card-head"><h2 id="videoTitle">政协视频</h2><a class="more" id="videoMore" target="_blank" rel="noopener">更多&gt;&gt;</a></div>
+            <div class="card-body"><ul class="news-list news-list-compact" id="videoList"></ul></div>
+          </section>
+
+          <!-- 来稿排名 -->
+          <section class="section-card" id="rankingCard" aria-label="来稿排名">
+            <div class="card-head"><h2 id="rankingTitle">来稿排名</h2><a class="more" id="rankingMore" target="_blank" rel="noopener">全部排名</a></div>
+            <div class="card-body"><ol class="ranking-list" id="rankingList"></ol></div>
+          </section>
+        </aside>
+      </div>
+
+      <!-- 三列：专委会 / 党派 / 理论 -->
+      <div class="grid-3" aria-label="专题栏目">
+        <section class="section-card" aria-label="专委会工作">
+          <div class="card-head"><h2>专委会工作</h2><a class="more" target="_blank" rel="noopener" href="https://www.gxhczx.gov.cn/news_list.php?id=308">更多&gt;&gt;</a></div>
+          <div class="card-body"><ul class="news-list news-list-compact" id="zwhList"></ul></div>
+        </section>
+        <section class="section-card" aria-label="党派团体">
+          <div class="card-head"><h2>党派团体</h2><a class="more" target="_blank" rel="noopener" href="https://www.gxhczx.gov.cn/news_list.php?id=601">更多&gt;&gt;</a></div>
+          <div class="card-body"><ul class="news-list news-list-compact" id="partyList"></ul></div>
+        </section>
+        <section class="section-card" aria-label="理论研究">
+          <div class="card-head"><h2>理论研究</h2><a class="more" target="_blank" rel="noopener" href="https://www.gxhczx.gov.cn/news_list.php?id=317">更多&gt;&gt;</a></div>
+          <div class="card-body"><ul class="news-list news-list-compact" id="theoryList"></ul></div>
+        </section>
+      </div>
+
+      <!-- 委员之窗 -->
+      <section class="section-card" id="memberSection" aria-label="委员之窗">
+        <div class="card-head"><h2>委员之窗</h2><a class="more" target="_blank" rel="noopener" href="https://www.gxhczx.gov.cn/news_list.php?id=311">更多&gt;&gt;</a></div>
+        <div class="card-body member-body" id="memberBody"></div>
+      </section>
+
+      <!-- 县（区）政协 -->
+      <section class="section-card" id="countySection" aria-label="县（区）政协">
+        <div class="card-head"><h2 id="countyTitle">县（区）政协</h2><a class="more" id="countyMore" target="_blank" rel="noopener">更多&gt;&gt;</a></div>
+        <div class="card-body">
+          <div class="county-body" id="countyBody"></div>
+        </div>
+      </section>
+
+      <!-- 专题 -->
+      <section class="section-card" id="topicSection" aria-label="专题">
+        <div class="card-head"><h2>专题</h2></div>
+        <div class="card-body"><div class="topic-strip" id="topicStrip"></div></div>
+      </section>
+
+      <!-- 河池风光 -->
+      <section class="section-card" id="scenerySection" aria-label="河池风光">
+        <div class="card-head"><h2>河池风光</h2><a class="more" target="_blank" rel="noopener" href="https://www.gxhczx.gov.cn/news_list.php?id=901">更多&gt;&gt;</a></div>
+        <div class="card-body"><div class="image-grid image-grid-scenery" id="sceneryGrid"></div></div>
+      </section>
+
+      <!-- 网站链接 -->
+      <section class="section-card" id="linksSection" aria-label="网站链接">
+        <div class="card-head"><h2>网站链接</h2></div>
+        <div class="card-body">
+          <div class="links-groups" id="linksGroups"></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner" id="footerBody"></div>
+  </footer>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
