@@ -23,6 +23,7 @@
     if (/^(https?:)?\/\//.test(u)) return u;
     if (u.startsWith("//")) return "https:" + u;
     if (u.startsWith("/")) return site + u;
+    if (/^(\.\/|\.\.\/|images\/|data:)/.test(u)) return u;
     return site + "/" + u;
   }
 
@@ -231,6 +232,39 @@
     }).join("");
   }
 
+  // 通用：子栏目标签切换（参照安徽政协“委员履职/媒体聚焦”布局）
+  function renderTabbedSection(data, tabId, listId, moreId, dated, onHover) {
+    const tabsEl = el(tabId);
+    const listEl = el(listId);
+    const moreEl = moreId ? el(moreId) : null;
+    if (!tabsEl || !listEl) return;
+    const tabs = data.tabs || [];
+    function renderList(tab) {
+      listEl.innerHTML = listHtml(tab.items || [], dated);
+      if (moreEl) moreEl.href = abs(tab.url);
+    }
+    function activate(btn, i) {
+      btns.forEach(function (b) {
+        const on = b === btn;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      renderList(tabs[i]);
+    }
+    tabsEl.innerHTML = tabs.map(function (t, i) {
+      return '<button type="button" class="zxdt-tab' + (i === 0 ? ' active' : '') + '" role="tab" aria-selected="' + (i === 0 ? 'true' : 'false') + '">' + esc(t.title) + '</button>';
+    }).join("");
+    const btns = tabsEl.querySelectorAll(".zxdt-tab");
+    btns.forEach(function (btn, i) {
+      btn.addEventListener("click", function () { activate(btn, i); });
+      if (onHover) btn.addEventListener("mouseenter", function () { activate(btn, i); });
+    });
+    if (tabs[0]) renderList(tabs[0]);
+  }
+
+  function renderZXDT(zxdt) { renderTabbedSection(zxdt, "zxdtTabs", "zxdtList", "zxdtMore", true, true); }
+  function renderZXMeeting(zxMeeting) { renderTabbedSection(zxMeeting, "meetingTabs", "meetingList", "meetingMore", true, true); }
+
   function renderImageGrid(containerId, items, limit) {
     const grid = el(containerId);
     if (!grid) return;
@@ -334,7 +368,35 @@
 
   function renderCounty(countyZx) {
     const dyn = el("countyDynamic");
-    if (dyn) dyn.innerHTML = listHtml(countyZx.dynamic, false);
+    if (dyn) dyn.innerHTML = listHtml(countyZx.dynamic.slice(0, Math.max(0, countyZx.dynamic.length - 2)), false);
+  }
+
+  // 县区地图：用 SVG 多边形覆盖，悬停/点击高亮，点击跳转子站
+  function initCountyMap() {
+    const map = document.querySelector("map#imgMap");
+    const svg = document.querySelector(".county-svg");
+    if (!map || !svg) return;
+    const svgNS = "http://www.w3.org/2000/svg";
+    map.querySelectorAll("area").forEach(function (area) {
+      const nums = area.getAttribute("coords").split(",").map(Number);
+      const pts = [];
+      for (let i = 0; i < nums.length; i += 2) pts.push(nums[i] + "," + nums[i + 1]);
+      const href = area.getAttribute("href");
+      const poly = document.createElementNS(svgNS, "polygon");
+      poly.setAttribute("points", pts.join(" "));
+      poly.setAttribute("class", "county-region");
+      poly.setAttribute("data-title", area.getAttribute("alt") || "");
+      poly.setAttribute("data-url", (href && href !== "#") ? href : "");
+      poly.addEventListener("click", function () {
+        svg.querySelectorAll(".county-region").forEach(function (p) {
+          p.classList.remove("active");
+        });
+        poly.classList.add("active");
+        const url = poly.getAttribute("data-url");
+        if (url) window.open(url, "_blank", "noopener");
+      });
+      svg.appendChild(poly);
+    });
   }
 
   function renderRanking(list) {
@@ -346,13 +408,20 @@
     }).join("");
   }
 
+  function initRankingYear() {
+    const ry = el("rankingYear");
+    if (ry) ry.textContent = new Date().getFullYear();
+  }
+
   function renderTopic(items) {
     const strip = el("topicStrip");
     if (!strip) return;
     strip.innerHTML = items.map(function (it) {
-      return '<a class="topic-item" href="' + esc(abs(it.url)) + '" target="_blank" rel="noopener" data-label="专题">' +
+      return '<a class="topic-item" href="' + esc(abs(it.url)) + '" target="_blank" rel="noopener">' +
         '<img src="' + esc(abs(it.img)) + '" alt="' + esc(it.title) + '" loading="lazy"></a>';
     }).join("");
+    const more = el("topicMore");
+    if (more && items[0]) more.href = abs(items[0].url);
   }
 
   function renderLinks(links) {
@@ -364,38 +433,24 @@
         '<img src="' + esc(abs(l.img)) + '" alt="' + esc(l.title) + '" loading="lazy"></a>';
     }).join("") + '</div>';
 
-    html += '<div class="links-tabs" role="tablist" aria-label="网站链接分组">' +
-      keys.map(function (k, i) {
-        return '<button type="button" class="links-tab' + (i === 0 ? " active" : "") + '" data-tab="' + i +
-          '" role="tab" aria-selected="' + (i === 0 ? "true" : "false") + '">' + esc(k) + '</button>';
-      }).join("") + '</div>';
-
-    html += '<div class="links-panels">' +
-      keys.map(function (k, i) {
-        return '<div class="links-panel' + (i === 0 ? " active" : "") + '" data-panel="' + i + '" role="tabpanel"' +
-          (i === 0 ? "" : " hidden") + '><ul>' +
+    html += '<div class="links-selects">' +
+      keys.map(function (k) {
+        return '<select class="links-select" aria-label="' + esc(k) + '">' +
+          '<option value="" disabled selected>' + esc(k) + '</option>' +
           links.groups[k].map(function (pair) {
-          return '<li><a href="' + esc(abs(pair[1])) + '" target="_blank" rel="noopener">' + esc(pair[0]) + '</a></li>';
-          }).join("") + '</ul></div>';
-      }).join("") + '</div>';
+            return '<option value="' + esc(abs(pair[1])) + '">' + esc(pair[0]) + '</option>';
+          }).join("") +
+          '</select>';
+      }).join("") +
+      '</div>';
 
     box.innerHTML = html;
 
-    const tabs = box.querySelectorAll(".links-tab");
-    const panels = box.querySelectorAll(".links-panel");
-    tabs.forEach(function (tab) {
-      tab.addEventListener("click", function () {
-        const idx = tab.dataset.tab;
-        tabs.forEach(function (t) {
-          const on = t === tab;
-          t.classList.toggle("active", on);
-          t.setAttribute("aria-selected", on ? "true" : "false");
-        });
-        panels.forEach(function (p) {
-          const on = p.dataset.panel === idx;
-          p.classList.toggle("active", on);
-          p.hidden = !on;
-        });
+    box.querySelectorAll(".links-select").forEach(function (sel) {
+      sel.addEventListener("change", function () {
+        const v = sel.value;
+        if (v && v !== "#") window.open(v, "_blank", "noopener");
+        sel.selectedIndex = 0;
       });
     });
   }
@@ -473,6 +528,18 @@
     });
   }
 
+  // 顶部：底图每 3 秒轮换（文字图层固定）
+  function initMasthead() {
+    const bgs = Array.from(document.querySelectorAll(".masthead-layers .mast-bg"));
+    if (bgs.length < 2) return;
+    let idx = 0;
+    setInterval(function () {
+      bgs[idx].classList.remove("active");
+      idx = (idx + 1) % bgs.length;
+      bgs[idx].classList.add("active");
+    }, 5000);
+  }
+
   /* ---------- 交互：导航汉堡 / 字号 / 对比度 ---------- */
   function bindInteractions() {
     const toggle = el("navToggle"), nav = el("siteNav");
@@ -495,6 +562,17 @@
       document.body.classList.toggle("high-contrast");
       cb.setAttribute("aria-pressed", document.body.classList.contains("high-contrast") ? "true" : "false");
     });
+
+    // 顶部工具条：向下滚动自动隐藏，向上滚动显示
+    const topbar = document.querySelector(".topbar");
+    let lastTopbarY = window.scrollY;
+    window.addEventListener("scroll", function () {
+      if (!topbar) return;
+      const y = window.scrollY;
+      if (y > lastTopbarY && y > 80) topbar.classList.add("is-hidden");
+      else if (y < lastTopbarY) topbar.classList.remove("is-hidden");
+      lastTopbarY = y;
+    }, { passive: true });
   }
 
   /* ---------- 主入口 ---------- */
@@ -512,11 +590,9 @@
       renderLeaders(d.leaders);
 
       // 政协动态 / 会议 tab 链接 + 列表
-      headLinks(d.zxdt.tabs, "zxdtLinks");
-      el("zxdtList").innerHTML = listHtml(d.zxdt.items, true);
+      renderZXDT(d.zxdt);
       el("sxList").innerHTML = listHtml(d.sxNews, true);
-      headLinks(d.zxMeeting.tabs, "meetingLinks");
-      el("meetingList").innerHTML = listHtml(d.zxMeeting.items, false);
+      renderZXMeeting(d.zxMeeting);
       renderImageMarquee("imageMarquee", d.imageNews);
 
       // 侧栏（标题已在 HTML 固定，这里填充列表与“更多”链接）
@@ -531,6 +607,7 @@
       setMore("rankingMore", "https://www.gxhczx.gov.cn/top.php");
       setMore("countyMore", "https://www.gxhczx.gov.cn/qy_list.php");
       renderRanking(d.ranking);
+      initRankingYear();
 
       // 三列
       el("zwhList").innerHTML = listHtml(d.zwhWork, false);
@@ -539,11 +616,13 @@
 
       renderMember(d.memberWindow);
       renderCounty(d.countyZx);
+      initCountyMap();
       renderTopic(d.topic);
       renderImageMarquee("sceneryGrid", d.scenery);
       renderLinks(d.links);
       renderFooter(d.meta);
       initMarquees();
+      initMasthead();
     } catch (err) {
       console.error("首页数据加载失败:", err);
       showDataError();

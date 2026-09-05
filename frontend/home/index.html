@@ -33,7 +33,13 @@
   <header class="site-header">
     <div class="container masthead">
       <a href="./index.html" aria-label="广西河池政协网首页">
-        <img src="images/head.jpg" alt="广西河池政协网 政治协商 民主监督 参政议政">
+        <div class="masthead-layers" aria-hidden="false">
+          <img class="mast-bg active" src="images/head_bg1.jpg" alt="">
+          <img class="mast-bg" src="images/head_bg2.jpg" alt="">
+          <img class="mast-bg" src="images/head_bg3.jpg" alt="">
+          <img class="mast-logo" src="images/head_logo.png" alt="中国人民政治协商会议河池市委员会">
+          <img class="mast-slogan" src="images/head_slogan.png" alt="政治协商 民主监督 参政议政">
+        </div>
       </a>
     </div>
     <div class="container header-inner">
@@ -78,17 +84,17 @@
   </div>
 
   <main id="main">
-    <div class="container">
+    <div class="container page-container">
 
       <!-- 首屏：要闻轮播 + 政协领导 -->
       <section class="hero" aria-label="头条要闻">
         <div class="hero-main">
           <div class="hero-carousel" id="heroCarousel" aria-roledescription="轮播"></div>
           <div class="banner-strip" aria-label="专题条幅">
-            <a class="banner-item" href="http://cpc.people.com.cn/GB/67481/448544/index.html" target="_blank" rel="noopener" data-label="专题">
+            <a class="banner-item" href="http://cpc.people.com.cn/GB/67481/448544/index.html" target="_blank" rel="noopener">
               <img src="images/2025030101.jpg" alt="深入学习宣传贯彻党的二十大精神">
             </a>
-            <a class="banner-item" href="https://www.gxhczx.gov.cn/zl20220331/" target="_blank" rel="noopener" data-label="专题">
+            <a class="banner-item" href="https://www.gxhczx.gov.cn/zl20220331/" target="_blank" rel="noopener">
               <img src="images/2025030102.jpg" alt="协商在河池">
             </a>
           </div>
@@ -106,12 +112,18 @@
         <div class="main-col">
           <!-- 政协动态 -->
           <section class="section-card" id="zxdtSection" aria-label="政协动态">
-            <div class="card-head"><h2>政协动态</h2><div class="head-links" id="zxdtLinks"></div></div>
-            <div class="card-body"><ul class="news-list news-list-dated" id="zxdtList"></ul></div>
+            <div class="card-head">
+              <h2>政协动态</h2>
+              <div class="zxdt-tabs" id="zxdtTabs" role="tablist" aria-label="政协动态子栏目"></div>
+              <a class="more zxdt-more" id="zxdtMore" target="_blank" rel="noopener">更多&gt;&gt;</a>
+            </div>
+            <div class="card-body">
+              <ul class="news-list news-list-dated" id="zxdtList"></ul>
+            </div>
           </section>
 
           <!-- 政协动态下方：GIF插画 -->
-          <div class="banner-single" data-label="专题"><img src="images/chatu.gif" alt="政治协商"></div>
+          <div class="banner-single"><img src="images/chatu.gif" alt="政治协商"></div>
 
           <!-- 时政要闻 -->
           <section class="section-card" id="sxSection" aria-label="时政要闻">
@@ -120,14 +132,20 @@
           </section>
 
           <!-- 时政要闻下方：党史学习教育专栏 -->
-          <a class="banner-single" href="https://www.gxhczx.gov.cn/zl20210331" target="_blank" rel="noopener" data-label="专栏">
+          <a class="banner-single" href="https://www.gxhczx.gov.cn/zl20210331" target="_blank" rel="noopener">
             <img src="images/head_i.jpg" alt="党史学习教育专栏">
           </a>
 
           <!-- 政协会议 -->
           <section class="section-card" id="meetingSection" aria-label="政协会议">
-            <div class="card-head"><h2>政协会议</h2><div class="head-links" id="meetingLinks"></div></div>
-            <div class="card-body"><ul class="news-list" id="meetingList"></ul></div>
+            <div class="card-head">
+              <h2>政协会议</h2>
+              <div class="meeting-tabs" id="meetingTabs" role="tablist" aria-label="政协会议子栏目"></div>
+              <a class="more zxdt-more" id="meetingMore" target="_blank" rel="noopener">更多&gt;&gt;</a>
+            </div>
+            <div class="card-body">
+              <ul class="news-list news-list-dated" id="meetingList"></ul>
+            </div>
           </section>
 
         </div>
@@ -144,7 +162,7 @@
           </section>
 
           <!-- 网上书院下方：作风大查摆大整治专栏 -->
-          <a class="banner-single" href="https://www.gxhczx.gov.cn/news_list.php?id=320" target="_blank" rel="noopener" data-label="专栏">
+          <a class="banner-single" href="https://www.gxhczx.gov.cn/news_list.php?id=320" target="_blank" rel="noopener">
             <img src="images/zl320.jpg" alt="政协干部队伍作风大查摆大整治活动专栏">
           </a>
 
@@ -157,7 +175,7 @@
             <div class="card-head"><h2 id="videoTitle">政协视频</h2><a class="more" id="videoMore" target="_blank" rel="noopener">更多&gt;&gt;</a></div>
             <div class="card-body">
               <ul class="news-list news-list-compact" id="videoList"></ul>
-              <a class="banner-single" href="https://www.gxhczx.gov.cn/zl20220331/" target="_blank" rel="noopener" data-label="视频">
+              <a class="banner-single" href="https://www.gxhczx.gov.cn/zl20220331/" target="_blank" rel="noopener">
                 <img src="images/xs.jpg" alt="协商在河池">
               </a>
             </div>
@@ -167,7 +185,7 @@
       </div>
 
       <!-- 乡村振兴委员行（通栏） -->
-      <a class="banner-single" href="https://www.gxhczx.gov.cn/fupin" target="_blank" rel="noopener" data-label="专题">
+      <a class="banner-single" href="https://www.gxhczx.gov.cn/fupin" target="_blank" rel="noopener">
         <img src="images/fupin.jpg" alt="联站到家进室办实事 助力乡村振兴委员行">
       </a>
 
@@ -210,7 +228,7 @@
           <div class="county-body">
             <div class="county-panel county-map-panel">
               <div class="county-map">
-                <img src="images/map.jpg" usemap="#imgMap" alt="河池市县（区）政协地图，点击区域跳转对应县（区）政协网站">
+                <img src="images/map.jpg" alt="河池市县（区）政协地图，点击区域跳转对应县（区）政协网站">
                 <map name="imgMap" id="imgMap">
                   <area shape="poly" coords="154,156,180,144,178,127,193,121,225,145,249,148,244,160,251,176,209,173,178,203" href="#" alt="金城江政协网" title="金城江政协网" />
                   <area shape="poly" coords="234,184,257,182,258,151,280,151,291,137,306,155,319,150,322,168,347,170,344,180,370,198,350,212,332,203,304,263,295,225,261,198,240,199" href="#" alt="宜州政协网" title="宜州政协网" />
@@ -224,14 +242,24 @@
                   <area shape="poly" coords="234,297,193,253,193,214,218,184,237,211,262,208,287,236,292,267,226,300" href="http://da.gxhczx.gov.cn/" target="_blank" rel="noopener" alt="都安政协网" title="都安政协网" />
                   <area shape="poly" coords="127,254,178,211,181,266,194,271,197,289,222,308,218,323,175,341" href="http://dh.gxhczx.gov.cn/" target="_blank" rel="noopener" alt="大化政协网" title="大化政协网" />
                 </map>
+                <svg class="county-svg" viewBox="0 0 400 373" preserveAspectRatio="none" aria-hidden="true">
+                  <defs>
+                    <filter id="countyFeather" x="-30%" y="-30%" width="160%" height="160%">
+                      <feGaussianBlur stdDeviation="2.2"/>
+                    </filter>
+                  </defs>
+                </svg>
               </div>
             </div>
             <div class="county-panel">
-              <div class="county-dyn-title">县（区）政协工作动态</div>
+              <div class="county-dyn-title">工作动态</div>
               <ul class="news-list news-list-compact" id="countyDynamic"></ul>
             </div>
             <div class="county-panel county-rank-panel">
-              <div class="county-dyn-title">2026来稿排名（前五）<a class="more" id="rankingMore" target="_blank" rel="noopener">全部排名</a></div>
+              <div class="county-dyn-title">
+                <span class="ranking-title"><span id="rankingYear">2026</span>来稿排名（前五）</span>
+                <a class="more" id="rankingMore" target="_blank" rel="noopener">全部排名</a>
+              </div>
               <ol class="ranking-list" id="rankingList"></ol>
               <img class="ranking-banner" src="images/mapTop.jpg" alt="来稿排名">
             </div>
@@ -241,7 +269,7 @@
 
       <!-- 专题 -->
       <section class="section-card" id="topicSection" aria-label="专题">
-        <div class="card-head"><h2>专题</h2></div>
+        <div class="card-head"><h2>专题</h2><a class="more" id="topicMore" target="_blank" rel="noopener">更多&gt;&gt;</a></div>
         <div class="card-body"><div class="topic-strip" id="topicStrip"></div></div>
       </section>
 

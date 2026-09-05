@@ -272,67 +272,151 @@
     "tabs": [
       {
         "title": "市政协动态",
-        "url": "http://www.gxhczx.gov.cn/news_list.php?id=904"
+        "url": "http://www.gxhczx.gov.cn/news_list.php?id=904",
+        "items": [
+          {
+            "title": "深情不负厚土 实干浇出硕果——河池市政协助力乡村振兴小记",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=64048",
+            "date": "2026-09-02 17:44:32"
+          },
+          {
+            "title": "黄恩参加巴马代表团第二次会议讨论",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63986",
+            "date": "2026-08-31 16:20:51"
+          },
+          {
+            "title": "市政协党组会议暨五届第67次主席会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63982",
+            "date": "2026-08-31 16:03:56"
+          },
+          {
+            "title": "市政协考察组赴玉林市考察学习清廉民企建设先进经验",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63980",
+            "date": "2026-08-31 15:25:34"
+          },
+          {
+            "title": "市政协开展专题调研 助力西部陆海新通道重要节点城市建设",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63946",
+            "date": "2026-08-27 17:05:39"
+          },
+          {
+            "title": "协商搭台聚民智法治赋能强善治——河池市政协履职创新助力市域治理现代化",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63922",
+            "date": "2026-08-26 15:15:34"
+          },
+          {
+            "title": "黄恩率队到都安开展专题调研",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63903",
+            "date": "2026-08-25 16:21:52"
+          },
+          {
+            "title": "潘秋琳到巴马调研",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63875",
+            "date": "2026-08-24 16:08:45"
+          },
+          {
+            "title": "市政协召开“推进人工智能与民族地区社会治理深度融合，赋能河池高质量发展”提案办理协商会",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63835",
+            "date": "2026-08-20 17:39:58"
+          },
+          {
+            "title": "河池市政协机关获颁市红十字会荣誉证书",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63839",
+            "date": "2026-08-20 17:35:57"
+          }
+        ]
       },
       {
         "title": "广西政协动态",
-        "url": "http://www.gxhczx.gov.cn/news_list.php?q=33&id=904"
+        "url": "http://www.gxhczx.gov.cn/news_list.php?q=33&id=904",
+        "items": [
+          {
+            "title": "自治区政协党组理论学习中心组开展2026年第3次专题学习 孙大伟主持并讲话",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=64052",
+            "date": "2026-09-02 17:51:10"
+          },
+          {
+            "title": "自治区政协组织开展二〇二六年“政协工作八桂行”新闻媒体集中采访活动",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=64051",
+            "date": "2026-09-02 17:30:46"
+          },
+          {
+            "title": "坚持把学习教育总要求贯穿政协履职全过程",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63990",
+            "date": "2026-08-31 16:34:15"
+          },
+          {
+            "title": "全国政协委员视察团来桂开展委员视察暨重点提案督办调研",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63948",
+            "date": "2026-08-27 17:19:08"
+          },
+          {
+            "title": "十三届自治区政协举行第16期“同心”讲座",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63947",
+            "date": "2026-08-27 17:12:03"
+          },
+          {
+            "title": "自治区政协召开主席会议 孙大伟主持并讲话",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63879",
+            "date": "2026-08-24 16:27:33"
+          },
+          {
+            "title": "孙大伟到北海调研并在南宁出席重点提案办理协商会",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63808",
+            "date": "2026-08-19 15:22:11"
+          },
+          {
+            "title": "广西壮族自治区政协专题协商推动有色金属关键金属产业高质量发展",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63682",
+            "date": "2026-08-10 11:59:05"
+          }
+        ]
       },
       {
         "title": "全国政协动态",
-        "url": "http://www.gxhczx.gov.cn/news_list.php?q=55&id=904"
-      }
-    ],
-    "items": [
-      {
-        "title": "深情不负厚土 实干浇出硕果——河池市政协助力乡村振兴小记",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=64048",
-        "date": "2026-09-02 17:44:32"
-      },
-      {
-        "title": "黄恩参加巴马代表团第二次会议讨论",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63986",
-        "date": "2026-08-31 16:20:51"
-      },
-      {
-        "title": "市政协党组会议暨五届第67次主席会议召开",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63982",
-        "date": "2026-08-31 16:03:56"
-      },
-      {
-        "title": "市政协考察组赴玉林市考察学习清廉民企建设先进经验",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63980",
-        "date": "2026-08-31 15:25:34"
-      },
-      {
-        "title": "市政协开展专题调研 助力西部陆海新通道重要节点城市建设",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63946",
-        "date": "2026-08-27 17:05:39"
-      },
-      {
-        "title": "协商搭台聚民智法治赋能强善治——河池市政协履职创新助力市域治理现代化",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63922",
-        "date": "2026-08-26 15:15:34"
-      },
-      {
-        "title": "黄恩率队到都安开展专题调研",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63903",
-        "date": "2026-08-25 16:21:52"
-      },
-      {
-        "title": "潘秋琳到巴马调研",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63875",
-        "date": "2026-08-24 16:08:45"
-      },
-      {
-        "title": "市政协召开“推进人工智能与民族地区社会治理深度融合，赋能河池高质量发展”提案办理协商会",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63835",
-        "date": "2026-08-20 17:39:58"
-      },
-      {
-        "title": "河池市政协机关获颁市红十字会荣誉证书",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63839",
-        "date": "2026-08-20 17:35:57"
+        "url": "http://www.gxhczx.gov.cn/news_list.php?q=55&id=904",
+        "items": [
+          {
+            "title": "为构建中华文明标识体系凝聚智慧力量——全国政协“构建中华文明标识体系”双周协商座谈会筹备综述",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=64087",
+            "date": "2026-09-04 16:21:36"
+          },
+          {
+            "title": "为人民健康筑起坚固防线——全国政协“加强慢性病综合防控”重点提案督办调研综述",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=64068",
+            "date": "2026-09-03 16:33:45"
+          },
+          {
+            "title": "同心绘就兴边富民新画卷——全国政协“扎实推进边境城镇建设 促进边疆地区振兴发展”党外委员考察活动综述",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=64025",
+            "date": "2026-09-01 16:13:27"
+          },
+          {
+            "title": "全国政协“习近平生态文明思想”研学群在京开展线下学习交流活动",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63991",
+            "date": "2026-08-31 16:37:16"
+          },
+          {
+            "title": "全国政协举行对口协商会 邵鸿出席并讲话",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63973",
+            "date": "2026-08-28 17:58:39"
+          },
+          {
+            "title": "全国政协举行对口协商会 咸辉主持并讲话",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63972",
+            "date": "2026-08-28 17:57:36"
+          },
+          {
+            "title": "全国政协举行界别协商会 朱永新出席并讲话",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63971",
+            "date": "2026-08-28 17:56:10"
+          },
+          {
+            "title": "全国政协十四届常委会第十八次会议闭幕 王沪宁主持并讲话",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63951",
+            "date": "2026-08-27 17:31:38"
+          }
+        ]
       }
     ]
   },
@@ -392,56 +476,142 @@
     "tabs": [
       {
         "title": "其它会议",
-        "url": "http://www.gxhczx.gov.cn/news_list.php?id=404"
+        "url": "http://www.gxhczx.gov.cn/news_list.php?id=404",
+        "items": [
+          {
+            "title": "市政协党组会议暨五届第67次主席会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63983",
+            "date": "2026-08-31 16:13:31"
+          },
+          {
+            "title": "市政协召开“推进人工智能与民族地区社会治理深度融合，赋能河池高质量发展”提案办理协商会",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63837",
+            "date": "2026-08-20 17:42:14"
+          },
+          {
+            "title": "市政协党组会议暨五届第六十六次主席会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63761",
+            "date": "2026-08-17 12:06:08"
+          },
+          {
+            "title": "市政协召开重点提案办理协商座谈会 推动托育服务提质增效",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63755",
+            "date": "2026-08-17 11:34:44"
+          },
+          {
+            "title": "市政协党组会议暨五届第65次主席会议召开 在推动高质量发展中体现政协担当",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63371",
+            "date": "2026-07-22 11:31:44"
+          },
+          {
+            "title": "全市政协参与“化解历史矛盾维护群众利益”工作交流会召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63017",
+            "date": "2026-06-25 11:49:29"
+          },
+          {
+            "title": "市政协党组会议暨五届第63次主席会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=62998",
+            "date": "2026-06-24 11:42:13"
+          },
+          {
+            "title": "市政协党组会议暨五届62次主席会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=62669",
+            "date": "2026-05-29 11:30:24"
+          }
+        ]
       },
       {
         "title": "主席会议",
-        "url": "http://www.gxhczx.gov.cn/news_list.php?id=403"
+        "url": "http://www.gxhczx.gov.cn/news_list.php?id=403",
+        "items": [
+          {
+            "title": "市政协党组会议暨五届第67次主席会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63983",
+            "date": "2026-08-31 16:13:31"
+          },
+          {
+            "title": "市政协党组会议暨五届第六十六次主席会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63762",
+            "date": "2026-08-17 12:06:45"
+          },
+          {
+            "title": "市政协党组会议暨五届第65次主席会议召开 在推动高质量发展中体现政协担当",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63370",
+            "date": "2026-07-22 11:28:37"
+          },
+          {
+            "title": "市政协党组会议暨五届第63次主席会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=62997",
+            "date": "2026-06-24 11:37:50"
+          },
+          {
+            "title": "市政协党组会议暨五届62次主席会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=62668",
+            "date": "2026-05-29 11:26:22"
+          },
+          {
+            "title": "市政协党组会议暨五届61次主席会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=62316",
+            "date": "2026-05-06 15:43:01"
+          },
+          {
+            "title": "市政协党组（扩大）会议暨五届60次主席会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=61598",
+            "date": "2026-03-06 12:11:09"
+          },
+          {
+            "title": "市政协五届57次主席会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=60957",
+            "date": "2026-01-21 15:10:42"
+          }
+        ]
       },
       {
         "title": "常委会议",
-        "url": "http://www.gxhczx.gov.cn/news_list.php?id=402"
+        "url": "http://www.gxhczx.gov.cn/news_list.php?id=402",
+        "items": [
+          {
+            "title": "市政协党组会议暨五届第67次主席会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63983",
+            "date": "2026-08-31 16:13:31"
+          },
+          {
+            "title": "政协第五届河池市委员会常务委员会第十九次会议在宜州召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=60666",
+            "date": "2025-12-31 16:15:33"
+          },
+          {
+            "title": "市政协五届常委会第十八次会议召开 强化担当作为 精准建言促发展",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=59114",
+            "date": "2025-09-30 16:28:40"
+          },
+          {
+            "title": "市政协五届常委会第十七次会议召开 建言献策惠民生 凝心聚力谋发展",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=57717",
+            "date": "2025-06-27 15:48:32"
+          },
+          {
+            "title": "政协第五届河池市委员会常务委员会第九次会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=47700",
+            "date": "2023-05-31 10:40:09"
+          }
+        ]
       },
       {
         "title": "全体会议",
-        "url": "http://www.gxhczx.gov.cn/news_list.php?id=401"
-      }
-    ],
-    "items": [
-      {
-        "title": "政协第五届河池市委员会第一次会议选出新领导班子",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=45091",
-        "date": ""
-      },
-      {
-        "title": "市政协五届一次会议举行全体政协委员培训会",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=45089",
-        "date": ""
-      },
-      {
-        "title": "市政协党组会议暨五届第67次主席会议召开",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63984",
-        "date": ""
-      },
-      {
-        "title": "市政协党组会议暨五届第67次主席会议召开",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63985",
-        "date": ""
-      },
-      {
-        "title": "全市政协参与“化解历史矛盾维护群众利益”工作交流会召开",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63017",
-        "date": ""
-      },
-      {
-        "title": "市政协召开“推进人工智能与民族地区社会治理深度融合，赋能河池高质量发展”提案办理协商会",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63837",
-        "date": ""
-      },
-      {
-        "title": "市政协党组会议暨五届第六十六次主席会议召开",
-        "url": "http://www.gxhczx.gov.cn/news_view.php?id=63761",
-        "date": ""
+        "url": "http://www.gxhczx.gov.cn/news_list.php?id=401",
+        "items": [
+          {
+            "title": "市政协党组会议暨五届第67次主席会议召开",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=63983",
+            "date": "2026-08-31 16:13:31"
+          },
+          {
+            "title": "市政协五届一次会议举行全体政协委员培训会",
+            "url": "http://www.gxhczx.gov.cn/news_view.php?id=45089",
+            "date": "2021-10-12 16:34:04"
+          }
+        ]
       }
     ]
   },
@@ -779,7 +949,7 @@
         "url": "http://dh.gxhczx.gov.cn/"
       }
     ],
-    "dynamicTitle": "县（区）政协工作动态",
+    "dynamicTitle": "工作动态",
     "more": "http://www.gxhczx.gov.cn/news_list.php?id=906",
     "dynamic": [
       {
@@ -875,22 +1045,22 @@
     {
       "title": "河池市政协五届六次会议",
       "url": "http://www.gxhczx.gov.cn/zl20260225/",
-      "img": "http://www.gxhczx.gov.cn/zl20260225/images/zl.jpg"
+      "img": "images/topic_zx625.jpg"
     },
     {
       "title": "河池市政协五届四次会议",
       "url": "http://www.gxhczx.gov.cn/zl20240131/",
-      "img": "http://www.gxhczx.gov.cn/zl20240131/images/zl.jpg"
+      "img": "images/topic_zx431.jpg"
     },
     {
       "title": "河池市政协五届二次会议",
       "url": "http://www.gxhczx.gov.cn/zl20220108/",
-      "img": "http://www.gxhczx.gov.cn/zl20220108/images/zl1.jpg"
+      "img": "images/topic_zx208.jpg"
     },
     {
       "title": "广西政协相关专题",
       "url": "http://www.gxzx.gov.cn/index.php?m=content&c=index&a=lists&catid=178",
-      "img": "http://www.gxhczx.gov.cn/images/195.jpg"
+      "img": "images/topic_gx.jpg"
     }
   ],
   "scenery": [
