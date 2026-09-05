@@ -1,0 +1,51 @@
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*~
+*.sublime-project
+*.sublime-workspace
+
+# PHP（主站 CMS）
+/vendor/
+composer.phar
+*.cache
+.phpunit.result.cache
+.phpunit.cache
+backend/storage/*
+!backend/storage/.gitignore
+
+# Python（智能编校微服务）
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node（前端构建产物，若启用）
+/node_modules/
+
+# 环境变量与密钥
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.p8
+*.ppk
+id_rsa*
+
+# 运行时与数据
+*.log
+*.dump
+*.sql.gz
+backend/public/uploads/
+backend/storage/uploads/
+
