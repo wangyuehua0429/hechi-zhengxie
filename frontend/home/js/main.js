@@ -58,12 +58,26 @@
   }
 
   function renderNav(nav) {
-    const ul = el("mainNav");
-    if (!ul) return;
-    ul.innerHTML = nav.map(function (n, i) {
-      return '<li><a href="' + esc(abs(n.url)) + '"' + (i === 0 ? ' class="active"' : "") +
-        (i === nav.length - 1 ? ' target="_blank" rel="noopener"' : '') + '>' + esc(n.title) + '</a></li>';
-    }).join("");
+    // 首页单独在左侧，跨两行并配图标；其余栏目分两行排列（参照四川政协网导航）
+    const home = nav[0];
+    const homeEl = el("navHome");
+    if (homeEl && home) {
+      homeEl.href = esc(abs(home.url));
+      homeEl.innerHTML =
+        '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>' +
+        '<span>' + esc(home.title) + '</span>';
+    }
+    const rowLink = function (n) {
+      return '<a href="' + esc(abs(n.url)) + '"' + ext(n.url) + '>' + esc(n.title) + '</a>';
+    };
+    const rest = nav.slice(1);
+    const mid = Math.ceil(rest.length / 2);
+    const rowsEl = el("navRows");
+    if (rowsEl) {
+      rowsEl.innerHTML =
+        '<div class="nav-row">' + rest.slice(0, mid).map(rowLink).join("") + '</div>' +
+        '<div class="nav-row">' + rest.slice(mid).map(rowLink).join("") + '</div>';
+    }
   }
 
   function renderCarousel(slides) {
@@ -72,20 +86,28 @@
     box.innerHTML =
       '<div class="carousel-track" id="carouselTrack">' +
       slides.map(function (s, i) {
-        const link = s.url && s.url !== "#"
+        const hasLink = s.url && s.url !== "#";
+        const link = hasLink
           ? '<a href="' + esc(abs(s.url)) + '" target="_blank" rel="noopener">' + esc(s.title) + '</a>'
           : '<span>' + esc(s.title) + '</span>';
+        const more = hasLink
+          ? '<a class="carousel-more" href="' + esc(abs(s.url)) + '" target="_blank" rel="noopener">阅读原文</a>'
+          : '<span class="carousel-more">阅读原文</span>';
         return '<div class="carousel-slide' + (i === 0 ? " active" : "") + '"' +
           (i !== 0 ? ' aria-hidden="true"' : "") + '>' +
-          '<img src="' + esc(abs(s.img)) + '" alt="' + esc(s.title) + '">' +
-          '<div class="carousel-caption">' + link + '</div>' +
+          '<div class="carousel-media"><img src="' + esc(abs(s.img)) + '" alt="' + esc(s.title) + '"></div>' +
+          '<div class="carousel-text">' +
+            '<h2 class="carousel-title">' + link + '</h2>' +
+            (s.summary ? '<p class="carousel-summary">' + esc(s.summary) + '</p>' : '') +
+            more +
+          '</div>' +
           '</div>';
       }).join("") +
       '</div>' +
       '<div class="carousel-nav" id="carouselDots">' +
       slides.map(function (_, i) {
         return '<button type="button" class="carousel-dot' + (i === 0 ? " active" : "") +
-          '" data-slide="' + i + '" aria-label="第' + (i+1) + '张"></button>';
+          '" data-slide="' + i + '" aria-label="第' + (i+1) + '张">' + (i + 1) + '</button>';
       }).join("") +
       '</div>' +
       '<button type="button" class="carousel-arrow prev" id="slidePrev" aria-label="上一张">‹</button>' +
@@ -336,17 +358,46 @@
   function renderLinks(links) {
     const box = el("linksGroups");
     if (!box) return;
+    const keys = Object.keys(links.groups);
     let html = '<div class="links-logos">' + links.logos.map(function (l) {
       return '<a href="' + esc(abs(l.url)) + '" target="_blank" rel="noopener" title="' + esc(l.title) + '">' +
         '<img src="' + esc(abs(l.img)) + '" alt="' + esc(l.title) + '" loading="lazy"></a>';
     }).join("") + '</div>';
-    Object.keys(links.groups).forEach(function (k) {
-      html += '<div class="links-group"><h3>' + esc(k) + '</h3><ul>' +
-        links.groups[k].map(function (pair) {
+
+    html += '<div class="links-tabs" role="tablist" aria-label="网站链接分组">' +
+      keys.map(function (k, i) {
+        return '<button type="button" class="links-tab' + (i === 0 ? " active" : "") + '" data-tab="' + i +
+          '" role="tab" aria-selected="' + (i === 0 ? "true" : "false") + '">' + esc(k) + '</button>';
+      }).join("") + '</div>';
+
+    html += '<div class="links-panels">' +
+      keys.map(function (k, i) {
+        return '<div class="links-panel' + (i === 0 ? " active" : "") + '" data-panel="' + i + '" role="tabpanel"' +
+          (i === 0 ? "" : " hidden") + '><ul>' +
+          links.groups[k].map(function (pair) {
           return '<li><a href="' + esc(abs(pair[1])) + '" target="_blank" rel="noopener">' + esc(pair[0]) + '</a></li>';
-        }).join("") + '</ul></div>';
-    });
+          }).join("") + '</ul></div>';
+      }).join("") + '</div>';
+
     box.innerHTML = html;
+
+    const tabs = box.querySelectorAll(".links-tab");
+    const panels = box.querySelectorAll(".links-panel");
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        const idx = tab.dataset.tab;
+        tabs.forEach(function (t) {
+          const on = t === tab;
+          t.classList.toggle("active", on);
+          t.setAttribute("aria-selected", on ? "true" : "false");
+        });
+        panels.forEach(function (p) {
+          const on = p.dataset.panel === idx;
+          p.classList.toggle("active", on);
+          p.hidden = !on;
+        });
+      });
+    });
   }
 
   function renderFooter(meta) {
@@ -355,12 +406,20 @@
     box.innerHTML =
       '<p class="footer-org">' + esc(meta.owner) + '</p>' +
       '<p>版权所有：' + esc(meta.owner) + '</p>' +
-      '<p>' + esc(meta.copyright) + '</p>' +
+      '<p class="footer-copy"><a href="http://' + esc(meta.domain) + '" target="_blank" rel="noopener">' + esc(meta.copyright) + '</a></p>' +
+      '<p class="footer-contact">投稿邮箱：<a href="mailto:' + esc(meta.contactEmail) + '">' + esc(meta.contactEmail) + '</a>' +
+      '<span class="footer-sep"></span>联系电话：' + esc(meta.contactPhone) + '</p>' +
       '<div class="footer-icp">' +
       '<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">' + esc(meta.icp) + '</a>' +
-      '<span>' + esc(meta.police) + '</span>' +
+      '<span class="footer-police"><img src="images/ghs.png" alt="公安备案徽标">' + esc(meta.police) + '</span>' +
       '</div>' +
-      '<p>建议使用 1024×768 或更高分辨率浏览</p>';
+      '<p>建议使用 1024×768 或更高分辨率浏览</p>' +
+      '<div class="footer-badges">' +
+      '<img class="badge-tall" src="images/td1.gif" alt="广西网络警察">' +
+      '<img class="badge-wide" src="images/td3.gif" alt="广西网警虚拟岗亭">' +
+      '<img class="badge-wide" src="images/baicp.gif" alt="广西网警网站备案">' +
+      '<img class="badge-tall" src="images/td2.gif" alt="广西网络警察">' +
+      '</div>';
   }
 
   // 滚动到末尾 → 停留 2 秒 → 回到第一张，循环
@@ -406,7 +465,10 @@
   function initMarquees() {
     requestAnimationFrame(function () {
       startScrollLoop(document.querySelector(".leader-vices-track"), document.querySelector(".leader-vices-marquee"), 60);
-      startScrollLoop(document.querySelector(".image-marquee-track"), document.querySelector(".image-marquee"), 60);
+      document.querySelectorAll(".image-marquee").forEach(function (m) {
+        const t = m.querySelector(".image-marquee-track");
+        if (t) startScrollLoop(t, m, 60);
+      });
       startScrollLoop(document.querySelector(".member-gallery-track"), document.querySelector(".member-gallery-marquee"), 60);
     });
   }
@@ -461,7 +523,7 @@
       fillBox("notice", d.notice);
       fillBox("book", d.bookCity);
       fillBox("anti", d.antiGang);
-      fillBox("video", d.videos);
+      renderVideos(d.videos);
       setMore("noticeMore", "https://www.gxhczx.gov.cn/news_list.php?id=302");
       setMore("bookMore", "https://www.gxhczx.gov.cn/news_list.php?id=1301");
       setMore("antiMore", "https://www.gxhczx.gov.cn/news_list.php?id=400");
@@ -478,7 +540,7 @@
       renderMember(d.memberWindow);
       renderCounty(d.countyZx);
       renderTopic(d.topic);
-      renderImageGrid("sceneryGrid", d.scenery, 8);
+      renderImageMarquee("sceneryGrid", d.scenery);
       renderLinks(d.links);
       renderFooter(d.meta);
       initMarquees();
@@ -495,6 +557,19 @@
         ? listHtml(items, false)
         : '<li class="empty-item">暂无更新内容</li>';
     }
+  }
+
+  // 政协视频：缩略图 + 标题
+  function renderVideos(items) {
+    const list = el("videoList");
+    if (!list) return;
+    list.innerHTML = items && items.length
+      ? items.slice(0, 2).map(function (v) {
+          return '<li class="video-item"><a href="' + esc(abs(v.url)) + '"' + ext(v.url) + ' title="' + esc(v.title) + '">' +
+            '<img class="video-thumb" src="' + esc(abs(v.img)) + '" alt="' + esc(v.title) + '" loading="lazy">' +
+            '<span class="video-title">' + esc(v.title) + '</span></a></li>';
+        }).join("")
+      : '<li class="empty-item">暂无更新内容</li>';
   }
 
   function setMore(id, url) {

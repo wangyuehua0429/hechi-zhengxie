@@ -44,13 +44,14 @@
           <small>中国人民政治协商会议河池市委员会</small>
         </span>
       </a>
-      <button type="button" class="nav-toggle" id="navToggle" aria-label="打开菜单" aria-expanded="false" aria-controls="mainNav">
+      <button type="button" class="nav-toggle" id="navToggle" aria-label="打开菜单" aria-expanded="false" aria-controls="siteNav">
         <span></span><span></span><span></span>
       </button>
     </div>
     <nav class="site-nav" id="siteNav">
-      <div class="container">
-        <ul class="nav-list" id="mainNav" role="menubar" aria-label="主导航"></ul>
+      <div class="container nav-wrap">
+        <a class="nav-home" id="navHome" aria-label="返回首页"></a>
+        <div class="nav-rows" id="navRows" role="menubar" aria-label="主导航"></div>
       </div>
     </nav>
 
@@ -60,7 +61,9 @@
   <div class="run-bar">
     <div class="container run-bar-inner">
       <div class="run-marquee" aria-label="滚动公告">
-        <span class="run-label" aria-hidden="true">公告</span>
+        <span class="run-label" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9c3.9 3.9 3.9 10.2 0 14.1"/></svg>
+        </span>
         <div class="marquee-viewport"><span class="marquee-track" id="marqueeTrack"></span></div>
       </div>
       <form class="run-search" action="https://www.gxhczx.gov.cn/search.php" method="get" target="_blank" role="search">
@@ -79,7 +82,17 @@
 
       <!-- 首屏：要闻轮播 + 政协领导 -->
       <section class="hero" aria-label="头条要闻">
-        <div class="hero-carousel" id="heroCarousel" aria-roledescription="轮播"></div>
+        <div class="hero-main">
+          <div class="hero-carousel" id="heroCarousel" aria-roledescription="轮播"></div>
+          <div class="banner-strip" aria-label="专题条幅">
+            <a class="banner-item" href="http://cpc.people.com.cn/GB/67481/448544/index.html" target="_blank" rel="noopener">
+              <img src="images/2025030101.jpg" alt="深入学习宣传贯彻党的二十大精神">
+            </a>
+            <a class="banner-item" href="https://www.gxhczx.gov.cn/zl20220331/" target="_blank" rel="noopener">
+              <img src="images/2025030102.jpg" alt="协商在河池">
+            </a>
+          </div>
+        </div>
         <aside class="hero-side" aria-label="政协领导">
           <div class="section-card" id="leadersCard">
             <div class="card-head"><h2>政协领导</h2></div>
@@ -97,11 +110,19 @@
             <div class="card-body"><ul class="news-list news-list-dated" id="zxdtList"></ul></div>
           </section>
 
+          <!-- 政协动态下方：GIF插画 -->
+          <div class="banner-single"><img src="images/chatu.gif" alt="政治协商"></div>
+
           <!-- 时政要闻 -->
           <section class="section-card" id="sxSection" aria-label="时政要闻">
             <div class="card-head"><h2>时政要闻</h2><a class="more" target="_blank" rel="noopener" href="https://www.gxhczx.gov.cn/news_list.php?id=306">更多&gt;&gt;</a></div>
             <div class="card-body"><ul class="news-list news-list-dated" id="sxList"></ul></div>
           </section>
+
+          <!-- 时政要闻下方：党史学习教育专栏 -->
+          <a class="banner-single" href="https://www.gxhczx.gov.cn/zl20210331" target="_blank" rel="noopener">
+            <img src="images/head_i.jpg" alt="党史学习教育专栏">
+          </a>
 
           <!-- 政协会议 -->
           <section class="section-card" id="meetingSection" aria-label="政协会议">
@@ -122,6 +143,11 @@
             <div class="card-body"><ul class="news-list news-list-compact" id="bookList"></ul></div>
           </section>
 
+          <!-- 网上书院下方：作风大查摆大整治专栏 -->
+          <a class="banner-single" href="https://www.gxhczx.gov.cn/news_list.php?id=320" target="_blank" rel="noopener">
+            <img src="images/zl320.jpg" alt="政协干部队伍作风大查摆大整治活动专栏">
+          </a>
+
           <section class="section-card" id="antiCard" aria-label="扫黑除恶">
             <div class="card-head"><h2 id="antiTitle">扫黑除恶</h2><a class="more" id="antiMore" target="_blank" rel="noopener">更多&gt;&gt;</a></div>
             <div class="card-body"><ul class="news-list news-list-compact" id="antiList"></ul></div>
@@ -129,11 +155,21 @@
 
           <section class="section-card" id="videoCard" aria-label="政协视频">
             <div class="card-head"><h2 id="videoTitle">政协视频</h2><a class="more" id="videoMore" target="_blank" rel="noopener">更多&gt;&gt;</a></div>
-            <div class="card-body"><ul class="news-list news-list-compact" id="videoList"></ul></div>
+            <div class="card-body">
+              <ul class="news-list news-list-compact" id="videoList"></ul>
+              <a class="banner-single" href="https://www.gxhczx.gov.cn/zl20220331/" target="_blank" rel="noopener">
+                <img src="images/xs.jpg" alt="协商在河池">
+              </a>
+            </div>
           </section>
 
         </aside>
       </div>
+
+      <!-- 乡村振兴委员行（通栏） -->
+      <a class="banner-single" href="https://www.gxhczx.gov.cn/fupin" target="_blank" rel="noopener">
+        <img src="images/fupin.jpg" alt="联站到家进室办实事 助力乡村振兴委员行">
+      </a>
 
       <!-- 三列：专委会 / 党派 / 理论 -->
       <div class="grid-3" aria-label="专题栏目">
@@ -197,6 +233,7 @@
             <div class="county-panel county-rank-panel">
               <div class="county-dyn-title">2026来稿排名（前五）<a class="more" id="rankingMore" target="_blank" rel="noopener">全部排名</a></div>
               <ol class="ranking-list" id="rankingList"></ol>
+              <img class="ranking-banner" src="images/mapTop.jpg" alt="来稿排名">
             </div>
           </div>
         </div>
@@ -211,7 +248,11 @@
       <!-- 河池风光 -->
       <section class="section-card" id="scenerySection" aria-label="河池风光">
         <div class="card-head"><h2>河池风光</h2><a class="more" target="_blank" rel="noopener" href="https://www.gxhczx.gov.cn/news_list.php?id=901">更多&gt;&gt;</a></div>
-        <div class="card-body"><div class="image-grid image-grid-scenery" id="sceneryGrid"></div></div>
+        <div class="card-body">
+          <div class="image-marquee">
+            <div class="image-marquee-track" id="sceneryGrid"></div>
+          </div>
+        </div>
       </section>
 
       <!-- 网站链接 -->
