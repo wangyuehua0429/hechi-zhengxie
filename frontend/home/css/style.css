@@ -103,8 +103,8 @@ h1, h2, h3, h4 { margin: 0; line-height: 1.3; }
 }
 .masthead-layers .mast-bg.active { opacity: 1; }
 .masthead-layers .mast-logo, .masthead-layers .mast-slogan { position: absolute; display: block; }
-.masthead-layers .mast-logo { left: 10%; top: 9%; width: 44%; }
-.masthead-layers .mast-slogan { right: 8%; bottom: 13%; width: 36%; }
+.masthead-layers .mast-logo { left: 10%; top: 9%; width: 36%; }
+.masthead-layers .mast-slogan { right: 8%; bottom: 13%; width: 28%; }
 .masthead-layers::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 44px;
   background: linear-gradient(to top, var(--page-blue), rgba(228, 240, 249, 0));
