@@ -134,7 +134,7 @@
 
   // 摘要行数随标题折行联动：标题 1 行 → 摘要 9 行，标题 ≥2 行 → 摘要 8 行；
   // 末行省略号由 CSS 的 -webkit-line-clamp 自动给出。移动端（≤640px）清空 inline，
-  // 交由 CSS 媒体查询的 3 行生效，避免桌面端写入的 8/9 覆盖移动端基线。
+  // 交由 CSS 媒体查询设定的 2 行生效，避免桌面端写入的 8/9 覆盖移动端基线。
   function applySummaryClamps() {
     const slides = document.querySelectorAll(".carousel-slide");
     if (!slides.length) return;
@@ -148,7 +148,11 @@
       let lh = parseFloat(tcs.lineHeight);
       if (!isFinite(lh) || lh <= 0) lh = parseFloat(tcs.fontSize) * 1.4;
       const lines = Math.max(1, Math.round(title.offsetHeight / lh));
-      summary.style.webkitLineClamp = lines >= 2 ? 8 : 9;
+      // 规则：标题 1 行摘要 9 行、标题 2 行摘要 8 行；末行省略由 -webkit-line-clamp 给出
+      const clamp = lines >= 2 ? 8 : 9;
+      summary.style.webkitLineClamp = clamp;
+      // 锁定行高，避免 flex 把摘要压到不足 clamp 行导致省略号失效
+      summary.style.flexShrink = "0";
     });
   }
 
@@ -203,6 +207,12 @@
         hero.addEventListener("mouseenter", function () { state.hovering = true; reconcileCarousel(); });
         hero.addEventListener("mouseleave", function () { state.hovering = false; reconcileCarousel(); });
       }
+      // 窗口尺寸变化会影响标题折行数，需重算摘要 clamp（节流到每帧一次）
+      var clampRaf = null;
+      window.addEventListener("resize", function () {
+        if (clampRaf) return;
+        clampRaf = requestAnimationFrame(function () { clampRaf = null; applySummaryClamps(); });
+      });
     }
     reconcileCarousel();
   }
@@ -212,7 +222,7 @@
     if (state.slideTimer) { clearInterval(state.slideTimer); state.slideTimer = null; }
     const timing = state.autoOn && !state.hovering && state.slideCount > 1;
     if (timing) {
-      state.slideTimer = setInterval(function () { showSlide(state.slideIdx + 1); }, 5000);
+      state.slideTimer = setInterval(function () { showSlide(state.slideIdx + 1); }, 3000);
     }
     const hero = el("heroCarousel");
     const pb = el("carouselPause");

@@ -286,7 +286,7 @@ body[data-font="large"] .news-list li { padding: 11px 0; }
 .hero-side .section-card { flex: 1; margin-bottom: 0; }
 .hero-carousel {
   position: relative; border-radius: var(--radius); overflow: hidden; background: var(--card);
-  box-shadow: var(--shadow); height: 336px; padding: 12px;
+  box-shadow: var(--shadow); height: 352px; padding: 12px;
 }
 .carousel-track { position: relative; height: 100%; }
 .carousel-slide {
@@ -300,7 +300,9 @@ body[data-font="large"] .news-list li { padding: 11px 0; }
   flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-start;
   gap: 12px; padding: 12px 8px 16px 16px; background: var(--card);
 }
-.carousel-title { margin: 0; font-size: 1.12em; }
+.carousel-title {
+  margin: 0; font-size: 1.12em;
+}
 .carousel-title a, .carousel-title span { color: var(--primary); font-weight: 700; line-height: 1.4; }
 .carousel-title a:hover { color: var(--primary-dark); }
 .carousel-summary {
@@ -342,6 +344,20 @@ body[data-font="large"] .news-list li { padding: 11px 0; }
 .carousel-pause-ic { display: none; }
 .hero-carousel[data-playing="1"] .carousel-pause-ic--pause { display: block; }
 .hero-carousel[data-playing="0"] .carousel-pause-ic--play { display: block; }
+/* 播放/暂停键默认隐藏，鼠标移入轮换图时淡入；键盘焦点落在轮换图内（:focus-within）同样显现。
+   仅在有 hover 能力的设备上隐藏——触摸屏无 hover，按钮保持常显以便触控暂停。
+   用 visibility 而非 display，保留按钮占位避免序号块布局跳动；可见性延迟由 transition 控制。 */
+@media (hover: hover) and (pointer: fine) {
+  .hero-carousel .carousel-pause {
+    opacity: 0; visibility: hidden;
+    transition: opacity 0.18s ease, visibility 0s linear 0.18s;
+  }
+  .hero-carousel:hover .carousel-pause,
+  .hero-carousel:focus-within .carousel-pause {
+    opacity: 1; visibility: visible;
+    transition: opacity 0.18s ease, visibility 0s;
+  }
+}
 .carousel-arrow {
   position: absolute; top: 50%; transform: translateY(-50%); z-index: 4;
   background: rgba(0,0,0,0.4); color: #fff; border: none; width: 36px; height: 48px;
@@ -592,6 +608,14 @@ body.high-contrast .ranking-list li::before { color: #000; }
 /* 高对比下末行仍保留虚线分隔（覆盖普通模式的去末行线） */
 body.high-contrast .news-list li:last-child { border-bottom: 1px dashed #000; }
 
+/* 轮播标题：桌面端固定截断为 2 行；移动端（≤640px）不截断、自然折行，
+   避免窄屏每行字数少时标题被 -webkit-line-clamp: 2 裁掉关键信息 */
+@media (min-width: 641px) {
+  .carousel-title {
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+}
+
 /* ============ 响应式 ============ */
 @media (max-width: 1080px) {
   .content-grid { grid-template-columns: 1fr; }
@@ -631,7 +655,8 @@ body.high-contrast .news-list li:last-child { border-bottom: 1px dashed #000; }
   .carousel-media img { height: 200px; }
   .carousel-text { justify-content: flex-start; padding: 16px 16px 20px; gap: 10px; }
   .carousel-title a { font-size: 1.12em; }
-  .carousel-summary { -webkit-line-clamp: 3; }
+  /* 摘要减为 2 行，让出高度容纳标题第 3 行（标题在移动端不截断） */
+  .carousel-summary { -webkit-line-clamp: 2; }
   .carousel-nav { left: 12px; right: 12px; width: auto; bottom: 210px; gap: 6px; }
   .carousel-dot { width: 24px; height: 24px; font-size: 0.8rem; }
   .carousel-pause { width: 24px; height: 24px; }
