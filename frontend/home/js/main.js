@@ -3,10 +3,13 @@
 
   const DATA_URL = "data/home.json";
   const site = "https://www.gxhczx.gov.cn";
-  let state = { data: null, slideIdx: 0, slideTimer: null };
+  let state = { data: null, slideIdx: 0, slideTimer: null, slideCount: 0, slides: [], autoOn: true, hovering: false, carouselBound: false };
 
   /* ---------- 工具 ---------- */
   const el = (id) => document.getElementById(id);
+  // 用户偏好“减弱动态效果”：不自动轮播/滚动/换图，仍可手动浏览
+  const prefersReducedMotion = () =>
+    window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const esc = (s) => String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -108,14 +111,45 @@
       '<div class="carousel-nav" id="carouselDots">' +
       slides.map(function (_, i) {
         return '<button type="button" class="carousel-dot' + (i === 0 ? " active" : "") +
-          '" data-slide="' + i + '" aria-label="第' + (i+1) + '张">' + (i + 1) + '</button>';
+          '" data-slide="' + i + '" aria-label="第' + (i + 1) + '张"' +
+          (i === 0 ? ' aria-current="true"' : "") + '>' +
+          (i + 1) +
+          '</button>';
       }).join("") +
+      (slides.length > 1
+        ? '<button type="button" class="carousel-pause" id="carouselPause" aria-label="暂停轮播" aria-pressed="true">' +
+          '<svg class="carousel-pause-ic carousel-pause-ic--pause" viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>' +
+          '<svg class="carousel-pause-ic carousel-pause-ic--play" viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden="true"><path d="M7 4.5a1 1 0 0 1 1.5-.87l11 6.5a1 1 0 0 1 0 1.74l-11 6.5A1 1 0 0 1 7 17.5z"/></svg>' +
+          '</button>'
+        : "") +
       '</div>' +
       '<button type="button" class="carousel-arrow prev" id="slidePrev" aria-label="上一张">‹</button>' +
       '<button type="button" class="carousel-arrow next" id="slideNext" aria-label="下一张">›</button>';
     state.slideCount = slides.length;
     state.slides = slides;
-    startCarousel();
+    state.autoOn = state.slideCount > 1 && !prefersReducedMotion();
+    initCarousel();
+    requestAnimationFrame(applySummaryClamps);
+  }
+
+  // 摘要行数随标题折行联动：标题 1 行 → 摘要 9 行，标题 ≥2 行 → 摘要 8 行；
+  // 末行省略号由 CSS 的 -webkit-line-clamp 自动给出。移动端（≤640px）清空 inline，
+  // 交由 CSS 媒体查询的 3 行生效，避免桌面端写入的 8/9 覆盖移动端基线。
+  function applySummaryClamps() {
+    const slides = document.querySelectorAll(".carousel-slide");
+    if (!slides.length) return;
+    const mobile = window.matchMedia("(max-width: 640px)").matches;
+    Array.prototype.forEach.call(slides, function (slide) {
+      const title = slide.querySelector(".carousel-title a, .carousel-title span");
+      const summary = slide.querySelector(".carousel-summary");
+      if (!title || !summary) return;
+      if (mobile) { summary.style.webkitLineClamp = ""; return; }
+      const tcs = getComputedStyle(title);
+      let lh = parseFloat(tcs.lineHeight);
+      if (!isFinite(lh) || lh <= 0) lh = parseFloat(tcs.fontSize) * 1.4;
+      const lines = Math.max(1, Math.round(title.offsetHeight / lh));
+      summary.style.webkitLineClamp = lines >= 2 ? 8 : 9;
+    });
   }
 
   function showSlide(i) {
@@ -132,32 +166,64 @@
     }
     const dots = el("carouselDots");
     if (dots) {
-      Array.prototype.forEach.call(dots.children, function (d, idx) {
-        d.classList.toggle("active", idx === state.slideIdx);
+      Array.prototype.forEach.call(dots.querySelectorAll(".carousel-dot"), function (d, idx) {
+        const on = idx === state.slideIdx;
+        d.classList.toggle("active", on);
+        if (on) d.setAttribute("aria-current", "true");
+        else d.removeAttribute("aria-current");
       });
     }
   }
 
-  function startCarousel() {
-    stopCarousel();
-    state.slideTimer = setInterval(function () { showSlide(state.slideIdx + 1); }, 5000);
-    const prev = el("slidePrev"), next = el("slideNext");
-    if (prev) prev.onclick = function () { showSlide(state.slideIdx - 1); stopCarousel(); };
-    if (next) next.onclick = function () { showSlide(state.slideIdx + 1); stopCarousel(); };
-    const dots = el("carouselDots");
-    if (dots) dots.addEventListener("click", function (e) {
-      const b = e.target.closest(".carousel-dot");
-      if (b) { showSlide(+b.dataset.slide); stopCarousel(); }
-    });
+  // 轮播控制：自动播放 / 胶囊进度 / 播放暂停（事件仅绑定一次）
+  function initCarousel() {
     const hero = el("heroCarousel");
-    if (hero) {
-      hero.addEventListener("mouseenter", stopCarousel);
-      hero.addEventListener("mouseleave", startCarousel);
+    const prev = el("slidePrev"), next = el("slideNext");
+    const dots = el("carouselDots");
+    const pb = el("carouselPause");
+    if (!state.carouselBound) {
+      state.carouselBound = true;
+      if (prev) prev.addEventListener("click", function () {
+        showSlide(state.slideIdx - 1);
+        reconcileCarousel();
+      });
+      if (next) next.addEventListener("click", function () {
+        showSlide(state.slideIdx + 1);
+        reconcileCarousel();
+      });
+      if (dots) dots.addEventListener("click", function (e) {
+        const b = e.target.closest(".carousel-dot");
+        if (b) { showSlide(+b.dataset.slide); reconcileCarousel(); }
+      });
+      if (pb) pb.addEventListener("click", function () {
+        state.autoOn = !state.autoOn;
+        reconcileCarousel();
+      });
+      if (hero) {
+        hero.addEventListener("mouseenter", function () { state.hovering = true; reconcileCarousel(); });
+        hero.addEventListener("mouseleave", function () { state.hovering = false; reconcileCarousel(); });
+      }
     }
+    reconcileCarousel();
   }
 
-  function stopCarousel() {
+  // 依据状态收敛定时器与进度胶囊：autoOn 且未悬停时才计时轮播
+  function reconcileCarousel() {
     if (state.slideTimer) { clearInterval(state.slideTimer); state.slideTimer = null; }
+    const timing = state.autoOn && !state.hovering && state.slideCount > 1;
+    if (timing) {
+      state.slideTimer = setInterval(function () { showSlide(state.slideIdx + 1); }, 5000);
+    }
+    const hero = el("heroCarousel");
+    const pb = el("carouselPause");
+    if (hero) hero.dataset.playing = state.autoOn ? "1" : "0";
+    if (pb) {
+      const single = state.slideCount <= 1;
+      const on = state.autoOn && !single;
+      pb.hidden = single;
+      pb.setAttribute("aria-pressed", on ? "true" : "false");
+      pb.setAttribute("aria-label", on ? "暂停轮播" : "播放轮播");
+    }
   }
 
   function renderLeaders(leaders) {
@@ -518,6 +584,7 @@
   }
 
   function initMarquees() {
+    if (prefersReducedMotion()) return; // 减弱动态：不做自动滚动，内容静止展示
     requestAnimationFrame(function () {
       startScrollLoop(document.querySelector(".leader-vices-track"), document.querySelector(".leader-vices-marquee"), 60);
       document.querySelectorAll(".image-marquee").forEach(function (m) {
@@ -532,6 +599,7 @@
   function initMasthead() {
     const bgs = Array.from(document.querySelectorAll(".masthead-layers .mast-bg"));
     if (bgs.length < 2) return;
+    if (prefersReducedMotion()) return; // 减弱动态：固定首张背景图，不做轮换
     let idx = 0;
     setInterval(function () {
       bgs[idx].classList.remove("active");
@@ -555,6 +623,7 @@
         document.querySelectorAll(".font-tools button").forEach(function (x) {
           x.classList.toggle("active", x === b);
         });
+        requestAnimationFrame(applySummaryClamps);
       });
     });
     const cb = el("contrastBtn");
@@ -573,6 +642,13 @@
       else if (y < lastTopbarY) topbar.classList.remove("is-hidden");
       lastTopbarY = y;
     }, { passive: true });
+
+    // 视口宽度变化会改变标题折行，随之重算摘要行数
+    let summaryResizeT;
+    window.addEventListener("resize", function () {
+      clearTimeout(summaryResizeT);
+      summaryResizeT = setTimeout(applySummaryClamps, 120);
+    });
   }
 
   /* ---------- 主入口 ---------- */
