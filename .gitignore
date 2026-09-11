@@ -49,3 +49,9 @@ id_rsa*
 backend/public/uploads/
 backend/storage/uploads/
 
+# 本地工具与调试产物
+# .claude/ 与 .playwright-mcp/ 为 Claude Code、Playwright MCP 的会话与快照文件；
+# /*.png 只忽略仓库根目录的调试截图，站内图片在 frontend/home/images/ 下不受影响
+.claude/
+.playwright-mcp/
+/*.png
