@@ -1009,6 +1009,35 @@ async function main() {
     check("轮播条目可以删除",
       slideDeleted.status === 302 && (await client.get("/admin/slides")).text.includes("共 7 条"));
 
+    // 首屏预览：拖动排序。页面带着当前顺序，脚本拖完把整串交给 /admin/slides/order
+    const stripPage = await client.get("/admin/slides");
+    const stripIds = [...stripPage.text.matchAll(/data-slide-id="(\d+)"/g)].map((m) => m[1]);
+    check("首屏预览的每条都带排序与预览用的数据钩子",
+      stripIds.length > 0 && stripPage.text.includes("data-slide-strip") &&
+      stripPage.text.includes('action="/admin/slides/order"') &&
+      stripPage.text.includes('class="slide-chip-media"'),
+      "预览 " + stripIds.length + " 条");
+
+    const flippedIds = stripIds.slice().reverse();
+    const reordered = await client.post("/admin/slides/order", {
+      _token: csrfToken(stripPage.text),
+      order: flippedIds.join(",")
+    });
+    const afterOrderPage = await client.get("/admin/slides");
+    const afterIds = [...afterOrderPage.text.matchAll(/data-slide-id="(\d+)"/g)].map((m) => m[1]);
+    check("拖动排序按新顺序保存",
+      reordered.status === 302 && afterIds.join(",") === flippedIds.join(","),
+      stripIds.join(",") + " → " + afterIds.join(","));
+    check("拖动排序后回到页面并给出成功提示",
+      afterOrderPage.text.includes("已按拖动后的顺序保存"));
+    check("顺序与当前上线条目对不上时整单拒绝",
+      (await client.post("/admin/slides/order", {
+        _token: csrfToken(afterOrderPage.text),
+        order: "999999"
+      })).status === 302 &&
+      [...(await client.get("/admin/slides")).text.matchAll(/data-slide-id="(\d+)"/g)].map((m) => m[1]).join(",") ===
+        flippedIds.join(","));
+
     const sectionsPage = await client.get("/admin/sections");
     check("其他栏目页列出 13 个首页模块",
       sectionsPage.status === 200 && (sectionsPage.text.match(/admin\/section\//g) || []).length === 13,

@@ -115,6 +115,8 @@ return static function (Router $router, Db $db, Config $config): void {
 
     $router->get('/admin/slides', [$slideController, 'index']);
     $router->post('/admin/slides/create', [$slideController, 'create']);
+    // 必须排在 /admin/slides/{id} 前面：路由是首条匹配生效，否则 order 会被当成 id
+    $router->post('/admin/slides/order', [$slideController, 'reorder']);
     $router->post('/admin/slides/{id}', [$slideController, 'update']);
     $router->post('/admin/slides/{id}/move', [$slideController, 'move']);
     $router->post('/admin/slides/{id}/status', [$slideController, 'toggle']);

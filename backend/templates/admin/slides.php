@@ -33,22 +33,62 @@ foreach ($slides as $slide) {
 </div>
 
 <?php if ($publishedCount > 0): ?>
+  <?php
+  // 预览区可拖动排序：把当前顺序写进表单，脚本拖完对照它判断有没有真的动过
+  $onlineOrder = [];
+  foreach ($slides as $slide) {
+      if ((string) $slide['status'] === 'published') {
+          $onlineOrder[] = (int) $slide['slide_id'];
+      }
+  }
+  ?>
   <section class="card">
     <h2>首屏效果预览</h2>
-    <div class="slide-strip">
+    <form id="slide-order-form" method="post" action="/admin/slides/order"
+          data-order="<?= hechi_e(implode(',', $onlineOrder)) ?>" hidden>
+      <?= $csrf ?>
+      <input type="hidden" name="order" value="">
+    </form>
+    <div class="slide-strip" data-slide-strip>
       <?php foreach ($slides as $slide): ?>
         <?php if ((string) $slide['status'] !== 'published') { continue; } ?>
-        <figure class="slide-chip">
+        <?php
+        $slideId = (int) $slide['slide_id'];
+        $slideLink = trim((string) $slide['link_url']);
+        $slideArticleId = (int) $slide['article_id'];
+        if ($slideLink !== '') {
+            $previewUrl = hechi_asset($slideLink);
+        } elseif ($slideArticleId > 0 && $slide['article'] !== null) {
+            $previewUrl = '/detail.html?id=' . $slideArticleId;
+        } else {
+            $previewUrl = '';
+        }
+        ?>
+        <figure class="slide-chip" draggable="true" data-slide-id="<?= $slideId ?>">
+          <?php if ($previewUrl !== ''): ?>
+            <a class="slide-chip-media" href="<?= hechi_e($previewUrl) ?>" target="_blank" rel="noopener"
+               draggable="false" title="点击预览前台页面">
+          <?php endif; ?>
           <?php if ((string) $slide['image_url'] !== ''): ?>
-            <img src="<?= hechi_e(hechi_asset($slide['image_url'])) ?>" alt="">
+            <img src="<?= hechi_e(hechi_asset($slide['image_url'])) ?>" alt="" draggable="false">
           <?php else: ?>
             <span class="slide-chip-empty">无图<br>（取稿件配图）</span>
           <?php endif; ?>
+          <?php if ($previewUrl !== ''): ?>
+            </a>
+          <?php endif; ?>
           <figcaption><?= hechi_e((string) $slide['title']) ?></figcaption>
+          <form method="post" action="/admin/slides/<?= $slideId ?>/delete" class="slide-chip-del">
+            <?= $csrf ?>
+            <button type="submit" class="btn btn-sm btn-danger-outline">删除</button>
+          </form>
         </figure>
       <?php endforeach; ?>
     </div>
-    <p class="muted">前台按这个顺序轮播；图片为空时取稿件缩略图或正文首图。</p>
+    <p class="muted">
+      按住缩略图左右拖动可调整轮播顺序（松手即保存），点图片在新窗口预览前台页面，「删除」即时生效。
+      前台按这个顺序轮播；图片为空时取稿件缩略图或正文首图。
+    </p>
   </section>
 <?php endif; ?>
 

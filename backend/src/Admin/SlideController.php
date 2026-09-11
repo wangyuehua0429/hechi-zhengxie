@@ -251,6 +251,66 @@ final class SlideController extends AdminController
     }
 
     /**
+     * 首屏预览里拖动排序：一次带上「上线条目的完整新顺序」，未上线的条目保持原位。
+     */
+    public function reorder(Request $request): HtmlResponse|RedirectResponse
+    {
+        if ($redirect = $this->requireLogin()) {
+            return $redirect;
+        }
+        if ($notReady = $this->requireHomeTables($this->home)) {
+            return $notReady;
+        }
+        if ($denied = $this->guard($request)) {
+            return $denied;
+        }
+        if ($denied = $this->requirePermission(Permissions::HOME_MANAGE)) {
+            return $denied;
+        }
+
+        $ids = [];
+        foreach (explode(',', (string) $request->post('order')) as $piece) {
+            $value = (int) trim($piece);
+            if ($value > 0) {
+                $ids[] = $value;
+            }
+        }
+
+        $rows = $this->home->slideRows();
+        $online = [];
+        foreach ($rows as $row) {
+            if ((string) $row['status'] === 'published') {
+                $online[(int) $row['slide_id']] = true;
+            }
+        }
+
+        // 只认「和当前上线条目一字不差」的一串 id，避免预览过期后把别人的改动冲掉
+        $want = $ids;
+        $have = array_keys($online);
+        sort($want);
+        sort($have);
+        if ($want === [] || $want !== $have) {
+            Flash::set('error', '顺序和当前上线的轮播条目对不上，没有改动。刷新后再拖一次。');
+            return new RedirectResponse('/admin/slides');
+        }
+
+        // 未上线的条目原地不动，上线条目按拖后的顺序填回它们原来的位置
+        $queue = $ids;
+        $ordered = [];
+        foreach ($rows as $row) {
+            $slideId = (int) $row['slide_id'];
+            $ordered[] = isset($online[$slideId]) ? (int) array_shift($queue) : $slideId;
+        }
+        foreach ($ordered as $index => $slideId) {
+            $this->setSort($slideId, $index + 1);
+        }
+
+        $this->log('slide.order', 'home', '0', ['order' => $ordered]);
+        Flash::set('ok', '已按拖动后的顺序保存。');
+        return new RedirectResponse('/admin/slides');
+    }
+
+    /**
      * @param array<string, string> $args
      */
     public function toggle(Request $request, array $args): HtmlResponse|RedirectResponse

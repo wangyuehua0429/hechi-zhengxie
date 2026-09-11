@@ -1,12 +1,13 @@
 /**
  * 后台渐进增强脚本：不加载也能完成全部操作，加载后少点几下。
  *
- * 这里只做五件事：
+ * 这里只做六件事：
  * 1. 稿件列表的批量选择（勾选、全选半选、按动作显示备注框、提交前自检）；
  * 2. 栏目列表的即时筛选（不必回车，服务端筛选照旧可用）；
  * 3. 稿件编辑页的正文预览与字数统计（预览走 sandbox iframe，脚本不执行）；
  * 4. Ctrl/⌘+S 保存与「有改动未保存」离开提醒；
  * 5. 上移／下移这类排序提交后还原滚动位置，长列表里不用每次再滚回去。
+ * 6. 头条轮换「首屏效果预览」里拖动缩略图排序（拖完一次性提交整串顺序）。
  *
  * 所有逻辑都用 data-* 钩子，模板改名不影响；没有匹配元素时静默跳过。
  */
@@ -239,4 +240,55 @@
     document.addEventListener("DOMContentLoaded", restore);
     addEventListener("load", restore);
   })();
+
+  /* ------------------------------------ 6. 首屏预览：拖动缩略图排序 */
+  // 拖的过程中直接把元素挪到位，松手前就能看到落点；松手后把整串顺序交给
+  // /admin/slides/order 一次提交（服务端只认「与当前上线条目完全一致」的顺序）。
+  // 没有脚本时，列表里的上移／下移照旧可用。
+  const slideStrip = document.querySelector("[data-slide-strip]");
+  const slideOrderForm = document.getElementById("slide-order-form");
+
+  if (slideStrip && slideOrderForm && typeof window.DataTransfer === "function") {
+    const chips = () => Array.prototype.slice.call(slideStrip.querySelectorAll("[data-slide-id]"));
+    let draggedChip = null;
+
+    slideStrip.addEventListener("dragstart", (event) => {
+      const chip = event.target.closest ? event.target.closest("[data-slide-id]") : null;
+      if (!chip) return;
+      draggedChip = chip;
+      chip.classList.add("is-dragging");
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+        try {
+          event.dataTransfer.setData("text/plain", chip.getAttribute("data-slide-id") || "");
+        } catch (e) { /* 个别浏览器不让写拖拽数据，不影响排序 */ }
+      }
+    });
+
+    slideStrip.addEventListener("dragover", (event) => {
+      if (!draggedChip) return;
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = "move";
+      const over = event.target.closest ? event.target.closest("[data-slide-id]") : null;
+      if (!over || over === draggedChip) return;
+      const rect = over.getBoundingClientRect();
+      const after = event.clientX > rect.left + rect.width / 2;
+      slideStrip.insertBefore(draggedChip, after ? over.nextSibling : over);
+    });
+
+    slideStrip.addEventListener("drop", (event) => {
+      if (draggedChip) event.preventDefault();
+    });
+
+    slideStrip.addEventListener("dragend", () => {
+      if (!draggedChip) return;
+      draggedChip.classList.remove("is-dragging");
+      draggedChip = null;
+      const order = chips().map((chip) => chip.getAttribute("data-slide-id")).join(",");
+      if (order === (slideOrderForm.getAttribute("data-order") || "")) return;
+      const field = slideOrderForm.querySelector('input[name="order"]');
+      if (field) field.value = order;
+      slideOrderForm.requestSubmit();
+    });
+  }
 })();
