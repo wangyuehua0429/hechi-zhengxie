@@ -1019,7 +1019,7 @@ async function main() {
       stripIds.length > 0 && stripPage.text.includes("data-slide-strip") &&
       stripPage.text.includes('action="/admin/slides/order"') &&
       stripPage.text.includes('class="slide-chip-media"') &&
-      (stripPage.text.match(/data-slide-delete/g) || []).length === stripIds.length,
+      (stripPage.text.match(/data-confirm="确认从首屏轮播里删除/g) || []).length === stripIds.length,
       "预览 " + stripIds.length + " 条");
 
     const flippedIds = stripIds.slice().reverse();
@@ -1169,6 +1169,22 @@ async function main() {
     });
     check("横幅可以重新上线",
       bannerOn.status === 302 && !/tag-offline">已下线/.test((await client.get("/admin/banners")).text));
+
+    // 首页管理直接同步前台，凡是会改前台的提交都要带确认文案（由 admin.js 弹一次确认）
+    const confirmSlidesPage = await client.get("/admin/slides");
+    const countOf = (text, needle) => (text.match(new RegExp(needle, "g")) || []).length;
+    check("首页管理的提交都带确认文案",
+      countOf(navPage.text, 'data-confirm="保存导航') >= 1 &&
+      countOf(confirmSlidesPage.text, 'data-confirm="确认从首屏轮播里删除') >= 1 &&
+      countOf(confirmSlidesPage.text, 'data-confirm="下线「|data-confirm="上线「') >= 1 &&
+      countOf(confirmSlidesPage.text, 'data-confirm="保存「') >= 1 &&
+      countOf(sectionsPage.text, 'data-confirm="保存模块') >= 1 &&
+      countOf(sectionsPage.text, 'data-confirm="置顶「|data-confirm="取消置顶「') >= 1 &&
+      countOf(bannersPage.text, 'data-confirm="保存「') === 7,
+      "导航 " + countOf(navPage.text, "data-confirm") +
+      " 处 / 轮播 " + countOf(confirmSlidesPage.text, "data-confirm") +
+      " 处 / 模块 " + countOf(sectionsPage.text, "data-confirm") +
+      " 处 / 横幅 " + countOf(bannersPage.text, "data-confirm") + " 处");
 
     const homeLogs = await client.get("/admin/logs");
     check("首页四类的改动都写进操作日志",

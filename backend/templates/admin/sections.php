@@ -145,7 +145,10 @@ $kindLabels = [
                       <input type="hidden" name="channel" value="<?= hechi_e($channel) ?>">
                       <input type="hidden" name="back" value="<?= hechi_e($back) ?>">
                       <input type="hidden" name="value" value="<?= (int) $row['is_top'] === 1 ? '0' : '1' ?>">
-                      <button type="submit" class="btn btn-sm"><?= (int) $row['is_top'] === 1 ? '取消置顶' : '置顶' ?></button>
+                      <button type="submit" class="btn btn-sm"
+                              data-confirm="<?= (int) $row['is_top'] === 1
+                                ? '取消置顶「' . hechi_e((string) $row['title']) . '」？它会从该栏目和首页模块的最前面落回按时间排序的位置。'
+                                : '置顶「' . hechi_e((string) $row['title']) . '」？它会排到该栏目和首页模块的最前面。' ?>"><?= (int) $row['is_top'] === 1 ? '取消置顶' : '置顶' ?></button>
                     </form>
                     <a class="btn btn-sm btn-ghost" href="/admin/article/<?= $id ?>">编辑</a>
                     <a class="btn btn-sm btn-ghost" href="/detail.html?id=<?= $id ?>" target="_blank" rel="noopener">前台</a>
@@ -211,7 +214,8 @@ $kindLabels = [
           </label>
         </div>
         <div class="actions">
-          <button type="submit" class="btn-primary">保存模块</button>
+          <button type="submit" class="btn-primary"
+                  data-confirm="保存模块「<?= hechi_e((string) $row['label']) ?>」？首页这张卡片会立刻按新的绑定与条数显示。">保存模块</button>
           <span class="muted">可用栏目号见页面底部的栏目清单。</span>
         </div>
       </form>

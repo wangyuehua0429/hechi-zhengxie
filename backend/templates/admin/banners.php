@@ -63,7 +63,8 @@ declare(strict_types=1);
           </label>
         </div>
         <div class="actions">
-          <button type="submit" class="btn-primary">保存</button>
+          <button type="submit" class="btn-primary"
+                  data-confirm="保存「<?= hechi_e((string) $slot['label']) ?>」？首页这个位置会立刻换成新的图片／链接。">保存</button>
           <span class="muted">jpg／png／gif／webp，单个 ≤ 32 MB。</span>
         </div>
       </form>

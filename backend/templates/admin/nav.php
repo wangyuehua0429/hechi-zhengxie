@@ -29,7 +29,10 @@ $lastIndex = count($items) - 1;
 </div>
 
 <?php foreach ($items as $index => $item): ?>
-  <form id="nav-<?= (int) $index ?>" method="post" action="/admin/nav/<?= (int) $index ?>"><?= $csrf ?></form>
+  <form id="nav-<?= (int) $index ?>" method="post" action="/admin/nav/<?= (int) $index ?>"
+        data-confirm="保存导航「<?= hechi_e((string) $item['title']) ?>」的改动？<?= !empty($item['hidden'])
+          ? '这一项勾了「隐藏」，保存后前台顶部导航里就不显示它了。'
+          : '前台顶部导航会立刻按新名称与链接显示。' ?>"><?= $csrf ?></form>
 <?php endforeach; ?>
 
 <div class="table-scroll">

@@ -8,7 +8,7 @@
  * 4. Ctrl/⌘+S 保存与「有改动未保存」离开提醒；
  * 5. 上移／下移这类排序提交后还原滚动位置，长列表里不用每次再滚回去。
  * 6. 头条轮换「首屏效果预览」里拖动缩略图排序（拖完一次性提交整串顺序）；
- *    点条目右上角红叉删除前先问一句。
+ *    首页管理里会改前台的提交（下线／删除／隐藏／置顶／改绑定／换图等）先弹一次确认。
  *
  * 所有逻辑都用 data-* 钩子，模板改名不影响；没有匹配元素时静默跳过。
  */
@@ -293,14 +293,20 @@
     });
   }
 
-  // 预览区右上角的红叉：先问一句再提交，避免手滑把轮播条目删掉
+  // 首页管理：改动直接同步前台，凡是会改前台的提交先问一句再提交。
+  // 确认文案写在模板的 data-confirm 上（每条都不一样，写清这一下会造成什么），
+  // 没有脚本时不拦，按原来的方式提交。
   document.addEventListener("submit", (event) => {
     const form = event.target;
-    if (!form || !form.matches || !form.matches("[data-slide-delete]")) return;
-    const title = form.getAttribute("data-slide-title") || "";
-    const message = title === ""
-      ? "确认从首屏轮播里删除这一条？"
-      : "确认从首屏轮播里删除「" + title + "」？";
-    if (!window.confirm(message)) event.preventDefault();
+    if (!form || form.tagName !== "FORM") return;
+    // 文案可以写在表单上（一条记录一个），也可以写在提交按钮上（同一表单多个按钮）
+    const submitter = event.submitter;
+    const source = submitter && submitter.hasAttribute && submitter.hasAttribute("data-confirm")
+      ? submitter
+      : (form.hasAttribute("data-confirm") ? form : null);
+    if (!source) return;
+    if (!window.confirm(source.getAttribute("data-confirm") || "确认执行这次改动？")) {
+      event.preventDefault();
+    }
   });
 })();

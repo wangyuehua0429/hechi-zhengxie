@@ -78,7 +78,7 @@ foreach ($slides as $slide) {
             </a>
           <?php endif; ?>
           <form method="post" action="/admin/slides/<?= $slideId ?>/delete" class="slide-chip-del"
-                data-slide-delete data-slide-title="<?= hechi_e((string) $slide['title']) ?>">
+                data-confirm="确认从首屏轮播里删除「<?= hechi_e((string) $slide['title']) ?>」？删除后这条不再出现。">
             <?= $csrf ?>
             <button type="submit" title="从轮播里删除这一条"
                     aria-label="从轮播里删除「<?= hechi_e((string) $slide['title']) ?>」">✕</button>
@@ -223,11 +223,15 @@ foreach ($slides as $slide) {
               </form>
               <form method="post" action="/admin/slides/<?= $id ?>/status" class="inline">
                 <?= $csrf ?>
-                <button type="submit" class="btn btn-sm"><?= $status === 'published' ? '下线' : '上线' ?></button>
+                <button type="submit" class="btn btn-sm"
+                        data-confirm="<?= $status === 'published'
+                          ? '下线「' . hechi_e((string) $slide['title']) . '」？它会立刻从首屏轮播里消失。'
+                          : '上线「' . hechi_e((string) $slide['title']) . '」？它会立刻出现在首屏轮播里。' ?>"><?= $status === 'published' ? '下线' : '上线' ?></button>
               </form>
               <form method="post" action="/admin/slides/<?= $id ?>/delete" class="inline">
                 <?= $csrf ?>
-                <button type="submit" class="btn btn-sm btn-danger-outline">删除</button>
+                <button type="submit" class="btn btn-sm btn-danger-outline"
+                        data-confirm="确认删除「<?= hechi_e((string) $slide['title']) ?>」？删除后这条不再出现在首屏轮播里。">删除</button>
               </form>
             </div>
           </td>
@@ -258,7 +262,8 @@ foreach ($slides as $slide) {
                   </label>
                 </div>
                 <div class="actions">
-                  <button type="submit" class="btn-primary">保存</button>
+                  <button type="submit" class="btn-primary"
+                          data-confirm="保存「<?= hechi_e((string) $slide['title']) ?>」的改动？前台首屏会立刻按新内容展示。">保存</button>
                 </div>
               </form>
             </details>
