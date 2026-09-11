@@ -606,6 +606,11 @@ html:not(.js) .bulk-col { display: none; }
 .channel-path { display: block; color: var(--muted); font-size: 13px; }
 .channel-sub { display: block; font-size: 14px; }
 .article-table .col-status { min-width: 120px; }
+/* 导航栏目：链接多为几十字符的旧站地址，给整列留足宽度并让输入框填满，免得只能看到半截 */
+.article-table .col-nav-title { min-width: 160px; }
+.article-table .col-nav-title input,
+.article-table .col-nav-url input { width: 100%; }
+.article-table .col-nav-url { min-width: 430px; }
 .row-note { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
 .col-actions { width: 1%; white-space: nowrap; }
 .article-table .row-actions { flex-wrap: nowrap; }

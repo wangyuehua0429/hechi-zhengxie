@@ -41,8 +41,8 @@ $lastIndex = count($items) - 1;
   <thead>
     <tr>
       <th scope="col" class="nowrap">序</th>
-      <th scope="col">导航名称</th>
-      <th scope="col">链接</th>
+      <th scope="col" class="col-nav-title">导航名称</th>
+      <th scope="col" class="col-nav-url">链接</th>
       <th scope="col" class="nowrap">指向栏目</th>
       <th scope="col" class="nowrap">隐藏</th>
       <th scope="col" class="col-actions">操作</th>
@@ -57,10 +57,10 @@ $lastIndex = count($items) - 1;
       ?>
       <tr<?= !empty($item['hidden']) ? ' class="row-hidden"' : '' ?>>
         <td class="nowrap muted"><?= (int) $index + 1 ?></td>
-        <td>
+        <td class="col-nav-title">
           <input form="<?= $formId ?>" type="text" name="title" value="<?= hechi_e((string) $item['title']) ?>" required>
         </td>
-        <td>
+        <td class="col-nav-url">
           <input form="<?= $formId ?>" type="text" name="url" value="<?= hechi_e((string) $item['url']) ?>" required>
           <span class="row-meta">可以是栏目内页（channel.html?id=904）、站内路径或外部链接。</span>
         </td>
