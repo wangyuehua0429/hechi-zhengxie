@@ -754,14 +754,15 @@
   async function init() {
     renderDate();
     bindInteractions();
-    // 等站内链接映射就绪，导航与列表才能指向新版内页而不是旧站
-    if (window.SITE_LINKS && window.SITE_LINKS.ready) {
-      try { await window.SITE_LINKS.ready; } catch (e) { /* 映射失败时保持旧站链接 */ }
-    }
+    // 站内链接映射与首页数据并行取，省掉一次串行等待（映射未就绪时列表仍指向旧站）
+    const linksReady = (window.SITE_LINKS && window.SITE_LINKS.ready)
+      ? window.SITE_LINKS.ready.catch(function () { return []; })
+      : Promise.resolve([]);
     try {
       const res = await fetch(DATA_URL);
       if (!res.ok) throw new Error("HTTP " + res.status);
       const d = await res.json();
+      await linksReady;   // 取完数据再等映射，两者已经并行
       state.data = d;
       renderMarquee(d.meta.marquee);
       renderNav(d.nav);
@@ -814,9 +815,6 @@
       console.error("首页数据加载失败:", err);
       showDataError();
     }
-    /* 首屏数据渲染完成（主导航含在内）：通知站头展开动画可以开始了。
-       导航条是异步渲染的，抢在它之前展开，主体会在动画中途被撑高 90px 而跳动。 */
-    document.dispatchEvent(new CustomEvent("site:rendered"));
   }
 
   function fillBox(prefix, items) {

@@ -180,6 +180,9 @@ html.mast-folded .masthead-layers .mast-slogan { opacity: 0; visibility: hidden;
 .nav-wrap {
   display: flex; align-items: stretch;
   background: var(--primary); border-radius: 0; margin-top: 6px; margin-bottom: 6px;
+  /* 主导航由 JS 异步渲染（要等 data/channel.json）。先按渲染后的两行宫格占位 90px，
+     导航晚到也不会把下面的主体撑下去，站头展开动画因此可以立即开始。 */
+  min-height: 90px;
 }
 .nav-home {
   position: relative; display: inline-flex; align-items: center; gap: 7px; flex: 0 0 auto;
@@ -692,7 +695,7 @@ body.high-contrast .news-list li:last-child { border-bottom: 1px dashed #000; }
   .nav-toggle span { background: #fff; }
   .site-nav { display: none; }
   .site-nav.open { display: block; }
-  .nav-wrap { display: block; }
+  .nav-wrap { display: block; min-height: 0; }
   .nav-home { width: 100%; justify-content: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.12); border-right: 0; }
   .nav-rows { display: block; }
   .nav-row { display: flex; flex-direction: column; }

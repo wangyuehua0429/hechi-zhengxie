@@ -201,18 +201,9 @@
     if (reduceMotion.matches) {
       html.classList.remove(FOLDED);   // 减弱动态：直接给全幅，不做展开动画
     } else {
-      /* 等首页首屏渲染完再展开：主导航是异步渲染的，先展开会被它撑高 90px，主体中途跳动 */
-      let started = false;
-      let patience = 0;
-      const begin = function () {
-        if (started) return;
-        started = true;
-        document.removeEventListener("site:rendered", begin);
-        window.clearTimeout(patience);
-        window.requestAnimationFrame(startExpand);
-      };
-      document.addEventListener("site:rendered", begin);
-      patience = window.setTimeout(begin, 1500);
+      /* 不等首屏数据：主导航的高度已在 CSS 里占位（.nav-wrap 的 min-height），
+         它异步渲染出来也不会把主体撑下去，所以展开可以直接开始。 */
+      window.requestAnimationFrame(startExpand);
     }
   }
 

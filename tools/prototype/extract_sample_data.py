@@ -795,6 +795,13 @@ def build(args):
     write(os.path.join(root, "frontend/home/data/channel.json"),
           {"channels": channels},
           "栏目列表页样例数据（来源：旧库 rd_news，按 Region 分栏取内容）")
+    # 链接映射精简索引：js/site-links.js 只需要“栏目 type + 稿件 id”，
+    # 首页导航若去等 190KB 的 channel.json 会拖慢首屏，这里随数据一起生成 4KB 的索引
+    write(os.path.join(root, "frontend/home/data/channel-index.json"),
+          {"channels": [{"type": c["type"],
+                         "ids": [str(item["id"]) for item in c.get("list", [])]}
+                        for c in channels]},
+          "站内链接映射的精简索引（栏目 type + 稿件 id，供 js/site-links.js 使用）")
     unique = []
     seen = set()
     for article in articles:

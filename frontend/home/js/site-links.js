@@ -7,6 +7,9 @@
 (function () {
   "use strict";
 
+  // 先取精简索引（4KB：栏目 type + 稿件 id），拿不到再退回完整的 channel.json（190KB）。
+  // 首页导航等链接映射，索引足够，且不会把首屏拖慢。
+  var INDEX_DATA = "data/channel-index.json";
   var CHANNEL_DATA = "data/channel.json";
   var site = "https://www.gxhczx.gov.cn";
 
@@ -24,17 +27,23 @@
   }
 
   function load() {
-    return fetch(CHANNEL_DATA)
+    return fetch(INDEX_DATA)
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
         return res.json();
       })
+      .catch(function () { return fetch(CHANNEL_DATA).then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      }); })
       .then(function (data) {
         var channels = (data && data.channels) || [];
         channels.forEach(function (channel) {
           channelMap[String(channel.type)] = "channel.html?id=" + encodeURIComponent(channel.type);
-          (channel.list || []).forEach(function (item) {
-            articleMap[String(item.id)] = "detail.html?id=" + encodeURIComponent(item.id);
+          // 精简索引是 ids: ["62180", ...]，完整 channel.json 是 list: [{id, ...}, ...]
+          var ids = channel.ids || (channel.list || []).map(function (item) { return item.id; });
+          ids.forEach(function (id) {
+            articleMap[String(id)] = "detail.html?id=" + encodeURIComponent(id);
           });
         });
         return channels;
