@@ -301,6 +301,9 @@ async function main() {
     // ---- 新建稿件 → 附件 → 插图 → 删除
     const newForm = await client.get("/admin/article/new");
     check("新建稿件表单可打开", newForm.status === 200 && newForm.text.includes("新建稿件"));
+    check("新建稿件的状态默认是「已发布」",
+      /<option value="published"[^>]*selected/.test(newForm.text),
+      (newForm.text.match(/<option value="(\w+)"[^>]*selected/) || [])[1] || "无默认选项");
     check("新建页的栏目选择是导航条而非下拉",
       newForm.text.includes('class="channel-nav"') && !/<select name="channel_type"/.test(newForm.text));
     const newForm314 = await client.get("/admin/article/new?channel=314");
@@ -321,7 +324,8 @@ async function main() {
       published_time: "09:30",
       status: "published",
       summary: "自动化检查创建，用完即删。",
-      content_html: "<p>这是检查脚本写入的正文。</p>"
+      // 故意只写纯文本、用空行分段：验证后台会自动转成 <p>
+      content_html: "这是检查脚本写入的第一段。\n\n这是第二段。"
     });
     const createdId = (/(\/admin\/article\/(\d+))$/.exec(created.headers.get("location") || "") || [])[2] || "";
     check("新建稿件成功并跳到编辑页", created.status === 302 && createdId !== "", "id=" + createdId);
@@ -330,6 +334,10 @@ async function main() {
       const createdPublic = await client.get("/api/v1/article/" + createdId, { json: true });
       check("新建的已发布稿件立刻能被公开接口读到",
         createdPublic.status === 200 && createdPublic.body?.article?.title === "后台检查用临时稿件");
+      check("纯文本正文自动分段（空行转成 <p>）",
+        (createdPublic.body?.article?.content || "").includes("<p>这是检查脚本写入的第一段。</p>") &&
+        (createdPublic.body?.article?.content || "").includes("<p>这是第二段。</p>"),
+        JSON.stringify(createdPublic.body?.article?.content || "").slice(0, 120));
 
       const createdEdit = await client.get("/admin/article/" + createdId);
       const uploadToken = csrfToken(createdEdit.text);

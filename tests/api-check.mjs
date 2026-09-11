@@ -262,6 +262,12 @@ async function main() {
     const badPath = await fetchJson(base, "/api/v1/nope");
     check("未知路径返回 404 not_found", badPath.status === 404 && badPath.body?.error?.code === "not_found");
 
+    const cacheProbe = await fetch(base + "/api/v1/channels?withList=0");
+    const cacheHeader = cacheProbe.headers.get("cache-control") || "";
+    check("接口响应默认不缓存（避免改稿后看不到）",
+      !/max-age=[1-9]/.test(cacheHeader),
+      cacheHeader || "无 Cache-Control");
+
     // ---- 静态化发布（只跑数据快照，快；HTML 发布在独立用例里验结构）
     if (!opts.url && php) {
       const outDir = path.join(tmpRoot, "publish");
