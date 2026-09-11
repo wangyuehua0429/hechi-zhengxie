@@ -222,6 +222,27 @@ async function main() {
     const filtered = await client.get("/admin/articles?channel=904&keyword=" + encodeURIComponent("政协"));
     check("稿件列表支持栏目 + 关键词筛选", filtered.status === 200 && filtered.text.includes("共 "));
 
+    // ---- 栏目筛选是导航条（不是下拉），且顺序与前台一致
+    const chipLabels = (html) => {
+      const out = [];
+      const re = /class="channel-chip[^"]*"[\s\S]{0,400}?>([^<]+)<\/a>/g;
+      let hit;
+      while ((hit = re.exec(html)) !== null) out.push(hit[1].trim());
+      return out;
+    };
+    const listChips = chipLabels(list.text);
+    check("稿件列表里的栏目是导航条而非下拉",
+      list.text.includes('class="channel-nav"') && !/<select name="channel"/.test(list.text),
+      "chip " + listChips.length + " 个");
+    check("导航条栏目顺序与前台一致（前 5 个）",
+      listChips.slice(1, 6).join(",") === "政协领导,全国政协动态,区（广西）政协动态,市政协动态,政协新闻",
+      listChips.slice(0, 6).join("、"));
+    check("导航条按一级栏目分组", list.text.includes("channel-group-title"));
+    const activeChip = (list.text.match(/class="channel-chip active"[\s\S]{0,400}?>([^<]+)<\/a>/) || [])[1] || "";
+    check("选中栏目的 chip 高亮在「全部栏目」上", activeChip === "全部栏目", activeChip);
+    const filteredChips = chipLabels((await client.get("/admin/articles?channel=314")).text);
+    check("按栏目筛选后仍在导航条上操作", filteredChips.length > 40);
+
     // ---- 稿件编辑
     const edit = await client.get("/admin/article/" + SAMPLE_ID);
     check("稿件编辑页可打开", edit.status === 200 && edit.text.includes("编辑稿件") && csrfToken(edit.text) !== "");
@@ -279,7 +300,14 @@ async function main() {
 
     // ---- 新建稿件 → 附件 → 插图 → 删除
     const newForm = await client.get("/admin/article/new");
-    check("新建稿件表单可打开且带栏目下拉", newForm.status === 200 && newForm.text.includes("新建稿件") && newForm.text.includes("channel_type"));
+    check("新建稿件表单可打开", newForm.status === 200 && newForm.text.includes("新建稿件"));
+    check("新建页的栏目选择是导航条而非下拉",
+      newForm.text.includes('class="channel-nav"') && !/<select name="channel_type"/.test(newForm.text));
+    const newForm314 = await client.get("/admin/article/new?channel=314");
+    check("导航条选栏目后带进表单隐藏域",
+      /name="channel_type" value="314"/.test(newForm314.text) &&
+      (newForm314.text.match(/class="channel-chip active"[\s\S]{0,400}?>([^<]+)<\/a>/) || [])[1] === "图片新闻",
+      "active=" + ((newForm314.text.match(/class="channel-chip active"[\s\S]{0,400}?>([^<]+)<\/a>/) || [])[1] || "无"));
 
     const created = await client.post("/admin/article/create", {
       _token: csrfToken(newForm.text),
@@ -354,6 +382,10 @@ async function main() {
     check("栏目列表可访问并列出 43 个栏目",
       channels.status === 200 && (channels.text.match(/\/admin\/channel\//g) || []).length >= 43,
       "匹配 " + (channels.text.match(/\/admin\/channel\//g) || []).length + " 处");
+    check("栏目列表按前台顺序排列（首行是 202 政协领导）",
+      channels.text.includes("顺序与前台导航一致") &&
+      (channels.text.match(/\/admin\/channel\/(\d+)/) || [])[1] === "202",
+      "首行栏目号 " + ((channels.text.match(/\/admin\/channel\/(\d+)/) || [])[1] || "无"));
 
     const channelEdit = await client.get("/admin/channel/904");
     const channelToken = csrfToken(channelEdit.text);

@@ -171,6 +171,10 @@ async function main() {
     const snapshotTypes = snapshotChannels.map((c) => String(c.type)).sort();
     const apiTypes = apiChannels.map((c) => String(c.type)).sort();
     check("栏目号集合与快照一致", JSON.stringify(snapshotTypes) === JSON.stringify(apiTypes));
+    check("栏目顺序与快照一致（即前台主导航顺序）",
+      apiChannels.map((c) => String(c.type)).join(",") === snapshotChannels.map((c) => String(c.type)).join(","),
+      "API 前 5：" + apiChannels.slice(0, 5).map((c) => c.type).join("、") +
+        "；快照前 5：" + snapshotChannels.slice(0, 5).map((c) => c.type).join("、"));
 
     const listMismatch = [];
     for (const snap of snapshotChannels) {
