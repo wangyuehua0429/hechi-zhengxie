@@ -241,6 +241,7 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
 .btn-primary.btn-danger:hover { background: #a5301f; border-color: #a5301f; }
 .danger-zone { border-color: #f0d6d2; background: #fffafa; }
 .check-line { display: flex; align-items: center; gap: 8px; margin: 12px 0; font-size: 14px; }
+.hint-line { flex: 1 1 100%; color: var(--muted); font-size: 13px; }
 
 /* 登录页 */
 .login-body {

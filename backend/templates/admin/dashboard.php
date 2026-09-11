@@ -31,6 +31,8 @@ $statusLabels = ['published' => '已发布', 'draft' => '草稿', 'offline' => '
   <h2>发布</h2>
   <p class="muted">
     发布 = 把库里的内容重新生成静态页与数据快照，输出到 <code><?= hechi_e($publishDir) ?></code>。<br>
+    前台页面走内容接口：稿件保存为<strong>「已发布」</strong>后前台立即可见，不必等这步发布；<br>
+    这步发布只影响静态化产物（详情静态页、sitemap、数据快照）。<br>
     上次发布：<?= $publishedAt ? hechi_e($publishedAt) : '尚未发布过' ?>　操作日志：<?= $logCount ?> 条
   </p>
   <form method="post" action="/admin/publish"><?= $csrf ?>

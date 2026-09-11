@@ -54,6 +54,8 @@ return [
     'api' => [
         'default_page_size' => 20,
         'max_page_size'     => 100,
-        'cache_max_age'     => 300,
+        // 默认不缓存：内容随时可能被后台改动，缓存会让"刚发的稿件看不到"。
+        // 上 Redis / CDN 并做了发布即失效之后再调大（见 docs/api-contract.md 第 2 节）。
+        'cache_max_age'     => (int) (getenv('API_CACHE_MAX_AGE') ?: 0),
     ],
 ];

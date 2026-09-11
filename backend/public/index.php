@@ -41,7 +41,7 @@ try {
     if ($result instanceof HtmlResponse || $result instanceof RedirectResponse) {
         $result->send();
     } else {
-        $maxAge = $request->path() === '/api/v1/health' ? 0 : (int) $config->get('api.cache_max_age', 300);
+        $maxAge = $request->path() === '/api/v1/health' ? 0 : (int) $config->get('api.cache_max_age', 0);
         Response::json(is_array($result) ? $result : [], 200, $maxAge);
     }
 } catch (ApiException $e) {

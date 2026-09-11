@@ -12,6 +12,7 @@
  * @var list<array<string, mixed>>|null $channels
  * @var string|null $defaultChannel
  * @var list<array{key:string,title:string,channels:list<array<string,mixed>>}>|null $navGroups
+ * @var string|null $defaultStatus
  */
 
 declare(strict_types=1);
@@ -92,7 +93,7 @@ if ($isNew && ($navGroups ?? []) !== []) {
     </label>
     <label>状态
       <select name="status">
-        <?php $currentStatus = (string) ($article['status'] ?? 'draft'); ?>
+        <?php $currentStatus = (string) ($article['status'] ?? ($defaultStatus ?? 'draft')); ?>
         <?php foreach ($statusLabels as $key => $label): ?>
           <option value="<?= hechi_e($key) ?>"<?= $currentStatus === $key ? ' selected' : '' ?>><?= hechi_e($label) ?></option>
         <?php endforeach; ?>
@@ -101,13 +102,14 @@ if ($isNew && ($navGroups ?? []) !== []) {
     <label class="check">
       <input type="checkbox" name="is_top" value="1"<?= (int) ($article['is_top'] ?? 0) === 1 ? ' checked' : '' ?>> 置顶
     </label>
+    <label class="hint-line">状态说明：只有「已发布」的内容会出现在前台与接口；草稿、已下线只在后台可见。</label>
   </div>
 
   <label class="full">摘要
     <textarea name="summary" rows="3"><?= hechi_e($article['summary'] ?? '') ?></textarea>
   </label>
 
-  <label class="full">正文（HTML）
+  <label class="full">正文（可直接写纯文本，系统按空行自动分段；也支持 HTML）
     <textarea name="content_html" rows="18" class="mono"><?= hechi_e($article['content_html'] ?? '') ?></textarea>
   </label>
 

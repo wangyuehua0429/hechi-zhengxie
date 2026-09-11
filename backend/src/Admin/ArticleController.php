@@ -101,6 +101,8 @@ final class ArticleController extends AdminController
             'channels'    => $this->channels->adminAll(),
             'navGroups'   => $this->channels->navGroups(),
             'defaultChannel' => (string) $request->query('channel', '904'),
+            // 新建默认「已发布」：编辑写完点保存就是要发出去，草稿/下线仍可手选
+            'defaultStatus'  => 'published',
         ], '新建稿件');
     }
 
@@ -126,7 +128,7 @@ final class ArticleController extends AdminController
             'title'        => $title,
             'subtitle'     => $request->post('subtitle'),
             'summary'      => $request->post('summary'),
-            'content_html' => (string) ($_POST['content_html'] ?? ''),
+            'content_html' => $this->normalizeContent((string) ($_POST['content_html'] ?? '')),
             'source'       => $request->post('source'),
             'author'       => $request->post('author'),
             'editor'       => $request->post('editor'),
@@ -430,7 +432,7 @@ final class ArticleController extends AdminController
             'title'        => $title,
             'subtitle'     => $request->post('subtitle'),
             'summary'      => $request->post('summary'),
-            'content_html' => (string) ($_POST['content_html'] ?? ''),
+            'content_html' => $this->normalizeContent((string) ($_POST['content_html'] ?? '')),
             'source'       => $request->post('source'),
             'author'       => $request->post('author'),
             'editor'       => $request->post('editor'),
@@ -462,6 +464,29 @@ final class ArticleController extends AdminController
             $time .= ':00';
         }
         return $date . ' ' . $time;
+    }
+
+    /**
+     * 正文规范化：编辑直接敲纯文本时自动分段，避免详情页出来一整坨没有段落间距的文字。
+     * 已经带 HTML 标签的正文原样保留（旧库正文是 <div>/<p> 结构）。
+     */
+    private function normalizeContent(string $content): string
+    {
+        $trimmed = trim($content);
+        if ($trimmed === '' || preg_match('/<[a-z][^>]*>/i', $trimmed) === 1) {
+            return $trimmed;
+        }
+
+        $paragraphs = preg_split('/\n\s*\n/', $trimmed) ?: [];
+        $html = [];
+        foreach ($paragraphs as $paragraph) {
+            $paragraph = trim($paragraph);
+            if ($paragraph === '') {
+                continue;
+            }
+            $html[] = '<p>' . str_replace("\n", '<br>', htmlspecialchars($paragraph, ENT_QUOTES, 'UTF-8')) . '</p>';
+        }
+        return implode("\n", $html);
     }
 
     private function statusLabel(string $status): string
