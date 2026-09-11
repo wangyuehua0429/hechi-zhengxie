@@ -167,12 +167,19 @@
 
   /* ---------- 内页侧栏：最新新闻 + 图片新闻 ----------
    * 全站统一内容，不随当前页面变化：
-   *   最新新闻 —— 各栏目稿件汇总（排除首页聚合栏目与领导简介），按发布时间倒序取前 8 条；
-   *   图片新闻 —— 只取「图片新闻」栏目（type 314）里有图的稿件，按时间倒序取前 4 条，
+   *   最新新闻 —— 各栏目稿件汇总（排除首页聚合栏目与领导简介），按发布时间倒序；
+   *   图片新闻 —— 只取「图片新闻」栏目（type 314）里有图的稿件，按时间倒序取，
    *               不回退到其它栏目的图片，避免把领导照片当成图片新闻。
+   * 条数/张数在基准值基础上自动配平：渲染后测量左栏内容高度与右栏稿件列表高度，
+   * 增删最新新闻条数与图片新闻行数（2 列 1 行 = 2 张），使左栏底部与右栏对齐。
    */
-  const SIDE_LATEST_SIZE = 8;
-  const SIDE_THUMB_SIZE = 4;
+  const SIDE_LATEST_BASE = 8;      // 最新新闻基准条数
+  const SIDE_LATEST_MIN = 3;       // 配平下限
+  const SIDE_LATEST_MAX = 30;      // 配平上限
+  const SIDE_THUMB_ROWS = 2;       // 图片新闻基准行数（每行 2 张，即 4 张）
+  const SIDE_THUMB_ROWS_MAX = 3;   // 图片新闻最多 3 行 6 张
+  const SIDE_THUMB_COLS = 2;
+  const SIDE_FIT_TOLERANCE = 8;    // 允许的高度差（px）
   const IMAGE_NEWS_TYPE = "314";
 
   function timeOf(item) {
@@ -191,37 +198,148 @@
     })[0] || null;
   }
 
-  function renderSidePanels(channels) {
-    const list = channels || [];
+  // 侧栏数据池：渲染与配平共用，避免重复计算
+  const sidePools = { latest: [], thumbs: [] };
+
+  // 容器内可见内容的高度：网格行高会把两栏盒子拉成等高，盒子高度不可用
+  function contentHeight(container) {
+    const kids = Array.prototype.filter.call(container.children, function (child) {
+      return !child.hidden && child.offsetParent !== null;
+    });
+    if (!kids.length) return 0;
+    return kids[kids.length - 1].getBoundingClientRect().bottom -
+      container.getBoundingClientRect().top;
+  }
+
+  function paintSide(latestCount, thumbCount) {
     const latest = el("latestList");
     if (latest) {
-      const pool = [];
-      const seen = {};
-      list.forEach(function (channel) {
-        // 首页模块聚合栏目（视频/专题/互动）与领导简介不算新闻
-        if (channel.homeSourced || channel.layout === "leaders") return;
-        (channel.list || []).forEach(function (item) {
-          if (seen[item.id]) return;
-          seen[item.id] = true;
-          pool.push(item);
-        });
-      });
-      pool.sort(byTimeDesc);
-      latest.innerHTML = pool.slice(0, SIDE_LATEST_SIZE).map(function (item) {
+      latest.innerHTML = sidePools.latest.slice(0, latestCount).map(function (item) {
         return '<li><a href="' + esc(item.url) + '" title="' + esc(item.title) + '">' +
           esc(item.title) + '</a></li>';
       }).join("") || '<li class="empty-state">暂无新闻。</li>';
     }
     const thumbs = el("thumbGrid");
     if (thumbs) {
-      const channel = imageNewsChannel(list);
-      const pool = ((channel && channel.list) || []).filter(function (item) { return !!item.img; });
-      pool.sort(byTimeDesc);
-      thumbs.innerHTML = pool.slice(0, SIDE_THUMB_SIZE).map(function (item) {
-        return '<a href="' + esc(item.url) + '" title="' + esc(item.title) + '">' +
-          '<img src="' + esc(item.img) + '" alt="' + esc(item.title) + '" loading="lazy">' +
-          '<span>' + esc(item.title) + '</span></a>';
-      }).join("") || '<div class="empty-state">暂无图片</div>';
+      const card = thumbs.closest ? thumbs.closest(".side-card") : null;
+      // 0 张表示这一栏暂不展示（短列表栏目配平用）
+      if (card) card.hidden = thumbCount === 0;
+      if (thumbCount > 0) {
+        thumbs.innerHTML = sidePools.thumbs.slice(0, thumbCount).map(function (item) {
+          return '<a href="' + esc(item.url) + '" title="' + esc(item.title) + '">' +
+            '<img src="' + esc(item.img) + '" alt="' + esc(item.title) + '" loading="lazy">' +
+            '<span>' + esc(item.title) + '</span></a>';
+        }).join("") || '<div class="empty-state">暂无图片</div>';
+      }
+    }
+  }
+
+  // 左栏与右栏底部对齐：按右栏内容高度增删最新新闻条数与图片新闻行数
+  // 窄屏（侧栏换到列表下方）不适用
+  function fitSideHeights() {
+    const side = document.querySelector(".inner-side");
+    const main = document.querySelector(".inner-main");
+    if (!side || !main || side.offsetParent === null) return;
+    if (window.matchMedia("(max-width: 860px)").matches) return;
+    if (!sidePools.latest.length && !sidePools.thumbs.length) return;
+
+    const target = contentHeight(main);
+    if (target < 200) return;
+    const maxLatest = Math.min(SIDE_LATEST_MAX,
+      Math.max(SIDE_LATEST_BASE, sidePools.latest.length));
+    const maxRows = sidePools.thumbs.length
+      ? Math.min(SIDE_THUMB_ROWS_MAX, Math.ceil(sidePools.thumbs.length / SIDE_THUMB_COLS))
+      : 1;
+    const candidates = [];
+
+    const measure = function (latestCount, rows) {
+      paintSide(latestCount, rows * SIDE_THUMB_COLS);
+      const height = contentHeight(side);
+      candidates.push({ latest: latestCount, rows: rows, height: height,
+                        diff: Math.abs(height - target), index: candidates.length });
+      return height;
+    };
+
+    // 图片行数可选 2 → 1 → 3（2 行为基准，超高的页面先收到 1 行，
+    // 腾出的空间用新闻条数补；不够高时才扩到 3 行）
+    const rowOptions = [SIDE_THUMB_ROWS, 1, SIDE_THUMB_ROWS_MAX].filter(function (rows, i, arr) {
+      return rows >= 1 && rows <= maxRows && arr.indexOf(rows) === i;
+    });
+
+    // 右栏过短时（连「3 条新闻 + 1 行图片」都放不下），才把图片新闻整卡隐藏
+    if (measure(SIDE_LATEST_MIN, 1) > target + SIDE_FIT_TOLERANCE) rowOptions.push(0);
+
+    // 每个行数下用二分法找不超过右栏的最大新闻条数
+    rowOptions.forEach(function (rows) {
+      let low = SIDE_LATEST_MIN;
+      let high = maxLatest;
+      let fit = null;
+      while (low <= high) {
+        const mid = Math.floor((low + high) / 2);
+        const height = measure(mid, rows);
+        if (height <= target + SIDE_FIT_TOLERANCE) {
+          fit = mid;
+          low = mid + 1;
+        } else {
+          high = mid - 1;
+        }
+      }
+      if (fit === null) measure(SIDE_LATEST_MIN, rows);
+      else if (fit < maxLatest) measure(fit + 1, rows);
+    });
+
+    // 取与右栏最接近的一档；超出右栏的加一点惩罚，同样接近时取更靠前的组合
+    candidates.sort(function (a, b) {
+      const scoreA = a.diff + (a.height > target ? SIDE_FIT_TOLERANCE * 1.5 : 0);
+      const scoreB = b.diff + (b.height > target ? SIDE_FIT_TOLERANCE * 1.5 : 0);
+      if (scoreA !== scoreB) return scoreA - scoreB;
+      return a.index - b.index;
+    });
+    const pick = candidates[0];
+    paintSide(pick.latest, pick.rows * SIDE_THUMB_COLS);
+    lastFittedTarget = target;
+  }
+
+  let lastFittedTarget = null;
+  let sideFitTimer = null;
+  function scheduleSideFit() {
+    window.clearTimeout(sideFitTimer);
+    sideFitTimer = window.setTimeout(fitSideHeights, 120);
+  }
+
+  function renderSidePanels(channels) {
+    const list = channels || [];
+    const seen = {};
+    sidePools.latest = [];
+    list.forEach(function (channel) {
+      // 首页模块聚合栏目（视频/专题/互动）与领导简介不算新闻
+      if (channel.homeSourced || channel.layout === "leaders") return;
+      (channel.list || []).forEach(function (item) {
+        if (seen[item.id]) return;
+        seen[item.id] = true;
+        sidePools.latest.push(item);
+      });
+    });
+    sidePools.latest.sort(byTimeDesc);
+    const imageChannel = imageNewsChannel(list);
+    sidePools.thumbs = ((imageChannel && imageChannel.list) || [])
+      .filter(function (item) { return !!item.img; })
+      .sort(byTimeDesc);
+
+    paintSide(SIDE_LATEST_BASE, SIDE_THUMB_ROWS * SIDE_THUMB_COLS);
+    fitSideHeights();
+    // 字号缩放、窗口尺寸变化、正文图片加载导致右栏变高后重新配平
+    window.addEventListener("resize", scheduleSideFit);
+    document.addEventListener("site:fontchange", scheduleSideFit);
+    const main = document.querySelector(".inner-main");
+    if (main && window.ResizeObserver && !main._sideFitObserver) {
+      main._sideFitObserver = new ResizeObserver(function () {
+        if (lastFittedTarget === null ||
+            Math.abs(contentHeight(main) - lastFittedTarget) > 2) {
+          scheduleSideFit();
+        }
+      });
+      main._sideFitObserver.observe(main);
     }
   }
 
