@@ -219,4 +219,54 @@ final class ChannelRepository
         }
         return $item;
     }
+
+    // ---------------------------------------------------------------- 后台
+
+    /**
+     * 后台栏目列表：含草稿态的栏目也列出来，并带各自的稿件数。
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function adminAll(): array
+    {
+        return $this->db->select(
+            'SELECT c.*,
+                    (SELECT COUNT(*) FROM cms_article_channel ac WHERE ac.site_id = c.site_id AND ac.channel_type = c.type_code) AS article_count
+             FROM sys_channel c
+             WHERE c.site_id = :site
+             ORDER BY c.parent_type ASC, c.sort_no ASC, c.channel_id ASC',
+            ['site' => $this->siteId]
+        );
+    }
+
+    /** @return array<string, mixed>|null */
+    public function adminFind(string $type): ?array
+    {
+        return $this->db->selectOne(
+            'SELECT * FROM sys_channel WHERE site_id = :site AND type_code = :type',
+            ['site' => $this->siteId, 'type' => $type]
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $fields
+     */
+    public function adminUpdate(string $type, array $fields): void
+    {
+        if ($fields === []) {
+            return;
+        }
+        $sets = [];
+        $params = ['type' => $type, 'site' => $this->siteId, 't' => $this->db->now()];
+        foreach ($fields as $column => $value) {
+            $sets[] = $column . ' = :f_' . $column;
+            $params['f_' . $column] = $value;
+        }
+        $sets[] = 'updated_at = :t';
+
+        $this->db->execute(
+            'UPDATE sys_channel SET ' . implode(', ', $sets) . ' WHERE site_id = :site AND type_code = :type',
+            $params
+        );
+    }
 }

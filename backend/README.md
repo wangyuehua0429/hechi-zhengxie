@@ -1,6 +1,6 @@
 # 主站后端（PHP 轻量 CMS）
 
-本目录是《河池政协网开发思路与技术栈方案》里主站的后端实现。当前为**最小可运行骨架**：数据模型、内容接口、静态化发布器已经能跑通阶段 A 的样例数据；后台管理界面、权限、附件上传、301 映射生成尚未实现（见文末“阶段 C 待办”）。
+本目录是《河池政协网开发思路与技术栈方案》里主站的后端实现。当前为**可运行的最小骨架**：数据模型、内容接口、静态化发布器与一个能用的后台管理界面已经跑通阶段 A 的样例数据；角色权限细分、附件上传、301 映射生成尚未实现（见文末“阶段 C 待办”）。
 
 接口契约见 [../docs/api-contract.md](../docs/api-contract.md)，数据模型见 [../docs/架构与实施说明.md](../docs/架构与实施说明.md) 第 2 节。
 
@@ -11,20 +11,26 @@ backend/
 ├── bin/
 │   ├── migrate.php         建表 / 升级表结构
 │   ├── seed.php            把 frontend/home/data 的快照灌进库
-│   └── publish.php         静态化发布（数据快照 + 全文静态页 + sitemap）
+│   ├── publish.php         静态化发布（数据快照 + 全文静态页 + sitemap）
+│   └── user.php            后台账号管理（create / passwd / disable / list）
 ├── config/config.php       运行配置（读环境变量，本地默认 SQLite）
 ├── public/
 │   ├── index.php           接口唯一入口
 │   └── router.php          PHP 内置服务器路由脚本（仅本地开发）
+├── public/assets/admin.css 后台样式（零依赖，不引 UI 库）
 ├── routes/api.php          /api/v1 路由表
+├── routes/admin.php        后台路由表（/admin/*，会话 + CSRF）
 ├── src/
+│   ├── Admin/              后台：Auth / Csrf / Flash / View / 五个控制器
 │   ├── Api/                health / home / channels / articles / search 控制器
-│   ├── Http/               Request / Response / Router / ApiException
+│   ├── Http/               Request / Response / HtmlResponse / RedirectResponse / Router / ApiException
 │   ├── Publish/Publisher.php
 │   ├── Repository/         栏目、稿件、首页模块仓储（SQL 只写在这里）
 │   └── Support/            Config / Db / Json / Migrator
 ├── storage/                运行时目录（SQLite 文件、发布产物，不入库）
-└── templates/page.php      静态页模板（正式模板待阶段 C 用 frontend/home 结构替换）
+└── templates/
+    ├── page.php            静态页模板（正式模板待阶段 C 用 frontend/home 结构替换）
+    └── admin/              后台模板（layout / login / dashboard / articles / article_edit / channels / channel_edit / message）
 ```
 
 ## 本地跑通（SQLite，无需 Docker）
@@ -58,6 +64,31 @@ curl -s --get --data-urlencode "q=政协" --data "size=3" http://127.0.0.1:8080/
 ```bash
 node tests/api-check.mjs
 ```
+
+## 后台管理
+
+服务起来后打开 **<http://127.0.0.1:8080/admin>**，会跳到登录页。库里没有账号时先建一个（密码至少 8 位，用 `password_hash` 存）：
+
+```bash
+php backend/bin/user.php create admin 你的密码 "管理员"
+php backend/bin/user.php list             # 查看账号
+php backend/bin/user.php passwd admin 新密码
+php backend/bin/user.php disable admin    # 停用
+```
+
+现在能做的事：
+
+| 功能 | 说明 |
+| --- | --- |
+| 概览 | 稿件总数、草稿/已发布/已下线计数、栏目数、上次发布时间、操作日志条数 |
+| 稿件管理 | 列表（按栏目、状态、标题关键词筛选 + 分页）；编辑标题、副题、来源、作者、责任编辑、发布时间、状态、置顶、摘要、正文 HTML |
+| 栏目管理 | 43 个栏目一览（带各自稿件数），可改一级栏目名、子栏目名、版式、排序、上下线、栏目简介 |
+| 一键发布 | 重新生成数据快照 + 全文静态页 + sitemap，产物在 `backend/storage/publish/` |
+| 审计与安全 | 会话 Cookie（HttpOnly + SameSite=Lax）、所有 POST 校验 CSRF、口令 `password_hash`、登录与改动写 `sys_operation_log` |
+
+还没有的（阶段 C 后续）：富文本编辑器（正文现在直接编辑 HTML）、图片与附件上传、新建/删除栏目、新建/删除稿件、批量操作、按角色细分到“站点 × 栏目”的权限（表已建）、登录失败次数限制。
+
+> 本地走 HTTP，生产必须 HTTPS；`APP_DEBUG=0` 时接口不回显内部错误信息。
 
 ## 静态化发布
 

@@ -32,3 +32,11 @@ function hechi_config(?string $key = null, mixed $default = null): mixed
     }
     return $key === null ? $config : $config->get($key, $default);
 }
+
+/**
+ * 模板里的转义助手：所有输出到 HTML 的变量都过它。
+ */
+function hechi_e(mixed $value): string
+{
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+}

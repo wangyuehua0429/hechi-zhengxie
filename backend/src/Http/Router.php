@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace HechiZx\Http;
 
 /**
- * 路由表：只支持 GET + {参数} 占位，够本期只读接口用；写接口按同一套加方法即可。
+ * 路由表：支持 GET/POST + {参数} 占位。对外只读接口与后台写接口共用一套。
  */
 final class Router
 {
@@ -15,6 +15,11 @@ final class Router
     public function get(string $pattern, callable $handler): void
     {
         $this->add('GET', $pattern, $handler);
+    }
+
+    public function post(string $pattern, callable $handler): void
+    {
+        $this->add('POST', $pattern, $handler);
     }
 
     public function add(string $method, string $pattern, callable $handler): void
@@ -34,9 +39,10 @@ final class Router
     }
 
     /**
-     * @return array<string, mixed>|null 命中的处理结果；路径不匹配返回 null
+     * 处理函数可以返回数组（转 JSON）、HtmlResponse、RedirectResponse；
+     * 路径不匹配抛 404，路径匹配但方法不对抛 405。
      */
-    public function dispatch(Request $request): ?array
+    public function dispatch(Request $request): mixed
     {
         $pathMatched = false;
 
@@ -54,7 +60,6 @@ final class Router
                 $args[$name] = $matches[$index + 1];
             }
 
-            /** @var array<string, mixed> $result */
             $result = ($route['handler'])($request, $args);
             return $result;
         }

@@ -13,7 +13,8 @@ final class Request
     public function __construct(
         private string $method,
         private string $path,
-        private array $query
+        private array $query,
+        private array $post = []
     ) {
     }
 
@@ -27,8 +28,10 @@ final class Request
 
         /** @var array<string, string> $query */
         $query = $_GET;
+        /** @var array<string, string> $post */
+        $post = $_POST;
 
-        return new self($method, $path === '/' ? '/' : rtrim($path, '/'), $query);
+        return new self($method, $path === '/' ? '/' : rtrim($path, '/'), $query, $post);
     }
 
     public function method(): string
@@ -58,5 +61,15 @@ final class Request
         }
         $value = (int) $raw;
         return max($min, min($max, $value));
+    }
+
+    /** 表单字段（后台用）：始终返回字符串，缺省为空串 */
+    public function post(string $key, string $default = ''): string
+    {
+        $value = $this->post[$key] ?? null;
+        if ($value === null) {
+            return $default;
+        }
+        return is_string($value) ? trim($value) : $default;
     }
 }
