@@ -6,6 +6,13 @@
   <meta name="description" content="广西河池政协网 - 中国人民政治协商会议河池市委员会官方门户">
   <title>广西河池政协网 · 首页</title>
   <link rel="stylesheet" href="css/style.css">
+  <script>
+    /* 由栏目页/详情页点“首页”回来时，站头先按收缩态渲染，再由 js/header-fold.js
+       播放展开动画，避免全幅站头在换页瞬间闪现；直接打开首页不触发。 */
+    if (/(channel|detail)\.html/.test(document.referrer)) {
+      document.documentElement.classList.add("mast-folded");
+    }
+  </script>
 </head>
 <body data-font="default">
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -299,6 +306,7 @@
   </footer>
 
   <script src="js/site-links.js"></script>
+  <script src="js/header-fold.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

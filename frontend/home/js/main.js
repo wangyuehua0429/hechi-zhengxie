@@ -80,7 +80,10 @@
     }
     const rowLink = function (n) {
       const url = link(n.url);
-      return '<a href="' + esc(url) + '"' + ext(url) + '>' + esc(n.title) + '</a>';
+      // 已接入新版内页的栏目（channel.html）在本页跳转，点栏目时站头收缩后换页；
+      // 仍指向旧站的外链保持新标签打开（与内页外壳 js/shell.js 的规则一致）。
+      const open = /^https?:\/\//i.test(url) ? ' target="_blank" rel="noopener"' : "";
+      return '<a href="' + esc(url) + '"' + open + '>' + esc(n.title) + '</a>';
     };
     const rest = nav.slice(1);
     const mid = Math.ceil(rest.length / 2);
