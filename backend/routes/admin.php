@@ -45,7 +45,15 @@ return static function (Router $router, Db $db, Config $config): void {
         $channels,
         (string) $config->get('publish.out')
     );
-    $articleController = new ArticleController($auth, $view, $db, $siteId, $articles, $channels);
+    $articleController = new ArticleController(
+        $auth,
+        $view,
+        $db,
+        $siteId,
+        $articles,
+        $channels,
+        (string) $config->get('paths.uploads')
+    );
     $channelController = new ChannelController($auth, $view, $db, $siteId, $channels);
     $publishController = new PublishController(
         $auth,
@@ -64,8 +72,15 @@ return static function (Router $router, Db $db, Config $config): void {
     $router->post('/admin/logout', [$authController, 'logout']);
 
     $router->get('/admin/articles', [$articleController, 'index']);
+    $router->get('/admin/article/new', [$articleController, 'createForm']);
+    $router->post('/admin/article/create', [$articleController, 'store']);
     $router->get('/admin/article/{id}', [$articleController, 'edit']);
     $router->post('/admin/article/{id}', [$articleController, 'update']);
+    $router->get('/admin/article/{id}/delete', [$articleController, 'deleteConfirm']);
+    $router->post('/admin/article/{id}/delete', [$articleController, 'delete']);
+    $router->post('/admin/article/{id}/attachment', [$articleController, 'uploadAttachment']);
+    $router->post('/admin/article/{id}/attachment/{aid}/delete', [$articleController, 'deleteAttachment']);
+    $router->post('/admin/article/{id}/image', [$articleController, 'uploadImage']);
 
     $router->get('/admin/channels', [$channelController, 'index']);
     $router->get('/admin/channel/{type}', [$channelController, 'edit']);

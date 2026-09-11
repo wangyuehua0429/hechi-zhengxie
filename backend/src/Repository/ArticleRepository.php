@@ -76,8 +76,9 @@ final class ArticleRepository
             'SELECT a.*, c.name AS channel_name, c.inner_name AS channel_inner
              FROM cms_article a
              LEFT JOIN sys_channel c ON c.type_code = a.channel_type AND c.site_id = a.site_id
-             WHERE a.site_id = :site AND a.article_id = :id',
-            ['site' => $this->siteId, 'id' => (int) $id]
+             WHERE a.site_id = :site AND a.article_id = :id
+               AND a.status = :status AND a.public_scope = :scope',
+            ['site' => $this->siteId, 'id' => (int) $id, 'status' => 'published', 'scope' => 'public']
         );
         if ($row === null) {
             return null;
@@ -234,5 +235,155 @@ final class ArticleRepository
             $counts[(string) $row['status']] = (int) $row['n'];
         }
         return $counts;
+    }
+
+    /**
+     * 新建稿件：写入主表，并在归属表登记主栏目（否则不会出现在栏目列表里）。
+     *
+     * @param array<string, mixed> $fields
+     */
+    public function create(array $fields): int
+    {
+        $now = $this->db->now();
+        $this->db->execute(
+            'INSERT INTO cms_article
+               (site_id, channel_type, title, subtitle, summary, content_html, source, author, editor,
+                published_at, views, status, public_scope, is_top, has_body, created_at, updated_at)
+             VALUES
+               (:site, :channel, :title, :subtitle, :summary, :content, :source, :author, :editor,
+                :published_at, :views, :status, :scope, :is_top, :has_body, :t, :t)',
+            [
+                'site'         => $this->siteId,
+                'channel'      => (string) ($fields['channel_type'] ?? ''),
+                'title'        => (string) ($fields['title'] ?? ''),
+                'subtitle'     => (string) ($fields['subtitle'] ?? ''),
+                'summary'      => (string) ($fields['summary'] ?? ''),
+                'content'      => (string) ($fields['content_html'] ?? ''),
+                'source'       => (string) ($fields['source'] ?? ''),
+                'author'       => (string) ($fields['author'] ?? ''),
+                'editor'       => (string) ($fields['editor'] ?? ''),
+                'published_at' => (string) ($fields['published_at'] ?? $now),
+                'views'        => '0',
+                'status'       => (string) ($fields['status'] ?? 'draft'),
+                'scope'        => 'public',
+                'is_top'       => (int) ($fields['is_top'] ?? 0),
+                'has_body'     => trim((string) ($fields['content_html'] ?? '')) === '' ? 0 : 1,
+                't'            => $now,
+            ]
+        );
+
+        $id = (int) $this->db->pdo()->lastInsertId();
+        $this->linkChannel($id, (string) ($fields['channel_type'] ?? ''), 0, 1);
+        return $id;
+    }
+
+    /**
+     * 删除稿件：主表、正文图片、附件、栏目归属一起清掉。
+     */
+    public function delete(string $id): void
+    {
+        $params = ['id' => (int) $id, 'site' => $this->siteId];
+        $this->db->execute('DELETE FROM cms_article_image WHERE article_id = :id', ['id' => (int) $id]);
+        $this->db->execute('DELETE FROM cms_attachment WHERE article_id = :id', ['id' => (int) $id]);
+        $this->db->execute('DELETE FROM cms_article_channel WHERE article_id = :id AND site_id = :site', $params);
+        $this->db->execute('DELETE FROM cms_article WHERE article_id = :id AND site_id = :site', $params);
+    }
+
+    /**
+     * 登记栏目归属（已存在则更新排序与主栏目标记）。
+     */
+    public function linkChannel(int $articleId, string $channelType, int $sortNo = 0, int $isPrimary = 0): void
+    {
+        if ($channelType === '') {
+            return;
+        }
+        $exists = $this->db->scalar(
+            'SELECT article_id FROM cms_article_channel WHERE article_id = :id AND site_id = :site AND channel_type = :type',
+            ['id' => $articleId, 'site' => $this->siteId, 'type' => $channelType]
+        );
+        if ($exists !== null) {
+            $this->db->execute(
+                'UPDATE cms_article_channel SET sort_no = :sort, is_primary = :primary
+                 WHERE article_id = :id AND site_id = :site AND channel_type = :type',
+                ['sort' => $sortNo, 'primary' => $isPrimary, 'id' => $articleId, 'site' => $this->siteId, 'type' => $channelType]
+            );
+            return;
+        }
+        $this->db->execute(
+            'INSERT INTO cms_article_channel (article_id, site_id, channel_type, sort_no, is_primary)
+             VALUES (:id, :site, :type, :sort, :primary)',
+            ['id' => $articleId, 'site' => $this->siteId, 'type' => $channelType, 'sort' => $sortNo, 'primary' => $isPrimary]
+        );
+    }
+
+    /**
+     * 附件入库（文件已由控制器落盘）。
+     *
+     * @param array<string, mixed> $file
+     */
+    public function addAttachment(int $articleId, array $file): int
+    {
+        $sortNo = (int) $this->db->scalar(
+            'SELECT COALESCE(MAX(sort_no), -1) + 1 FROM cms_attachment WHERE article_id = :id',
+            ['id' => $articleId]
+        );
+        $this->db->execute(
+            'INSERT INTO cms_attachment (article_id, name, url, ext, size_bytes, sort_no, created_at)
+             VALUES (:id, :name, :url, :ext, :size, :sort, :t)',
+            [
+                'id'   => $articleId,
+                'name' => (string) $file['name'],
+                'url'  => (string) $file['url'],
+                'ext'  => (string) $file['ext'],
+                'size' => (int) $file['size'],
+                'sort' => $sortNo,
+                't'    => $this->db->now(),
+            ]
+        );
+        return (int) $this->db->pdo()->lastInsertId();
+    }
+
+    /** @return array<string, mixed>|null */
+    public function findAttachment(int $attachmentId, int $articleId): ?array
+    {
+        return $this->db->selectOne(
+            'SELECT * FROM cms_attachment WHERE attachment_id = :aid AND article_id = :id',
+            ['aid' => $attachmentId, 'id' => $articleId]
+        );
+    }
+
+    public function deleteAttachment(int $attachmentId, int $articleId): void
+    {
+        $this->db->execute(
+            'DELETE FROM cms_attachment WHERE attachment_id = :aid AND article_id = :id',
+            ['aid' => $attachmentId, 'id' => $articleId]
+        );
+    }
+
+    /**
+     * 正文图片记录（图集与灯箱用）。
+     */
+    public function addImage(int $articleId, string $path): void
+    {
+        $sortNo = (int) $this->db->scalar(
+            'SELECT COALESCE(MAX(sort_no), -1) + 1 FROM cms_article_image WHERE article_id = :id',
+            ['id' => $articleId]
+        );
+        $this->db->execute(
+            'INSERT INTO cms_article_image (article_id, path, sort_no) VALUES (:id, :path, :sort)',
+            ['id' => $articleId, 'path' => $path, 'sort' => $sortNo]
+        );
+    }
+
+    /**
+     * 保存正文后同步 has_body 与正文图片记录（从正文里抽 <img src>）。
+     */
+    public function syncBodyAssets(int $articleId, string $contentHtml): void
+    {
+        $hasBody = trim($contentHtml) === '' ? 0 : 1;
+        $this->db->execute(
+            'UPDATE cms_article SET has_body = :has, updated_at = :t WHERE article_id = :id',
+            ['has' => $hasBody, 't' => $this->db->now(), 'id' => $articleId]
+        );
     }
 }

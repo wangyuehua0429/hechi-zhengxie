@@ -74,6 +74,8 @@ a:hover { text-decoration: underline; }
 
 .main { flex: 1; padding: 20px 24px 48px; min-width: 0; }
 h1 { margin: 0 0 16px; font-size: 22px; }
+.page-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.page-head h1 { margin: 0; }
 h2 { margin: 0 0 10px; font-size: 17px; }
 .muted { color: var(--muted); font-size: 14px; }
 .nowrap { white-space: nowrap; }
@@ -185,6 +187,15 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
 
 /* 分页 */
 .pager { display: flex; align-items: center; gap: 14px; margin-top: 14px; color: var(--muted); }
+
+/* 上传与危险操作 */
+.upload-form { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
+.upload-form input[type="file"] { border: 1px dashed #cfd4da; padding: 6px 10px; border-radius: 4px; background: #fafbfc; }
+.btn-danger { background: #fff; border-color: #e0b4ae; color: var(--err); }
+.btn-primary.btn-danger { background: var(--err); border-color: var(--err); color: #fff; }
+.btn-primary.btn-danger:hover { background: #a5301f; border-color: #a5301f; }
+.danger-zone { border-color: #f0d6d2; background: #fffafa; }
+.check-line { display: flex; align-items: center; gap: 8px; margin: 12px 0; font-size: 14px; }
 
 /* 登录页 */
 .login-body {

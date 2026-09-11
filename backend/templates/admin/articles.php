@@ -18,7 +18,10 @@ $query = static function (array $extra) use ($filters): string {
     return '/admin/articles?' . http_build_query(array_merge($filters, $extra));
 };
 ?>
-<h1>稿件管理</h1>
+<div class="page-head">
+  <h1>稿件管理</h1>
+  <a class="btn-primary" href="/admin/article/new<?= $filters['channel'] !== '' ? '?channel=' . hechi_e($filters['channel']) : '' ?>">新建稿件</a>
+</div>
 
 <form class="filters" method="get" action="/admin/articles">
   <label>栏目
