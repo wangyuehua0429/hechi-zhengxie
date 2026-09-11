@@ -1,0 +1,778 @@
+{
+  "channels": [
+    {
+      "type": "904",
+      "slug": "zhengxie-dongtai",
+      "name": "政协动态",
+      "inner": "市政协动态",
+      "intro": "聚焦市政协重要会议、调研视察与履职活动，及时反映全市政协工作进展。",
+      "siblings": [
+        {
+          "type": "902",
+          "name": "全国政协动态"
+        },
+        {
+          "type": "903",
+          "name": "区（广西）政协动态"
+        },
+        {
+          "type": "904",
+          "name": "市政协动态"
+        },
+        {
+          "type": "905",
+          "name": "政协新闻"
+        },
+        {
+          "type": "906",
+          "name": "县区政协工作动态"
+        }
+      ],
+      "total": 825,
+      "list": [
+        {
+          "id": 62180,
+          "title": "许显辉赴河池市调研",
+          "url": "detail.html?id=62180",
+          "date": "2026-04-23",
+          "source": "广西政协报",
+          "views": 81,
+          "img": "images/channel/62180.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 62147,
+          "title": "黄恩率队赴京拜访文旅部并考察文旅企业 深化对接合作 赋能文旅发展",
+          "url": "detail.html?id=62147",
+          "date": "2026-04-21",
+          "source": "河池日报",
+          "views": 178,
+          "img": "images/channel/62147.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 62145,
+          "title": "我市组织收看广西勤廉榜样先进事迹主题情景报告会实况录像",
+          "url": "detail.html?id=62145",
+          "date": "2026-04-21",
+          "source": "河池日报",
+          "views": 190,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62095,
+          "title": "黄恩率队到巴马开展历史矛盾纠纷排查化解调研工作",
+          "url": "detail.html?id=62095",
+          "date": "2026-04-14",
+          "source": "河池日报",
+          "views": 2243,
+          "img": "images/channel/62095.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 62036,
+          "title": "【桂在协商】加快推进“文化惠民”工程 点亮群众美好生活(总第122期)",
+          "url": "detail.html?id=62036",
+          "date": "2026-04-08",
+          "source": "桂在协商微信公众号",
+          "views": 3350,
+          "img": "images/channel/62036.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 62020,
+          "title": "市政协党组、机关党组举行开展树立和践行正确政绩观学习教育读书班暨理论学习中心组2026年第1次专题学习会",
+          "url": "detail.html?id=62020",
+          "date": "2026-04-07",
+          "source": "河池融媒客户端",
+          "views": 4005,
+          "img": "images/channel/62020.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 62033,
+          "title": "黄恩到罗城、都安开展专题调研",
+          "url": "detail.html?id=62033",
+          "date": "2026-04-03",
+          "source": "市政协办",
+          "views": 4413,
+          "img": "images/channel/62033.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 62031,
+          "title": "强化政治引领 凝聚银发力量 市政协退休干部党支部召开党员会议",
+          "url": "detail.html?id=62031",
+          "date": "2026-04-02",
+          "source": "市政协办",
+          "views": 5205,
+          "img": "images/channel/62031.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61973,
+          "title": "全市政协经资环委工作经验交流会暨2026年“产业振兴 委员行动”工作推进会召开",
+          "url": "detail.html?id=61973",
+          "date": "2026-04-02",
+          "source": "河池日报",
+          "views": 4488,
+          "img": "images/channel/61973.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61972,
+          "title": "深入一线助解矛盾纠纷 河池市政协发出新春履职倡议",
+          "url": "detail.html?id=61972",
+          "date": "2026-04-02",
+          "source": "广西政协报",
+          "views": 4517,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62014,
+          "title": "河池市政协持续深入推进“乡村振兴 委员行动”",
+          "url": "detail.html?id=62014",
+          "date": "2026-03-31",
+          "source": "广西政协报",
+          "views": 2217,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62013,
+          "title": "锚定使命履职尽责 凝心聚力共促发展——我区各级政协深入学习贯彻全国两会精神",
+          "url": "detail.html?id=62013",
+          "date": "2026-03-31",
+          "source": "广西政协报",
+          "views": 2209,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61949,
+          "title": "黄恩到广西现代职业技术学院调研",
+          "url": "detail.html?id=61949",
+          "date": "2026-03-30",
+          "source": "河池日报",
+          "views": 4336,
+          "img": "images/channel/61949.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61897,
+          "title": "黄恩深入大化调研 聚焦产业文化赋能县域高质量发展",
+          "url": "detail.html?id=61897",
+          "date": "2026-03-26",
+          "source": "河池日报",
+          "views": 4417,
+          "img": "images/channel/61897.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61878,
+          "title": "市政协党组（扩大）会议召开 传达全国两会精神 部署贯彻落实工作",
+          "url": "detail.html?id=61878",
+          "date": "2026-03-25",
+          "source": "河池日报",
+          "views": 4504,
+          "img": "images/channel/61878.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61883,
+          "title": "河池市政协在全区政协经济委员会工作经验交流会上作经验发言",
+          "url": "detail.html?id=61883",
+          "date": "2026-03-25",
+          "source": "市政协办",
+          "views": 4383,
+          "img": "images/channel/61883.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61799,
+          "title": "搭平台 强担当 促发展——河池市政协以外事联谊助推高水平对外开放侧记",
+          "url": "detail.html?id=61799",
+          "date": "2026-03-19",
+          "source": "广西政协报",
+          "views": 8147,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61780,
+          "title": "黄恩率队到巴马调研督导一季度经济运行等工作",
+          "url": "detail.html?id=61780",
+          "date": "2026-03-18",
+          "source": "河池日报",
+          "views": 8536,
+          "img": "images/channel/61780.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61744,
+          "title": "黄恩到市公安局走访调研 凝心聚力护航高质量发展",
+          "url": "detail.html?id=61744",
+          "date": "2026-03-16",
+          "source": "河池日报",
+          "views": 8136,
+          "img": "images/channel/61744.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61718,
+          "title": "黄恩到宜州调研",
+          "url": "detail.html?id=61718",
+          "date": "2026-03-13",
+          "source": "今日宜州微信公众号",
+          "views": 8997,
+          "img": "images/channel/61718.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61717,
+          "title": "河池市政协协商建言既具“言值”更有“实效”",
+          "url": "detail.html?id=61717",
+          "date": "2026-03-13",
+          "source": "广西政协工作 2026年第1期（总第67期）",
+          "views": 6704,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61672,
+          "title": "河池市政协党组（扩大）会议召开",
+          "url": "detail.html?id=61672",
+          "date": "2026-03-12",
+          "source": "河池融媒客户端",
+          "views": 9198,
+          "img": "images/channel/61672.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61644,
+          "title": "黄恩到凤山天峨调研时要求 立足资源禀赋 深挖发展潜力",
+          "url": "detail.html?id=61644",
+          "date": "2026-03-11",
+          "source": "河池日报",
+          "views": 8841,
+          "img": "images/channel/61644.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61642,
+          "title": "全国政协委员、河池市商务局局长欧彦伶：把河池的发展期盼带到北京",
+          "url": "detail.html?id=61642",
+          "date": "2026-03-11",
+          "source": "河池日报",
+          "views": 8400,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "306",
+      "slug": "shizheng-yaowen",
+      "name": "时政要闻",
+      "inner": "时政要闻",
+      "intro": "汇集全市时政要闻与重大部署，反映河池经济社会发展动态。",
+      "siblings": [],
+      "total": 1696,
+      "list": [
+        {
+          "id": 62243,
+          "title": "广西领导干部“时代前沿知识”系列讲座第135讲举行",
+          "url": "detail.html?id=62243",
+          "date": "2026-04-27",
+          "source": "广西日报 河池日报",
+          "views": 106,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62242,
+          "title": "朱会东到金城江龙江河谷灌区项目点调研",
+          "url": "detail.html?id=62242",
+          "date": "2026-04-27",
+          "source": "河池日报",
+          "views": 109,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62241,
+          "title": "汪东明到宜州开展历史矛盾纠纷化解工作",
+          "url": "detail.html?id=62241",
+          "date": "2026-04-27",
+          "source": "河池日报",
+          "views": 115,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62240,
+          "title": "市政府与桐昆控股集团举行座谈会",
+          "url": "detail.html?id=62240",
+          "date": "2026-04-27",
+          "source": "河池日报",
+          "views": 118,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62211,
+          "title": "朱会东到南丹县调研",
+          "url": "detail.html?id=62211",
+          "date": "2026-04-24",
+          "source": "河池融媒客户端",
+          "views": 163,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62210,
+          "title": "汪东明会见中国物流集团有限公司党委常委、副总经理杜波一行",
+          "url": "detail.html?id=62210",
+          "date": "2026-04-24",
+          "source": "河池日报",
+          "views": 158,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62182,
+          "title": "自治区党委理论学习中心组（扩大）专题辅导报告会举行",
+          "url": "detail.html?id=62182",
+          "date": "2026-04-23",
+          "source": "广西日报 河池日报",
+          "views": 69,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62164,
+          "title": "秦春成到宜州督导调研城乡污水治理工作",
+          "url": "detail.html?id=62164",
+          "date": "2026-04-22",
+          "source": "河池日报",
+          "views": 222,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62151,
+          "title": "壮大产业龙头 厚植民生福祉 全力推动东巴凤区域一体化提质发展",
+          "url": "detail.html?id=62151",
+          "date": "2026-04-21",
+          "source": "河池日报",
+          "views": 199,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62150,
+          "title": "2026年“广西三月三·河池嘉年华”系列活动拉开帷幕",
+          "url": "detail.html?id=62150",
+          "date": "2026-04-21",
+          "source": "河池日报",
+          "views": 190,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62149,
+          "title": "汪东明到巴马蹲点调研巡视反馈问题整改工作",
+          "url": "detail.html?id=62149",
+          "date": "2026-04-21",
+          "source": "河池日报",
+          "views": 175,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62146,
+          "title": "中央层面整治形式主义为基层减负专项工作机制办公室 中央纪委办公厅公开通报4起整治形式主义为基层减负典型问题",
+          "url": "detail.html?id=62146",
+          "date": "2026-04-21",
+          "source": "新华社",
+          "views": 164,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62144,
+          "title": "我市组织收看广西勤廉榜样先进事迹主题情景报告会实况录像",
+          "url": "detail.html?id=62144",
+          "date": "2026-04-21",
+          "source": "河池日报",
+          "views": 159,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62127,
+          "title": "自治区党委树立和践行正确政绩观学习教育第三督导组进驻河池",
+          "url": "detail.html?id=62127",
+          "date": "2026-04-16",
+          "source": "河池日报",
+          "views": 1916,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62126,
+          "title": "统筹建好“两个生态” 推动“十五五”开好局起好步",
+          "url": "detail.html?id=62126",
+          "date": "2026-04-16",
+          "source": "河池日报",
+          "views": 1659,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62125,
+          "title": "河池市2026年全民国家安全教育日主题活动举行",
+          "url": "detail.html?id=62125",
+          "date": "2026-04-16",
+          "source": "河池日报",
+          "views": 1873,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62124,
+          "title": "汪东明率队赴深圳大学考察交流 加快科研成果转化 助推南丹试验区建设",
+          "url": "detail.html?id=62124",
+          "date": "2026-04-16",
+          "source": "河池日报",
+          "views": 2671,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62097,
+          "title": "秦春成主持召开市委常委会会议 凝聚推动河池高质量发展强大合力",
+          "url": "detail.html?id=62097",
+          "date": "2026-04-14",
+          "source": "河池日报",
+          "views": 2976,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62078,
+          "title": "秦春成到天峨开展历史矛盾纠纷化解并督导调研水库移民后期扶持工作",
+          "url": "detail.html?id=62078",
+          "date": "2026-04-10",
+          "source": "河池日报",
+          "views": 3702,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62077,
+          "title": "汪东明主持召开市政府常务会议",
+          "url": "detail.html?id=62077",
+          "date": "2026-04-10",
+          "source": "河池日报",
+          "views": 3369,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62035,
+          "title": "河池以化解历史矛盾践行正确政绩观——把历史旧账变成幸福清单",
+          "url": "detail.html?id=62035",
+          "date": "2026-04-08",
+          "source": "河池日报",
+          "views": 3878,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62023,
+          "title": "河池市高标准农田建设和农村水利项目突出问题专项巡察工作动员部署会召开",
+          "url": "detail.html?id=62023",
+          "date": "2026-04-07",
+          "source": "河池日报",
+          "views": 3349,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61997,
+          "title": "秦春成到环江开展历史矛盾纠纷化解工作",
+          "url": "detail.html?id=61997",
+          "date": "2026-04-03",
+          "source": "河池日报",
+          "views": 4419,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61996,
+          "title": "汪东明以普通党员身份参加市政府办公室第一党支部组织生活会",
+          "url": "detail.html?id=61996",
+          "date": "2026-04-03",
+          "source": "河池日报",
+          "views": 5818,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "314",
+      "slug": "tupian-xinwen",
+      "name": "图片新闻",
+      "inner": "图片新闻",
+      "intro": "以图片记录政协履职与全市发展现场，直观呈现重要时刻。",
+      "siblings": [],
+      "total": 349,
+      "list": [
+        {
+          "id": 62181,
+          "title": "许显辉赴河池市调研",
+          "url": "detail.html?id=62181",
+          "date": "2026-04-23",
+          "source": "广西政协报",
+          "views": 155,
+          "img": "images/channel/62181.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 62148,
+          "title": "黄恩率队赴京拜访文旅部并考察文旅企业 深化对接合作 赋能文旅发展",
+          "url": "detail.html?id=62148",
+          "date": "2026-04-21",
+          "source": "河池日报",
+          "views": 223,
+          "img": "images/channel/62148.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 62096,
+          "title": "黄恩率队到巴马开展历史矛盾纠纷排查化解调研工作",
+          "url": "detail.html?id=62096",
+          "date": "2026-04-14",
+          "source": "河池日报",
+          "views": 2294,
+          "img": "images/channel/62096.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 62021,
+          "title": "市政协党组、机关党组举行开展树立和践行正确政绩观学习教育读书班暨理论学习中心组2026年第1次专题学习会",
+          "url": "detail.html?id=62021",
+          "date": "2026-04-07",
+          "source": "河池融媒客户端",
+          "views": 2395,
+          "img": "images/channel/62021.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 62034,
+          "title": "黄恩到罗城、都安开展专题调研",
+          "url": "detail.html?id=62034",
+          "date": "2026-04-03",
+          "source": "市政协办",
+          "views": 2534,
+          "img": "images/channel/62034.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 62032,
+          "title": "强化政治引领 凝聚银发力量 市政协退休干部党支部召开党员会议",
+          "url": "detail.html?id=62032",
+          "date": "2026-04-02",
+          "source": "市政协办",
+          "views": 2523,
+          "img": "images/channel/62032.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61974,
+          "title": "全市政协经资环委工作经验交流会暨2026年“产业振兴 委员行动”工作推进会召开",
+          "url": "detail.html?id=61974",
+          "date": "2026-04-02",
+          "source": "河池日报",
+          "views": 4725,
+          "img": "images/channel/61974.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61951,
+          "title": "黄恩到广西现代职业技术学院调研",
+          "url": "detail.html?id=61951",
+          "date": "2026-03-30",
+          "source": "河池日报",
+          "views": 4848,
+          "img": "images/channel/61951.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61898,
+          "title": "黄恩深入大化调研 聚焦产业文化赋能县域高质量发展",
+          "url": "detail.html?id=61898",
+          "date": "2026-03-26",
+          "source": "河池日报",
+          "views": 4961,
+          "img": "images/channel/61898.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61879,
+          "title": "市政协党组（扩大）会议召开 传达全国两会精神 部署贯彻落实工作",
+          "url": "detail.html?id=61879",
+          "date": "2026-03-25",
+          "source": "河池日报",
+          "views": 4865,
+          "img": "images/channel/61879.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61781,
+          "title": "黄恩率队到巴马调研督导一季度经济运行等工作",
+          "url": "detail.html?id=61781",
+          "date": "2026-03-18",
+          "source": "河池日报",
+          "views": 6640,
+          "img": "images/channel/61781.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61745,
+          "title": "黄恩到市公安局走访调研 凝心聚力护航高质量发展",
+          "url": "detail.html?id=61745",
+          "date": "2026-03-16",
+          "source": "河池日报",
+          "views": 6622,
+          "img": "images/channel/61745.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61719,
+          "title": "黄恩到宜州调研",
+          "url": "detail.html?id=61719",
+          "date": "2026-03-13",
+          "source": "今日宜州微信公众号",
+          "views": 8059,
+          "img": "images/channel/61719.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61673,
+          "title": "河池市政协党组（扩大）会议召开",
+          "url": "detail.html?id=61673",
+          "date": "2026-03-12",
+          "source": "河池融媒客户端",
+          "views": 8102,
+          "img": "images/channel/61673.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61645,
+          "title": "黄恩到凤山天峨调研时要求 立足资源禀赋 深挖发展潜力",
+          "url": "detail.html?id=61645",
+          "date": "2026-03-11",
+          "source": "河池日报",
+          "views": 7870,
+          "img": "images/channel/61645.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61597,
+          "title": "市政协党组（扩大）会议暨五届60次主席会议召开",
+          "url": "detail.html?id=61597",
+          "date": "2026-03-06",
+          "source": "河池日报",
+          "views": 8098,
+          "img": "images/channel/61597.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61577,
+          "title": "黄恩到环江开展相关工作调研",
+          "url": "detail.html?id=61577",
+          "date": "2026-03-04",
+          "source": "环江融媒微信公众号",
+          "views": 8073,
+          "img": "images/channel/61577.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61534,
+          "title": "市政协组织部分港澳委员到南丹开展考察调研活动",
+          "url": "detail.html?id=61534",
+          "date": "2026-03-02",
+          "source": "河池日报",
+          "views": 8132,
+          "img": "images/channel/61534.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61498,
+          "title": "市政协五届六次会议胜利闭幕 秦春成黄锦锋黎丽出席 黄恩讲话",
+          "url": "detail.html?id=61498",
+          "date": "2026-02-27",
+          "source": "河池融媒客户端",
+          "views": 8147,
+          "img": "images/channel/61498.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61492,
+          "title": "秦春成参加政协界别联组讨论时强调 以实干实绩书写新时代履职答卷",
+          "url": "detail.html?id=61492",
+          "date": "2026-02-27",
+          "source": "河池融媒客户端",
+          "views": 8096,
+          "img": "images/channel/61492.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61453,
+          "title": "黄恩参加市政协五届六次会议中共界别小组讨论会",
+          "url": "detail.html?id=61453",
+          "date": "2026-02-27",
+          "source": "河池日报",
+          "views": 8094,
+          "img": "images/channel/61453.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61451,
+          "title": "市政协五届六次会议开幕 秦春成讲话 汪东明黄锦锋等到会祝贺 黎丽作工作报告 黄恩出席",
+          "url": "detail.html?id=61451",
+          "date": "2026-02-26",
+          "source": "河池融媒",
+          "views": 8180,
+          "img": "images/channel/61451.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61401,
+          "title": "市政协党组班子召开2025年度民主生活会 暨蓝天立案以案促改、中央巡视整改专题民主生活会",
+          "url": "detail.html?id=61401",
+          "date": "2026-02-24",
+          "source": "河池日报",
+          "views": 8219,
+          "img": "images/channel/61401.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61367,
+          "title": "何辛幸赴我市开展春节慰问活动 传递关爱 共话新春",
+          "url": "detail.html?id=61367",
+          "date": "2026-02-14",
+          "source": "河池日报",
+          "views": 8525,
+          "img": "images/channel/61367.jpg",
+          "hasBody": true
+        }
+      ]
+    }
+  ]
+}

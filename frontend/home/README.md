@@ -54,3 +54,79 @@ frontend/home/
 - 语义化标签、图片 `alt`、键盘可聚焦、图片加载失败占位降级
 
 > 顶部站头横幅已随页面本地化（`images/head.jpg`）；其余内容图片（轮播/领导/图片新闻/河池风光等）仍为绝对 URL 热链，待后续图片迁移完成后统一替换为本地资源。
+
+---
+
+## 二级栏目页与详情页（2026-09-11 新增）
+
+按“前端二级页与详情页 → 后端 → 历史数据接入”的推进顺序，本轮先完成内页设计与静态原型，数据仍为快照，后端就绪后以 REST API 平替。
+
+### 页面与访问方式
+
+沿用旧站“查询参数驱动”的 URL 形态，便于后端接管后保持地址不变：
+
+| 页面 | 文件 | 访问示例 |
+| --- | --- | --- |
+| 二级栏目列表页 | `channel.html` | `channel.html?id=904`（市政协动态）、`channel.html?id=306`（时政要闻）、`channel.html?id=314`（图片新闻） |
+| 信息详情页 | `detail.html` | `detail.html?id=62180` |
+
+本地预览：
+
+```bash
+cd frontend/home && python3 -m http.server 8901
+# 栏目页 http://127.0.0.1:8901/channel.html?id=904
+# 详情页 http://127.0.0.1:8901/detail.html?id=62180
+```
+
+### 新增文件
+
+```
+frontend/home/
+├── channel.html            二级栏目列表页
+├── detail.html             信息详情页
+├── favicon.ico             站点图标（取自旧站）
+├── css/inner.css           内页样式（栏目页 + 详情页）
+├── js/shell.js             内页公共外壳（顶栏 / 导航 / 滚动要闻 / 页脚 / 无障碍交互）
+├── js/channel.js           栏目页渲染与分页
+├── js/detail.js            详情页渲染、字号调整、打印
+├── data/channel.json       栏目页样例数据
+├── data/article.json       详情页样例数据
+└── images/channel/         列表缩略图与正文配图（共 48 张，已本地化）
+```
+
+外壳复用 `css/style.css` 的既有变量与站头样式，站级数据（`meta` / `nav` / `marquee`）统一读 `data/home.json`，不新增副本；`js/shell.js` 会按 `window.INNER_CHANNELS` 把导航中的栏目指向本地内页，未覆盖的栏目仍指向旧站。
+
+### 内页数据契约
+
+`data/channel.json`（列表页）单条栏目：
+
+| 字段 | 说明 |
+| --- | --- |
+| `type` / `slug` / `name` / `inner` | 旧库栏目 ID、拼音标识、一级栏目名、当前子栏目名 |
+| `intro` | 栏目简介 |
+| `siblings` | 同级子栏目（`type` + `name`），用于栏目切换 |
+| `total` | 栏目全量条数（旧库统计值） |
+| `list[]` | `{id, title, url, date, source, views, img, hasBody}`，按发布时间倒序 |
+
+`data/article.json`（详情页）单篇：
+
+| 字段 | 说明 |
+| --- | --- |
+| `id` / `channelType` / `channelName` | 文章 ID 与所属栏目 |
+| `title` / `subtitle` | 主标题 / 引题副标题 |
+| `date` / `source` / `author` / `editor` / `views` | 发布时间、来源、作者、编辑、阅读量 |
+| `summary` / `content` | 摘要与正文 HTML |
+
+### 数据来源与清洗说明
+
+样例数据由 `tools/prototype/extract_sample_data.py` 从旧库 `gxhczx_db.sql`（导出时间 2026-04-28）生成，取 `Region=22`（河池市主站）内容，每个栏目各 24 条，详情样例 6 篇。生成时已做两项清洗，正式迁移时应在 `tools/migrate` 中沿用并加强：
+
+1. 正文去内联样式与冗余空段落（旧文多用 `<font>` / `<span style>` 排版）。
+2. 来源字段清理：旧库约 7.8% 记录的 `From` 把日期版面拼在来源后（如“河池日报 2026/3/2 1 版”）。
+
+### 当前仍为演示的部分
+
+- 列表与分页只覆盖每个栏目的 24 条样例，页脚统计显示的是旧库全量条数。
+- 头条摘要为占位文案，后端接入后改为真实摘要。
+- 站内搜索仍指向旧站 `search.php`。
+- 图片新闻等图片型栏目走卡片网格，文字型栏目走“头条 + 列表”，由数据中带图比例自动切换。

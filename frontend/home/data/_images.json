@@ -1,0 +1,37 @@
+[
+  {
+    "id": "62180-1",
+    "url": "http://gxhczx.gov.cn/uploadfiles/20260423/20260423121418598.jpg",
+    "target": "frontend/home/images/channel/art62180-1.jpg"
+  },
+  {
+    "id": "62180-2",
+    "url": "http://gxhczx.gov.cn/uploadfiles/20260423/20260423121424981.jpg",
+    "target": "frontend/home/images/channel/art62180-2.jpg"
+  },
+  {
+    "id": "62147-1",
+    "url": "http://gxhczx.gov.cn/uploadfiles/20260421/20260421163405685.jpg",
+    "target": "frontend/home/images/channel/art62147-1.jpg"
+  },
+  {
+    "id": "62147-2",
+    "url": "http://gxhczx.gov.cn/uploadfiles/20260421/20260421163410415.jpg",
+    "target": "frontend/home/images/channel/art62147-2.jpg"
+  },
+  {
+    "id": "62147-3",
+    "url": "http://gxhczx.gov.cn/uploadfiles/20260421/20260421163415114.jpg",
+    "target": "frontend/home/images/channel/art62147-3.jpg"
+  },
+  {
+    "id": "62181-1",
+    "url": "http://gxhczx.gov.cn/uploadfiles/20260423/20260423121611850.jpg",
+    "target": "frontend/home/images/channel/art62181-1.jpg"
+  },
+  {
+    "id": "62148-1",
+    "url": "http://gxhczx.gov.cn/uploadfiles/20260421/20260421163514995.jpg",
+    "target": "frontend/home/images/channel/art62148-1.jpg"
+  }
+]
