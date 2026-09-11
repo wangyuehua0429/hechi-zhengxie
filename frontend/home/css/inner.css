@@ -7,9 +7,10 @@
 [hidden] { display: none !important; }
 
 /* ---------- 面包屑 ---------- */
+/* 面包屑直接落在页面底色上，不再垫一条白底横条（与首页底色统一） */
 .crumb-bar {
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
+  background: transparent;
+  border-bottom: 0;
 }
 .crumb {
   display: flex;
