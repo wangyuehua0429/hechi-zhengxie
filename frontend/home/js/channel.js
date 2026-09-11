@@ -352,6 +352,52 @@
     });
   }
 
+  // 左侧子栏目是整页跳转（channel.html?id=…），浏览器会回到文档顶端。
+  // 这里在切换前记下视口位置，新页面渲染完成后复位，做到"位置与点击时一致"。
+  const SCROLL_KEY = "channelScrollY";
+
+  function rememberScroll(link) {
+    const href = (link && link.getAttribute("href")) || "";
+    // 只处理"栏目页 → 栏目页"的切换；一页式栏目里指向详情页的链接不做位置复现
+    if (href.indexOf("channel.html") === -1) return;
+    try {
+      sessionStorage.setItem(SCROLL_KEY, JSON.stringify({
+        y: Math.round(window.scrollY),
+        t: Date.now()
+      }));
+    } catch (e) { /* 隐私模式等场景忽略 */ }
+  }
+
+  function restoreScroll() {
+    let saved = null;
+    try {
+      const raw = sessionStorage.getItem(SCROLL_KEY);
+      sessionStorage.removeItem(SCROLL_KEY);   // 只用于紧接的一次跳转
+      saved = raw ? JSON.parse(raw) : null;
+    } catch (e) { return; }
+    const y = Number(saved && saved.y);
+    if (!saved || !isFinite(y) || y <= 0) return;
+    if (Date.now() - Number(saved.t || 0) > 5000) return;   // 超过 5 秒的记录不再复现
+    // 列表高度在异步渲染后才稳定，等一帧再复位；并临时关掉平滑滚动，避免"从顶端滑过去"
+    requestAnimationFrame(function () {
+      const root = document.documentElement;
+      const prev = root.style.scrollBehavior;
+      root.style.scrollBehavior = "auto";
+      window.scrollTo(0, y);
+      root.style.scrollBehavior = prev;
+    });
+  }
+
+  function bindChannelButtons() {
+    const wrap = el("channelButtons");
+    if (!wrap) return;
+    wrap.addEventListener("click", function (e) {
+      const link = e.target.closest("a.channel-btn");
+      if (!link) return;                       // 当前栏目是 span，不触发
+      rememberScroll(link);
+    });
+  }
+
   function renderEmpty(id) {
     const heading = el("listHeading");
     if (heading) heading.textContent = "未找到该栏目";
@@ -386,6 +432,8 @@
         renderPager();
         renderSide(channels);
         bindPager();
+        bindChannelButtons();
+        restoreScroll();
       })
       .catch(function () {
         el("listWrap").innerHTML =
