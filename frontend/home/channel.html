@@ -107,37 +107,33 @@
       </div>
     </header>
 
-    <!-- 子栏目 -->
-    <div class="channel-tabs" id="channelTabs" hidden>
-      <div class="container" id="channelTabList"></div>
-    </div>
-
-    <div class="container inner-layout">
-      <div class="inner-main">
-        <article class="lead-item" id="leadItem" hidden></article>
-
-        <section class="panel" aria-labelledby="listHeading">
-          <div class="panel-head">
-            <h2 id="listHeading">全部信息</h2>
-            <span class="panel-count" id="listCount"></span>
-          </div>
-          <div class="panel-body" id="listWrap">
-            <ul class="news-rows" id="newsRows"></ul>
-          </div>
-          <nav class="pager" id="pager" aria-label="分页导航"></nav>
+    <div class="container inner-layout inner-layout--left" id="innerLayout">
+      <!-- 左侧栏：栏目按钮 + 最新新闻 + 图片新闻（单栏目页不显示） -->
+      <aside class="inner-side" id="innerSide">
+        <nav class="channel-buttons" id="channelButtons" aria-label="子栏目" hidden></nav>
+        <section class="side-card side-card--solid">
+          <div class="side-head"><h3>最新新闻</h3></div>
+          <div class="side-body"><ul class="side-list side-list--plain" id="latestList"></ul></div>
         </section>
-      </div>
-
-      <aside class="inner-side">
-        <section class="side-card">
-          <div class="side-head"><h3>热门推荐</h3></div>
-          <div class="side-body"><ol class="side-list" id="hotList"></ol></div>
-        </section>
-        <section class="side-card">
+        <section class="side-card side-card--solid">
           <div class="side-head"><h3>图片新闻</h3></div>
           <div class="side-thumbs" id="thumbGrid"></div>
         </section>
       </aside>
+
+      <!-- 右侧：稿件列表 -->
+      <div class="inner-main">
+        <section class="panel" aria-labelledby="listHeading">
+          <div class="panel-head">
+            <h2 id="listHeading">稿件</h2>
+            <span class="panel-count" id="listCount"></span>
+          </div>
+          <div class="panel-body" id="listWrap">
+            <ul class="article-rows" id="newsRows"></ul>
+          </div>
+          <nav class="pager" id="pager" aria-label="分页导航"></nav>
+        </section>
+      </div>
     </div>
   </main>
 

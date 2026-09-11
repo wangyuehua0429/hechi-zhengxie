@@ -259,6 +259,8 @@ def build(args):
                 "title": row["Title"],
                 "url": "detail.html?id=%s" % row["ID"],
                 "date": fmt_date(row["Time"]),
+                "datetime": fmt_datetime(row["Time"]) + ":" +
+                            datetime.fromtimestamp(row["Time"], CST).strftime("%S"),
                 "source": clean_source(row["From"]),
                 "views": int(row["Num"] or 0),
                 "img": img,

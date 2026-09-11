@@ -1,5 +1,7 @@
-/* 二级栏目列表页：按 ?id=<旧库栏目ID> 渲染栏目信息、列表、分页与侧栏
+/* 二级栏目页：按 ?id=<旧库栏目ID> 渲染栏目信息、稿件列表、分页与左侧栏
  *
+ * 版式：左侧为栏目按钮 + 最新新闻 + 图片新闻，右侧为纯稿件列表（无卡片、无缩略图）；
+ * 单栏目（无子栏目）时不显示左侧栏，稿件列表直接铺满。
  * 数据来自 data/channel.json（原型样例，取旧库 rd_news 主站内容），
  * 后端就绪后由 REST API 平替，渲染逻辑不变。
  */
@@ -9,9 +11,8 @@
   const DATA_URL = "data/channel.json";
   const HOME_URL = "./index.html";
   const DEFAULT_ID = "904";
-  const PAGE_SIZE_LIST = 12;
-  const PAGE_SIZE_GALLERY = 9;
-  const HOT_SIZE = 5;
+  const PAGE_SIZE = 20;
+  const LATEST_SIZE = 8;
   const THUMB_SIZE = 4;
 
   const el = (id) => document.getElementById(id);
@@ -20,7 +21,7 @@
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   const kicker = (slug) => String(slug || "").replace(/-/g, " ").toUpperCase();
 
-  const state = { channel: null, all: [], page: 1, size: PAGE_SIZE_LIST, layout: "list" };
+  const state = { channel: null, all: [], page: 1 };
 
   function param(name) {
     return new URLSearchParams(window.location.search).get(name);
@@ -29,15 +30,13 @@
   function renderCrumb(channel) {
     const box = el("crumb");
     if (!box) return;
-    const tail = channel.inner && channel.inner !== channel.name
-      ? '<li class="is-current" aria-current="page">' + esc(channel.inner) + '</li>'
-      : '<li class="is-current" aria-current="page">' + esc(channel.name) + '</li>';
+    const hasInner = channel.inner && channel.inner !== channel.name;
     box.innerHTML =
       '<li><a href="' + HOME_URL + '">首页</a></li>' +
-      (channel.inner && channel.inner !== channel.name
-        ? '<li><a href="channel.html?id=' + esc(channel.type) + '">' + esc(channel.name) + '</a></li>'
-        : '') +
-      tail;
+      (hasInner
+        ? '<li><a href="channel.html?id=' + esc(channel.type) + '">' + esc(channel.name) + '</a></li>' +
+          '<li class="is-current" aria-current="page">' + esc(channel.inner) + '</li>'
+        : '<li class="is-current" aria-current="page">' + esc(channel.name) + '</li>');
   }
 
   function renderHero(channel) {
@@ -46,78 +45,50 @@
     el("channelIntro").textContent = channel.intro || "";
     el("channelTotal").textContent = channel.total;
     const heading = el("listHeading");
-    if (heading) heading.textContent = (channel.inner || channel.name) + "信息";
+    if (heading) heading.textContent = (channel.inner || channel.name) + "稿件";
     document.title = (channel.inner || channel.name) + " · 广西河池政协网";
   }
 
-  function renderTabs(channel) {
-    const wrap = el("channelTabs");
-    const box = el("channelTabList");
-    if (!wrap || !box || !channel.siblings || !channel.siblings.length) return;
-    box.innerHTML = channel.siblings.map(function (s) {
-      const active = String(s.type) === String(channel.type);
-      const label = esc(s.name);
-      return active
-        ? '<span class="is-active" aria-current="true">' + label + '</span>'
-        : '<a href="channel.html?id=' + esc(s.type) + '">' + label + '</a>';
-    }).join("");
-    wrap.hidden = false;
-  }
-
-  function renderLead(channel, item) {
-    const box = el("leadItem");
-    if (!box || !item) return;
-    box.classList.toggle("no-media", !item.img);
-    box.innerHTML =
-      (item.img
-        ? '<a class="lead-media" href="' + esc(item.url) + '" aria-hidden="true" tabindex="-1">' +
-          '<img src="' + esc(item.img) + '" alt="' + esc(item.title) + '"></a>'
-        : "") +
-      '<div class="lead-text">' +
-      '<span class="lead-tag">' + esc(channel.inner || channel.name) + '</span>' +
-      '<h2 class="lead-title"><a href="' + esc(item.url) + '">' + esc(item.title) + '</a></h2>' +
-      '<p class="lead-summary">本条为演示数据中该栏目最新一条信息，后端接入后此处展示摘要与前缀图片。</p>' +
-      '<div class="lead-meta"><span>' + esc(item.date) + '</span>' +
-      (item.source ? '<span>来源：' + esc(item.source) + '</span>' : "") +
-      '<span>阅读：' + item.views + '</span></div>' +
-      '</div>';
-    box.hidden = false;
-  }
-
-  function listRow(item) {
-    return '<li><a href="' + esc(item.url) + '" title="' + esc(item.title) + '">' +
-      esc(item.title) + '</a>' +
-      (item.source ? '<span class="row-source">' + esc(item.source) + '</span>' : "") +
-      '<time datetime="' + esc(item.date) + '">' + esc(item.date) + '</time></li>';
-  }
-
-  function galleryCard(item) {
-    return '<a class="gallery-card" href="' + esc(item.url) + '">' +
-      '<div class="gallery-media"><img src="' + esc(item.img) + '" alt="' + esc(item.title) + '" loading="lazy"></div>' +
-      '<p class="gallery-title">' + esc(item.title) + '</p>' +
-      '<p class="gallery-date">' + esc(item.date) + '</p></a>';
+  // 左侧栏：栏目按钮（仅多栏目时显示）；单栏目页隐藏整个左栏，列表铺满
+  function renderButtons(channel) {
+    const wrap = el("channelButtons");
+    const siblings = channel.siblings || [];
+    if (siblings.length) {
+      wrap.innerHTML = siblings.map(function (s) {
+        const active = String(s.type) === String(channel.type);
+        return active
+          ? '<span class="channel-btn is-active" aria-current="true">' + esc(s.name) + '</span>'
+          : '<a class="channel-btn" href="channel.html?id=' + esc(s.type) + '">' + esc(s.name) + '</a>';
+      }).join("");
+      wrap.hidden = false;
+      return;
+    }
+    const layout = el("innerLayout");
+    if (layout) layout.classList.add("inner-layout--full");
   }
 
   function renderList() {
     const wrap = el("listWrap");
     const channel = state.channel;
-    const start = (state.page - 1) * state.size;
-    const rows = state.all.slice(start, start + state.size);
+    const start = (state.page - 1) * PAGE_SIZE;
+    const rows = state.all.slice(start, start + PAGE_SIZE);
     if (!rows.length) {
-      wrap.innerHTML = '<div class="empty-state">该栏目暂无内容。</div>';
+      wrap.innerHTML = '<div class="empty-state">该栏目暂无稿件。</div>';
       return;
     }
-      wrap.innerHTML = state.layout === "gallery"
-      ? '<div class="gallery-grid">' + rows.map(galleryCard).join("") + '</div>'
-      : '<ul class="news-rows">' + rows.map(listRow).join("") + '</ul>';
-    const totalPages = Math.max(1, Math.ceil(state.all.length / state.size));
+    wrap.innerHTML = '<ul class="article-rows">' + rows.map(function (item) {
+      return '<li><a href="' + esc(item.url) + '" title="' + esc(item.title) + '">' +
+        esc(item.title) + '</a>' +
+        '<time datetime="' + esc(item.datetime) + '">' + esc(item.datetime) + '</time></li>';
+    }).join("") + '</ul>';
+    const totalPages = Math.max(1, Math.ceil(state.all.length / PAGE_SIZE));
     el("listCount").textContent = "演示数据 " + state.all.length + " 条 / 全站共 " +
       channel.total + " 条 · 第 " + state.page + "/" + totalPages + " 页";
   }
 
   function renderPager() {
     const box = el("pager");
-    const totalPages = Math.max(1, Math.ceil(state.all.length / state.size));
+    const totalPages = Math.max(1, Math.ceil(state.all.length / PAGE_SIZE));
     if (totalPages <= 1) {
       box.innerHTML = '<span class="pager-info">已显示全部演示数据</span>';
       return;
@@ -137,16 +108,19 @@
     box.innerHTML = parts.join("");
   }
 
+  // 左侧栏下方：最新新闻（全站汇总）+ 图片新闻（缩略图）
   function renderSide(channels, channel) {
-    const hot = el("hotList");
-    if (hot) {
-      hot.innerHTML = channel.list.slice()
-        .sort(function (a, b) { return b.views - a.views; })
-        .slice(0, HOT_SIZE)
-        .map(function (item, i) {
-          return '<li><a href="' + esc(item.url) + '"><span class="rank-no">' + (i + 1) +
-            '</span><span>' + esc(item.title) + '</span></a></li>';
-        }).join("");
+    const latest = el("latestList");
+    if (latest) {
+      const pool = [];
+      channels.forEach(function (ch) {
+        ch.list.forEach(function (item) { pool.push(item); });
+      });
+      pool.sort(function (a, b) { return String(b.datetime).localeCompare(String(a.datetime)); });
+      latest.innerHTML = pool.slice(0, LATEST_SIZE).map(function (item) {
+        return '<li><a href="' + esc(item.url) + '" title="' + esc(item.title) + '">' +
+          esc(item.title) + '</a></li>';
+      }).join("");
     }
     const thumbs = el("thumbGrid");
     if (thumbs) {
@@ -170,7 +144,7 @@
       const btn = e.target.closest("button[data-page]");
       if (!btn || btn.disabled) return;
       const page = Number(btn.dataset.page);
-      const totalPages = Math.max(1, Math.ceil(state.all.length / state.size));
+      const totalPages = Math.max(1, Math.ceil(state.all.length / PAGE_SIZE));
       if (!page || page < 1 || page > totalPages || page === state.page) return;
       state.page = page;
       renderList();
@@ -190,6 +164,8 @@
     el("channelIntro").textContent =
       "当前原型已实现以下栏目：" + ids.join("、") + "。请从导航或栏目链接进入。";
     el("channelTotal").textContent = ids.length;
+    el("innerSide").hidden = true;
+    el("innerLayout").classList.add("inner-layout--full");
     el("listWrap").innerHTML = '<div class="empty-state">未找到该栏目。<br>' +
       ids.map(function (id) {
         return '<a href="channel.html?id=' + esc(id) + '">channel.html?id=' + esc(id) + '</a>';
@@ -212,17 +188,11 @@
           return;
         }
         state.channel = channel;
-        state.layout = channel.list.length &&
-          channel.list.filter(function (i) { return i.img; }).length / channel.list.length >= 0.8
-          ? "gallery" : "list";
-        // 文字列表把首条升级为头条，卡片列表全部进入网格，不丢内容
-        state.all = state.layout === "gallery" ? channel.list.slice() : channel.list.slice(1);
-        state.size = state.layout === "gallery" ? PAGE_SIZE_GALLERY : PAGE_SIZE_LIST;
+        state.all = channel.list.slice();
         state.page = 1;
         renderCrumb(channel);
         renderHero(channel);
-        renderTabs(channel);
-        if (state.layout === "list") renderLead(channel, channel.list[0]);
+        renderButtons(channel);
         renderList();
         renderPager();
         renderSide(channels, channel);
