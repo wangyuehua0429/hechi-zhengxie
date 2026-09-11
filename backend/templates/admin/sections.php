@@ -59,22 +59,111 @@ $kindLabels = [
       · 当前取到 <?= (int) $section['preview']['count'] ?> 条
     </p>
 
-    <?php if ($section['preview']['tabs'] !== []): ?>
-      <ul class="preview-list">
-        <?php foreach ($section['preview']['tabs'] as $tab): ?>
-          <li>
-            <strong><?= hechi_e($tab['title']) ?></strong>
-            <span class="muted"><?= (int) $tab['count'] ?> 条</span>
-            <?php if ($tab['titles'] !== []): ?>
-              <span class="preview-titles"><?= hechi_e(implode(' ／ ', $tab['titles'])) ?></span>
-            <?php endif; ?>
-          </li>
-        <?php endforeach; ?>
-      </ul>
-    <?php elseif ($section['preview']['titles'] !== []): ?>
-      <p class="preview-titles"><?= hechi_e(implode(' ／ ', $section['preview']['titles'])) ?></p>
-    <?php else: ?>
-      <p class="muted">这个模块当前没有取到稿件，检查绑定栏目与稿件状态。</p>
+    <?php
+    // 模块当前取到的稿件：库内条目按头条轮换那样的表格列出来，可直接排序与置顶
+    $groups = $section['groups'] ?? [];
+    $dbCount = 0;
+    foreach ($groups as $group) {
+      $dbCount += count($group['rows']);
+    }
+    $snapshotCount = max(0, (int) $section['preview']['count'] - $dbCount);
+    $multiGroup = count($groups) > 1;
+    ?>
+
+    <?php foreach ($groups as $group): ?>
+      <?php if ($multiGroup && (string) $group['title'] !== ''): ?>
+        <h3 class="section-tab-title"><?= hechi_e((string) $group['title']) ?> <span class="muted">（栏目 <?= hechi_e((string) $group['channel']) ?>）</span></h3>
+      <?php endif; ?>
+      <?php if ($group['rows'] === []): ?>
+        <p class="muted">这个<?= $multiGroup ? '标签' : '模块' ?>当前没有取到库内稿件，检查绑定栏目与稿件状态。</p>
+      <?php else: ?>
+        <?php
+        // 这一组里有没有配图：一条都没有就把「图」列省掉，免得整列都是「无」
+        $hasImg = false;
+        foreach ($group['rows'] as $row) {
+          if ((string) $row['img'] !== '') { $hasImg = true; break; }
+        }
+        ?>
+        <div class="table-scroll">
+        <table class="grid article-table section-table">
+          <caption class="visually-hidden">模块当前取到的稿件</caption>
+          <thead>
+            <tr>
+              <th scope="col" class="nowrap">序</th>
+              <?php if ($hasImg): ?><th scope="col" class="nowrap">图</th><?php endif; ?>
+              <th scope="col">稿件</th>
+              <th scope="col" class="nowrap">栏目</th>
+              <th scope="col" class="nowrap">状态</th>
+              <th scope="col" class="col-actions">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($group['rows'] as $index => $row): ?>
+              <?php
+              $id = (int) $row['id'];
+              $channel = (string) $row['channel'];
+              $back = '/admin/sections';
+              ?>
+              <tr>
+                <td class="nowrap muted"><?= (int) $index + 1 ?></td>
+                <?php if ($hasImg): ?>
+                  <td>
+                    <?php if ((string) $row['img'] !== ''): ?>
+                      <img class="thumb-sm" src="<?= hechi_e(hechi_asset($row['img'])) ?>" alt="">
+                    <?php else: ?>
+                      <span class="muted">无</span>
+                    <?php endif; ?>
+                  </td>
+                <?php endif; ?>
+                <td>
+                  <a class="title-link" href="/admin/article/<?= $id ?>"><?= hechi_e((string) $row['title']) ?></a>
+                  <span class="row-meta">#<?= $id ?> · <?= hechi_e((string) $row['date']) ?></span>
+                </td>
+                <td class="nowrap"><?= hechi_e((string) $row['channel_name']) ?></td>
+                <td class="nowrap">
+                  <span class="tag tag-published">已发布</span>
+                  <?php if ((int) $row['is_top'] === 1): ?><span class="tag tag-top">已置顶</span><?php endif; ?>
+                </td>
+                <td class="col-actions">
+                  <div class="row-actions">
+                    <form method="post" action="/admin/article/<?= $id ?>/order" class="inline">
+                      <?= $csrf ?>
+                      <input type="hidden" name="channel" value="<?= hechi_e($channel) ?>">
+                      <input type="hidden" name="back" value="<?= hechi_e($back) ?>">
+                      <input type="hidden" name="dir" value="up">
+                      <button type="submit" class="btn btn-sm btn-icon" aria-label="把「<?= hechi_e((string) $row['title']) ?>」在本栏目上移一位">↑</button>
+                    </form>
+                    <form method="post" action="/admin/article/<?= $id ?>/order" class="inline">
+                      <?= $csrf ?>
+                      <input type="hidden" name="channel" value="<?= hechi_e($channel) ?>">
+                      <input type="hidden" name="back" value="<?= hechi_e($back) ?>">
+                      <input type="hidden" name="dir" value="down">
+                      <button type="submit" class="btn btn-sm btn-icon" aria-label="把「<?= hechi_e((string) $row['title']) ?>」在本栏目下移一位">↓</button>
+                    </form>
+                    <form method="post" action="/admin/article/<?= $id ?>/top" class="inline">
+                      <?= $csrf ?>
+                      <input type="hidden" name="channel" value="<?= hechi_e($channel) ?>">
+                      <input type="hidden" name="back" value="<?= hechi_e($back) ?>">
+                      <input type="hidden" name="value" value="<?= (int) $row['is_top'] === 1 ? '0' : '1' ?>">
+                      <button type="submit" class="btn btn-sm"><?= (int) $row['is_top'] === 1 ? '取消置顶' : '置顶' ?></button>
+                    </form>
+                    <a class="btn btn-sm btn-ghost" href="/admin/article/<?= $id ?>">编辑</a>
+                    <a class="btn btn-sm btn-ghost" href="/detail.html?id=<?= $id ?>" target="_blank" rel="noopener">前台</a>
+                  </div>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+        </div>
+      <?php endif; ?>
+    <?php endforeach; ?>
+
+    <?php if ($snapshotCount > 0): ?>
+      <p class="muted">
+        另有 <?= (int) $snapshotCount ?> 条来自改版前的快照（这些稿件没有进稿件表，暂时不能在这里排序）。
+        在绑定的栏目里发新稿，它们会被逐步顶下去。
+      </p>
     <?php endif; ?>
 
     <details class="advanced">

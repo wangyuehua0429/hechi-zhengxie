@@ -469,6 +469,115 @@ final class HomeRepository
         return '/channel.html?id=' . $type;
     }
 
+    /**
+     * 后台「其他栏目」页用：模块当前取到的**库内稿件**，按首页同一套顺序分组。
+     *
+     * 与首页组装的区别：这里带出每条稿件的栏目号与置顶标记，供页面上的上移／下移／置顶按钮使用；
+     * 只列稿件表里有的条目——快照兜底的历史条目标不了顺序，由页面另行说明。
+     *
+     * @param array<string, mixed> $section
+     * @return list<array{title:string, channel:string, rows:list<array<string,mixed>>}>
+     */
+    public function sectionAdminGroups(array $section): array
+    {
+        if (!$this->homeTablesReady()) {
+            return [];
+        }
+
+        $scope = Json::decode((string) $section['scope_json'], []);
+        $scope = is_array($scope) ? $scope : [];
+        $pageSize = max(1, (int) $section['page_size']);
+        $key = (string) $section['section_key'];
+        $shape = self::SECTION_SHAPES[$key] ?? 'list';
+
+        // 分标签模块：一个标签一个栏目，各自取 page_size 条
+        if ($shape === 'tabs' || (string) $section['group_by'] === 'child') {
+            $tabs = is_array($scope['tabs'] ?? null) ? $scope['tabs'] : [];
+            if ($tabs === []) {
+                foreach ((array) ($scope['channels'] ?? []) as $channel) {
+                    $tabs[] = ['channel' => (string) $channel, 'label' => ''];
+                }
+            }
+            $groups = [];
+            foreach ($tabs as $tab) {
+                $channel = (string) ($tab['channel'] ?? '');
+                if ($channel === '') {
+                    continue;
+                }
+                $groups[] = [
+                    'title'   => (string) ($tab['label'] ?? '') !== '' ? (string) $tab['label'] : $this->channelName($channel),
+                    'channel' => $channel,
+                    'rows'    => $this->adminRows([$channel], $pageSize),
+                ];
+            }
+            return $groups;
+        }
+
+        $types = $this->scopeChannels($scope);
+        return [[
+            'title'   => '',
+            'channel' => $types[0] ?? '',
+            'rows'    => $this->adminRows($types, $pageSize),
+        ]];
+    }
+
+    /**
+     * 取一组栏目下的稿件行（含栏目号与置顶标记），同一篇稿件只出现一次。
+     *
+     * @param list<string> $types
+     * @return list<array<string,mixed>>
+     */
+    private function adminRows(array $types, int $limit): array
+    {
+        $types = array_values(array_filter($types, static fn (string $type): bool => $type !== ''));
+        if ($types === []) {
+            return [];
+        }
+
+        $placeholders = [];
+        $params = ['site' => $this->siteId];
+        foreach ($types as $index => $type) {
+            $placeholders[] = ':ch' . $index;
+            $params['ch' . $index] = $type;
+        }
+        $rows = $this->db->select(
+            'SELECT a.article_id, a.title, a.thumb, a.published_at, a.channel_type AS primary_channel,
+                    ac.channel_type AS link_channel, ac.is_top, ac.sort_no
+             FROM cms_article_channel ac
+             JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
+             WHERE ac.site_id = :site AND a.status = :status AND a.public_scope = :scope
+               AND ac.channel_type IN (' . implode(', ', $placeholders) . ')
+             ORDER BY ac.is_top DESC, ac.sort_no ASC, a.published_at DESC, a.article_id DESC',
+            $params + ['status' => 'published', 'scope' => 'public']
+        );
+
+        $out = [];
+        $seen = [];
+        foreach ($rows as $row) {
+            $id = (int) $row['article_id'];
+            if (isset($seen[$id])) {
+                continue;
+            }
+            $seen[$id] = true;
+            if (count($out) >= $limit) {
+                continue;
+            }
+            // 排序与置顶按栏目生效：优先用稿件的主栏目，主栏目不在范围内就用命中的第一个
+            $primary = (string) $row['primary_channel'];
+            $channel = in_array($primary, $types, true) ? $primary : (string) $row['link_channel'];
+            $out[] = [
+                'id'           => $id,
+                'title'        => (string) $row['title'],
+                'img'          => (string) $row['thumb'],
+                'date'         => substr((string) $row['published_at'], 0, 16),
+                'channel'      => $channel,
+                'channel_name' => $this->channelName($channel),
+                'is_top'       => (int) $row['is_top'],
+            ];
+        }
+        return $out;
+    }
+
     /** 条目 id：库里条目是 id，快照条目要从 url 里抠 */
     private function itemId(mixed $item): string
     {

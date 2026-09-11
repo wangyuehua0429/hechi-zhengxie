@@ -37,7 +37,7 @@ final class LogController extends AdminController
         $offset = max(0, ($page - 1) * self::PAGE_SIZE);
 
         return $this->view->page('admin/logs', [
-            'current' => 'users',
+            'current' => 'logs',
             'logs'    => $this->db->select(
                 'SELECT l.log_id, l.action, l.target_type, l.target_id, l.detail_json, l.ip, l.created_at,
                         u.username, u.real_name

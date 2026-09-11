@@ -56,6 +56,8 @@ final class SectionController extends AdminController
                 'channels' => $this->scopeChannelNames($row),
                 'firstChannel' => $this->firstScopeChannel($row),
                 'preview' => $this->previewOf($blocks[$key] ?? null),
+                // 库内稿件（可排序／置顶的那些），按标签分组
+                'groups' => $this->home->sectionAdminGroups($row),
             ];
         }
 

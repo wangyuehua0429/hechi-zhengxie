@@ -297,8 +297,10 @@ final class ArticleRepository
             ]
         );
         $this->db->execute(
-            'UPDATE cms_article SET updated_at = :t WHERE site_id = :site AND article_id = :id',
-            ['t' => $now, 'site' => $this->siteId, 'id' => $articleId]
+            // 同步写一份到 cms_article.is_top：稿件列表的「置顶」标记读的是它，
+            // 这样无论从稿件编辑页还是首页模块页置顶，两处显示都一致。
+            'UPDATE cms_article SET is_top = :top, updated_at = :t WHERE site_id = :site AND article_id = :id',
+            ['top' => $isTop, 't' => $now, 'site' => $this->siteId, 'id' => $articleId]
         );
     }
 
@@ -310,6 +312,16 @@ final class ArticleRepository
              WHERE site_id = :site AND channel_type = :channel AND article_id = :id',
             ['site' => $this->siteId, 'channel' => $channelType, 'id' => $articleId]
         );
+    }
+
+    /** 这篇稿件是否挂在某个栏目下（模块页的排序／置顶要先确认归属） */
+    public function isLinkedTo(int $articleId, string $channelType): bool
+    {
+        return $this->db->selectOne(
+            'SELECT 1 AS ok FROM cms_article_channel
+             WHERE site_id = :site AND channel_type = :channel AND article_id = :id',
+            ['site' => $this->siteId, 'channel' => $channelType, 'id' => $articleId]
+        ) !== null;
     }
 
     /**

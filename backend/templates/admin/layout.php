@@ -29,35 +29,49 @@ $canAny = static function (array $perms) use ($can): bool {
     return false;
 };
 
+// 侧栏：概览 / 首页管理（树形，默认展开）/ 稿件管理 / 用户管理 / 操作日志
 $navItems = ['dashboard' => ['label' => '概览', 'url' => '/admin']];
-if ($can('home.manage')) {
-    $navItems['nav'] = ['label' => '导航栏目', 'url' => '/admin/nav'];
-    $navItems['slides'] = ['label' => '头条轮换', 'url' => '/admin/slides'];
-    $navItems['sections'] = ['label' => '其他栏目', 'url' => '/admin/sections'];
-    $navItems['banners'] = ['label' => '站内横幅', 'url' => '/admin/banners'];
+
+$homeChildren = [
+    'nav'     => ['label' => '导航栏目', 'url' => '/admin/nav'],
+    'slides'  => ['label' => '头条轮换', 'url' => '/admin/slides'],
+    'sections' => ['label' => '其他栏目', 'url' => '/admin/sections'],
+    'banners' => ['label' => '站内横幅', 'url' => '/admin/banners'],
+];
+if (!$can('home.manage')) {
+    $homeChildren = [];
 }
+// 只有栏目权限、没有首页维护权限时，首页管理里保留「全部栏目」这一个入口
+if ($can('channel.manage') && !$can('home.manage')) {
+    $homeChildren['channels'] = ['label' => '全部栏目', 'url' => '/admin/channels'];
+}
+if ($homeChildren !== []) {
+    $navItems['home'] = ['label' => '首页管理', 'children' => $homeChildren];
+}
+
 if ($canAny(['article.edit', 'article.submit', 'article.review', 'article.publish', 'article.delete', 'article.restore'])) {
     $navItems['articles'] = ['label' => '稿件管理', 'url' => '/admin/articles'];
 }
 if ($can('user.manage')) {
-    $navItems['users'] = ['label' => '用户与角色', 'url' => '/admin/users'];
+    $navItems['users'] = ['label' => '用户管理', 'url' => '/admin/users'];
 }
-// 没有首页维护权限、但能管栏目时，仍保留「栏目管理」入口（四类页面在他那里看不到）
-if ($can('channel.manage') && !$can('home.manage')) {
-    $navItems['channels'] = ['label' => '栏目管理', 'url' => '/admin/channels'];
+if ($can('log.view')) {
+    $navItems['logs'] = ['label' => '操作日志', 'url' => '/admin/logs'];
 }
 $roleText = ($userRoleNames ?? []) === [] ? '未分配角色' : implode('、', $userRoleNames);
 
 // 面包屑：章节名 → 地址，页面名取 <title> 里「·」之前的部分
+$homeCrumb = ['label' => '首页管理', 'url' => '/admin/nav'];
 $sections = [
     'dashboard' => ['label' => '概览', 'url' => '/admin'],
     'articles'  => ['label' => '稿件管理', 'url' => '/admin/articles'],
-    'channels'  => ['label' => '栏目管理', 'url' => '/admin/channels'],
-    'nav'       => ['label' => '导航栏目', 'url' => '/admin/nav'],
-    'slides'    => ['label' => '头条轮换', 'url' => '/admin/slides'],
-    'sections'  => ['label' => '其他栏目', 'url' => '/admin/sections'],
-    'banners'   => ['label' => '站内横幅', 'url' => '/admin/banners'],
-    'users'     => ['label' => '用户与角色', 'url' => '/admin/users'],
+    'channels'  => ['label' => '全部栏目', 'url' => '/admin/channels', 'parent' => $homeCrumb],
+    'nav'       => ['label' => '导航栏目', 'url' => '/admin/nav', 'parent' => $homeCrumb],
+    'slides'    => ['label' => '头条轮换', 'url' => '/admin/slides', 'parent' => $homeCrumb],
+    'sections'  => ['label' => '其他栏目', 'url' => '/admin/sections', 'parent' => $homeCrumb],
+    'banners'   => ['label' => '站内横幅', 'url' => '/admin/banners', 'parent' => $homeCrumb],
+    'users'     => ['label' => '用户管理', 'url' => '/admin/users'],
+    'logs'      => ['label' => '操作日志', 'url' => '/admin/logs'],
 ];
 $section = $sections[$current] ?? null;
 $pageLabel = trim(explode('·', $title)[0]);
@@ -95,7 +109,22 @@ if ($section !== null && ($pageLabel === $section['label'] || $pageLabel === '' 
   <div class="shell">
     <nav class="sidenav" aria-label="后台主菜单">
       <?php foreach ($navItems as $key => $item): ?>
-        <a href="<?= hechi_e($item['url']) ?>"<?= $current === $key ? ' class="active" aria-current="page"' : '' ?>><?= hechi_e($item['label']) ?></a>
+        <?php if (isset($item['children'])): ?>
+          <?php
+          // 树形分组：默认展开（details open），子项里有一个是当前页就高亮组标题
+          $groupActive = isset($item['children'][$current]);
+          ?>
+          <details class="sidenav-group<?= $groupActive ? ' is-active' : '' ?>" open>
+            <summary><?= hechi_e($item['label']) ?></summary>
+            <div class="sidenav-children">
+              <?php foreach ($item['children'] as $childKey => $child): ?>
+                <a href="<?= hechi_e($child['url']) ?>"<?= $current === $childKey ? ' class="active" aria-current="page"' : '' ?>><?= hechi_e($child['label']) ?></a>
+              <?php endforeach; ?>
+            </div>
+          </details>
+        <?php else: ?>
+          <a href="<?= hechi_e($item['url']) ?>"<?= $current === $key ? ' class="active" aria-current="page"' : '' ?>><?= hechi_e($item['label']) ?></a>
+        <?php endif; ?>
       <?php endforeach; ?>
       <span class="sidenav-sep" aria-hidden="true"></span>
       <a class="sidenav-secondary" href="/" target="_blank" rel="noopener">查看站点前台</a>
@@ -112,6 +141,10 @@ if ($section !== null && ($pageLabel === $section['label'] || $pageLabel === '' 
           <?php if ($pageLabel === ''): ?>
             <span class="crumb-current"><?= hechi_e($section['label']) ?></span>
           <?php else: ?>
+            <?php if (isset($section['parent'])): ?>
+              <a href="<?= hechi_e($section['parent']['url']) ?>"><?= hechi_e($section['parent']['label']) ?></a>
+              <span class="crumb-sep" aria-hidden="true">/</span>
+            <?php endif; ?>
             <a href="<?= hechi_e($section['url']) ?>"><?= hechi_e($section['label']) ?></a>
             <span class="crumb-sep" aria-hidden="true">/</span>
             <span class="crumb-current"><?= hechi_e($pageLabel) ?></span>

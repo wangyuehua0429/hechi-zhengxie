@@ -893,6 +893,24 @@ async function main() {
 
     const navPage = await client.get("/admin/nav");
     const navBefore = navRows(navPage.text);
+    check("侧栏一级项是「概览／首页管理／稿件管理／用户管理／操作日志」",
+      /<summary>首页管理<\/summary>/.test(navPage.text) &&
+      navPage.text.includes(">稿件管理<") &&
+      navPage.text.includes(">用户管理<") &&
+      navPage.text.includes(">操作日志<") &&
+      !navPage.text.includes(">用户与角色<"));
+    check("「首页管理」是默认展开的树形分组，四个子项都在里面",
+      /<details class="sidenav-group[^"]*" open>/.test(navPage.text) &&
+      navPage.text.includes('href="/admin/nav"') &&
+      navPage.text.includes('href="/admin/slides"') &&
+      navPage.text.includes('href="/admin/sections"') &&
+      navPage.text.includes('href="/admin/banners"'));
+    check("当前页在树里高亮，面包屑带上「首页管理」这一层",
+      /href="\/admin\/nav" class="active" aria-current="page"/.test(navPage.text) &&
+      /概览[\s\S]{0,200}?首页管理[\s\S]{0,200}?导航栏目/.test(navPage.text));
+    const logsActive = (await client.get("/admin/logs")).text;
+    check("操作日志页在侧栏高亮自己",
+      /href="\/admin\/logs" class="active" aria-current="page"/.test(logsActive));
     check("导航栏目页列出 18 个首页导航项", navPage.status === 200 && navBefore.length === 18,
       "实际 " + navBefore.length + " 项");
     check("导航栏目页给出每个入口指向的栏目与稿件数",
@@ -1028,6 +1046,60 @@ async function main() {
     });
     check("首页模块改动可以还原",
       /公告通知[\s\S]{0,800}?取 4 条/.test((await client.get("/admin/sections")).text));
+
+    // ---- 其他栏目页把稿件按头条轮换那样的表格列出来，并可直接排序／置顶
+    const sectionsWithRows = await client.get("/admin/sections");
+    check("其他栏目页把模块稿件列成表格（与头条轮换同样的形式）",
+      /class="[^"]*section-table[^"]*"/.test(sectionsWithRows.text) &&
+      /\/admin\/article\/\d+\/order/.test(sectionsWithRows.text) &&
+      /\/admin\/article\/\d+\/top/.test(sectionsWithRows.text) &&
+      sectionsWithRows.text.includes("已发布"));
+    check("模块表格标出置顶状态与未入库的快照条目",
+      sectionsWithRows.text.includes("来自改版前的快照") || sectionsWithRows.text.includes("已置顶"));
+
+    const noticeIds = (await client.get("/api/v1/channels/302?listSize=4", { json: true })).body?.channel?.list
+      ?.map((i) => String(i.id)) || [];
+    check("取到公告通知模块的前几条稿件", noticeIds.length >= 3, noticeIds.join(","));
+    if (noticeIds.length >= 3) {
+      const movedInModule = await client.post("/admin/article/" + noticeIds[1] + "/order", {
+        _token: csrfToken(sectionsWithRows.text),
+        channel: "302",
+        back: "/admin/sections",
+        dir: "up"
+      });
+      const noticeAfter = (await client.get("/api/v1/channels/302?listSize=4", { json: true })).body?.channel?.list
+        ?.map((i) => String(i.id)) || [];
+      check("模块页的上移按钮生效并跳回其他栏目页",
+        movedInModule.status === 302 &&
+        (movedInModule.headers.get("location") || "") === "/admin/sections" &&
+        noticeAfter[0] === noticeIds[1],
+        noticeIds.slice(0, 3).join(",") + " → " + noticeAfter.slice(0, 3).join(","));
+
+      const topInModule = await client.post("/admin/article/" + noticeIds[1] + "/top", {
+        _token: csrfToken((await client.get("/admin/sections")).text),
+        channel: "302",
+        back: "/admin/sections",
+        value: "1"
+      });
+      const noticeTop = (await client.get("/api/v1/channels/302?listSize=3", { json: true })).body?.channel?.list
+        ?.map((i) => String(i.id)) || [];
+      check("模块页的置顶按钮生效（栏目列表与首页模块同时排前）",
+        topInModule.status === 302 && noticeTop[0] === noticeIds[1],
+        "首条 " + (noticeTop[0] || "无"));
+      const homeNotice = (await client.get("/api/v1/home", { json: true })).body?.home?.notice || [];
+      check("其他栏目页置顶后，首页对应模块首条同步", String(homeNotice[0]?.id || "") === noticeIds[1]);
+
+      await client.post("/admin/article/" + noticeIds[1] + "/top", {
+        _token: csrfToken((await client.get("/admin/sections")).text),
+        channel: "302",
+        back: "/admin/sections",
+        value: "0"
+      });
+      const noticeRestored = (await client.get("/api/v1/channels/302?listSize=4", { json: true })).body?.channel?.list
+        ?.map((i) => String(i.id)) || [];
+      check("取消置顶后回到原顺序（按发布时间）", noticeRestored.join(",") === noticeIds.join(","),
+        noticeRestored.join(","));
+    }
 
     const bannersPage = await client.get("/admin/banners");
     check("站内横幅页列出 7 个固定槽位",

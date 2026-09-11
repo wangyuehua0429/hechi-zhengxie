@@ -518,6 +518,9 @@ final class ArticleController extends AdminController
         if ($denied = $this->guard($request)) {
             return $denied;
         }
+        if ($denied = $this->requirePermission(Permissions::ARTICLE_EDIT)) {
+            return $denied;
+        }
 
         $id = (int) $args['id'];
         $article = $this->articles->adminFind((string) $id);
@@ -526,22 +529,67 @@ final class ArticleController extends AdminController
             return new RedirectResponse('/admin/articles');
         }
 
-        $channel = (string) $article['channel_type'];
+        $channel = $this->actionChannel($request, $id, (string) $article['channel_type']);
+        $back = $this->backUrl($request, '/admin/articles?channel=' . rawurlencode($channel));
         if (!$this->auth->canChannel($channel)) {
             Flash::set('error', '当前账号不在该稿件所属栏目的数据范围内。');
-            return new RedirectResponse('/admin/articles');
+            return new RedirectResponse($back);
         }
 
         $direction = $request->post('dir') === 'up' ? 'up' : 'down';
         $result = $this->articles->moveInChannel($id, $channel, $direction);
         if (!$result['ok']) {
             Flash::set('error', $result['message']);
-            return new RedirectResponse('/admin/articles?channel=' . rawurlencode($channel));
+            return new RedirectResponse($back);
         }
 
         $this->log('article.order', 'article', (string) $id, ['channel' => $channel, 'direction' => $direction]);
         Flash::set('ok', $result['message'] . '稿件：' . (string) $article['title']);
-        return new RedirectResponse('/admin/articles?channel=' . rawurlencode($channel));
+        return new RedirectResponse($back);
+    }
+
+    /**
+     * 按栏目置顶／取消置顶：首页模块页与稿件管理页都能直接点。
+     *
+     * @param array<string, string> $args
+     */
+    public function top(Request $request, array $args): HtmlResponse|RedirectResponse
+    {
+        if ($redirect = $this->requireLogin()) {
+            return $redirect;
+        }
+        if ($denied = $this->guard($request)) {
+            return $denied;
+        }
+        if ($denied = $this->requirePermission(Permissions::ARTICLE_EDIT)) {
+            return $denied;
+        }
+
+        $id = (int) $args['id'];
+        $article = $this->articles->adminFind((string) $id);
+        if ($article === null) {
+            Flash::set('error', '稿件不存在。');
+            return new RedirectResponse('/admin/articles');
+        }
+
+        $channel = $this->actionChannel($request, $id, (string) $article['channel_type']);
+        $back = $this->backUrl($request, '/admin/article/' . $id);
+        if (!$this->auth->canChannel($channel)) {
+            Flash::set('error', '当前账号不在该稿件所属栏目的数据范围内。');
+            return new RedirectResponse($back);
+        }
+        if ((string) $article['status'] !== ArticleWorkflow::PUBLISHED) {
+            Flash::set('error', '只有「已发布」的稿件能置顶，当前是：'
+                . ArticleWorkflow::label((string) $article['status']) . '。');
+            return new RedirectResponse($back);
+        }
+
+        $value = $request->post('value') === '1' ? 1 : 0;
+        $this->articles->setChannelTop($id, $channel, $value);
+        $this->log('article.top', 'article', (string) $id, ['channel' => $channel, 'top' => $value]);
+        Flash::set('ok', ($value === 1 ? '已在栏目「' . $this->channelLabel($channel) . '」置顶：' : '已取消置顶：')
+            . (string) $article['title']);
+        return new RedirectResponse($back);
     }
 
     /**
@@ -826,6 +874,8 @@ final class ArticleController extends AdminController
 
     /**
      * 列表页批量操作条里能出现的动作：白名单 ∩ 权限位。
+     *
+     * 不判状态——同一批稿件状态可能不同，交给 applyFlow 逐篇判断并跳过。
      * 不判状态——同一批稿件状态可能不同，交给 applyFlow 逐篇判断并跳过。
      *
      * @return array<string, array{label:string, danger:bool, needNote:bool, noteLabel:string}>
@@ -853,6 +903,32 @@ final class ArticleController extends AdminController
             ];
         }
         return $out;
+    }
+
+    /**
+     * 排序／置顶作用在哪个栏目：优先用表单传来的栏目号（首页模块页会带），
+     * 但必须确实是这篇稿件挂着的栏目，否则回落到稿件的主栏目。
+     */
+    private function actionChannel(Request $request, int $articleId, string $primaryChannel): string
+    {
+        $requested = trim($request->post('channel'));
+        if ($requested !== '' && $this->articles->isLinkedTo($articleId, $requested)) {
+            return $requested;
+        }
+        return $primaryChannel;
+    }
+
+    /** 操作完成后回到哪：只接受站内后台地址，避免开放跳转 */
+    private function backUrl(Request $request, string $default): string
+    {
+        $back = (string) $request->post('back');
+        return str_starts_with($back, '/admin/') ? $back : $default;
+    }
+
+    private function channelLabel(string $type): string
+    {
+        $channel = $this->channels->adminFind($type);
+        return $channel === null ? $type : (string) $channel['inner_name'];
     }
 
     private function composeDatetime(string $date, string $time): ?string
