@@ -1,10 +1,13 @@
 /* 后台样式：政务站点配色（红 #b01e23 + 灰白），不引第三方 UI 库，保持零依赖 */
 :root {
+  color-scheme: light;
   --brand: #b01e23;
   --brand-dark: #8d171b;
   --ink: #222;
-  --muted: #777;
+  /* 原 #777 在白底上只有 4.48:1，差 0.02 不到 AA 的 4.5:1；换 #5f6771 后 5.73:1 */
+  --muted: #5f6771;
   --line: #e3e6ea;
+  --field-line: #8a9199;   /* 表单控件描边：白底 3.19:1，满足 WCAG 1.4.11 的 3:1 */
   --bg: #f4f5f7;
   --ok: #1f7a3d;
   --err: #c0392b;
@@ -21,6 +24,24 @@ body {
 
 a { color: var(--brand); text-decoration: none; }
 a:hover { text-decoration: underline; }
+
+/* 键盘焦点必须看得见：保留系统 outline 的形状，换成品牌色加粗 */
+:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 1px;
+}
+.btn, .btn-primary, .link-btn, input, select, textarea {
+  transition: border-color .15s ease, background-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 
 /* 顶栏 */
 .topbar {
@@ -143,7 +164,7 @@ a.stat:hover { text-decoration: none; border-color: #c8ced6; }
   color: #55606b;
 }
 .tag-published { background: #eef8f1; color: #1d6b38; }
-.tag-draft { background: #fff6e6; color: #9a6a12; }
+.tag-draft { background: #fff6e6; color: #8a5d0f; }
 .tag-offline { background: #f2f3f5; color: #6b7280; }
 .tag-pending { background: #eef3fb; color: #2a5b9e; }
 .tag-rejected { background: #fdeeec; color: #a5301f; }
@@ -243,7 +264,7 @@ a.stat:hover { text-decoration: none; border-color: #c8ced6; }
 .filters input, .filters select { min-width: 150px; }
 input[type="text"], input[type="password"], input[type="date"], input[type="time"], input[type="number"], select, textarea {
   padding: 7px 9px;
-  border: 1px solid #cfd4da;
+  border: 1px solid var(--field-line);
   border-radius: 4px;
   font: inherit;
   background: #fff;
@@ -260,16 +281,19 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
 .actions .muted { margin-left: 4px; }
 
 .btn, .btn-primary {
-  display: inline-block;
-  padding: 8px 18px;
+  min-height: 44px;          /* 触控目标下限，配合内边距保证手机上点得中 */
+  padding: 9px 18px;
   border-radius: 4px;
-  border: 1px solid #cfd4da;
+  border: 1px solid var(--field-line);
   background: #fff;
   color: var(--ink);
   cursor: pointer;
   font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
-.btn:hover { text-decoration: none; border-color: #b7bec6; }
+.btn:hover { text-decoration: none; border-color: var(--ink); background: #fafbfc; }
 .btn-primary {
   background: var(--brand);
   border-color: var(--brand);
@@ -335,30 +359,110 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
 .check-line { display: flex; align-items: center; gap: 8px; margin: 12px 0; font-size: 14px; }
 .hint-line { flex: 1 1 100%; color: var(--muted); font-size: 13px; }
 
-/* 登录页 */
+/* 登录页：单列单任务，品牌条 + 错误摘要 + 44px 触控 */
 .login-body {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  background: linear-gradient(180deg, #b01e23 0, #8d171b 220px, #f4f5f7 220px);
+  padding: 32px 16px;
+  background:
+    radial-gradient(1100px 420px at 50% -160px, rgba(176, 30, 35, .18), transparent 70%),
+    linear-gradient(180deg, #b01e23 0, #8d171b 220px, #f4f5f7 220px);
 }
+.login-shell { width: 100%; max-width: 420px; }
 .login-card {
-  width: 360px;
-  background: #fff;
-  border-radius: 8px;
-  padding: 28px 30px 24px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, .12);
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
+  background: #fff;
+  border-radius: 10px;
+  border-top: 4px solid var(--brand);
+  padding: 28px 30px 24px;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, .18);
 }
-.login-card h1 { margin: 0; font-size: 20px; text-align: center; }
-.login-sub { margin: -8px 0 4px; text-align: center; color: var(--muted); font-size: 13px; }
-.login-card label { display: flex; flex-direction: column; gap: 5px; font-size: 14px; color: #444; }
-.login-card input { padding: 9px 10px; }
-.login-card .btn-primary { margin-top: 6px; padding: 10px; }
-.login-hint { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.8; }
+.login-brand { display: flex; align-items: center; gap: 12px; }
+.login-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  background: var(--brand);
+  color: #fff;
+  border-radius: 6px;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+.login-titles { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.login-card h1 { margin: 0; font-size: 19px; line-height: 1.35; }
+.login-sub { color: var(--muted); font-size: 13px; }
+.login-field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: #333; }
+.login-field input { min-height: 44px; padding: 10px 12px; font-size: 15px; }
+
+/* 失败时的错误摘要：role="alert" + 可聚焦，键盘与读屏都能第一时间定位 */
+.login-error {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-left: 4px solid var(--err);
+  border-radius: 4px;
+  background: #fdeeec;
+  color: #8f2a1c;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.login-error strong { color: #7a2318; }
+/* 错误摘要是程序化聚焦的非交互容器，给它一个与自身红色调一致的浅焦点环，
+   而不是通用那圈高对比品牌红（叠在红底提示上会糊成一片）。 */
+.login-error:focus,
+.login-error:focus-visible {
+  outline: 2px solid rgba(192, 57, 43, .55);
+  outline-offset: 1px;
+}
+
+.pw-wrap { position: relative; display: block; }
+.pw-wrap input { width: 100%; padding-right: 48px; }
+.pw-toggle {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.pw-toggle:hover { background: #f4f5f7; color: var(--ink); }
+/* SVG 上的 hidden 属性在浏览器里不生效（UA 样式表的 [hidden] 不管 SVG），
+   所以图标显隐用类控制，别依赖 hidden。 */
+.pw-icon { display: block; }
+.pw-icon--off { display: none; }
+.pw-toggle.is-revealed .pw-icon--on { display: none; }
+.pw-toggle.is-revealed .pw-icon--off { display: block; }
+
+.login-submit { min-height: 48px; font-size: 16px; font-weight: 700; letter-spacing: 2px; }
+.login-submit[disabled] { opacity: .8; cursor: default; }
+.login-help { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
+.login-hint {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fafbfc;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.login-hint code { word-break: break-all; }
 
 @media (max-width: 720px) {
   .shell { flex-direction: column; }

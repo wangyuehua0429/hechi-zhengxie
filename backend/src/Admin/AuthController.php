@@ -28,7 +28,7 @@ final class AuthController extends AdminController
         if ($this->auth->check()) {
             return new RedirectResponse('/admin');
         }
-        return $this->view->page('admin/login', [
+        return $this->view->bare('admin/login', [
             'current'    => '',
             'error'      => '',
             'hasAccount' => $this->hasAccount(),
@@ -66,7 +66,7 @@ final class AuthController extends AdminController
 
     private function loginError(string $message): HtmlResponse
     {
-        return $this->view->page('admin/login', [
+        return $this->view->bare('admin/login', [
             'current'    => '',
             'error'      => $message,
             'hasAccount' => $this->hasAccount(),
