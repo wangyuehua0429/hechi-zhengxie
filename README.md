@@ -10,7 +10,7 @@
 - **站头与链接映射**：内页站头收窄为全幅约三分之一，首页进出内页带收缩／展开动画；`js/site-links.js` 把旧站栏目与稿件地址改写为新版内页，首页与内页共用同一份映射。
 - **数据来源**：当前用 `frontend/home/data/` 下的静态快照（`home.json`／`channel.json`／`article.json`／`channel-index.json`）复用现网内容；后端就绪后以 REST API 平替该数据源，页面结构与渲染逻辑不变（详见 [frontend/home/README.md](frontend/home/README.md)）。
 - **后端与编校微服务**：属目标架构，仍为零行代码；仓库已按架构预留 `backend/`、`api/`、`services/proofreader/`、`database/`、`tools/migrate/`、`tests/` 等目录。
-- **已知回归（2026-09-11 16:03 起）**：提交 `85918c2` 为加速首屏把链接映射数据源换成精简索引后，`channel.html` 数据加载失败、`detail.html` 标题多出 `undefined`，实测结论与修复方向见 [frontend/home/README.md](frontend/home/README.md) 的“已知回归”一节。
+- **当日回归已修复**：`85918c2` 的精简索引一度让 `channel.html` 数据加载失败、`detail.html` 标题多出 `undefined`，`b95ccf8` 已修复并实测通过；成因与验证见 [frontend/home/README.md](frontend/home/README.md) 的“回归与修复”一节。
 
 ## 本地预览
 

@@ -78,14 +78,24 @@ frontend/home/
 - 主导航由 JS 异步渲染，加载期间原会撑开下方主体、推迟站头展开动画；现按渲染后的两行宫格高度在 `.nav-wrap` 预留 90px 占位（移动端折叠态归零），`js/header-fold.js` 不再等 `site:rendered` 与 1.5 秒兜底，展开动画立即开始。
 - 随批重压了一批缩略图（如 `images/channel/43878.jpg` 由 2.17 MB 压到 789 KB、`images/channel/61458.jpg` 由 601 KB 压到 52 KB）。当前 `images/channel/` 138 张合计 9.1 MB（单张 5.0 KB—789 KB），`images/remote/` 44 张合计 5.4 MB（单张 2.8 KB—666 KB），`frontend/home/images/` 整体 17 MB。
 
-## 已知回归（2026-09-11 16:03 起）
+## 回归与修复（2026-09-11，`b95ccf8` 已修复）
 
-提交 `85918c2` 把 `js/site-links.js` 的数据源改为精简索引后，`js/shell.js` 向栏目页与详情页转发的 `window.SITE.channelsReady` 也随之变成 `{type, ids}` 结构，与 `js/channel.js`、`js/detail.js` 期望的 `{type, list, name, …}` 不再一致：
+**现象**：提交 `85918c2` 上线后，`channel.html`（含 `?id=904`、`?id=202`、`?id=314`、无参数默认态）只剩“数据加载失败，请通过本地静态服务器访问本页。”，列表与分页均不渲染；`detail.html` 正文、侧栏、附件区正常，但 `document.title` 的栏目名变成 `undefined`（`标题 · undefined · 广西河池政协网`）。
 
-- `channel.html`（含 `?id=904`、`?id=202`、`?id=314`、无参数默认态）：读取 `channel.list` 抛错，页面只剩“数据加载失败，请通过本地静态服务器访问本页。”，列表与分页均不渲染。
-- `detail.html`：正文、侧栏、附件区正常，仅 `document.title` 的栏目名取不到，显示为 `标题 · undefined · 广西河池政协网`。
+**根因**：`85918c2` 把 `js/site-links.js` 的数据源换成了 4.4 KB 精简索引（字段只有 `type` 与 `ids`），而 `js/shell.js` 当时把 `window.SITE.channelsReady` 直接指向 `SITE_LINKS.ready`，于是转发给 `js/channel.js`、`js/detail.js` 的栏目数组也变成了精简结构——`channel.js` 读 `channel.list` 抛错、`detail.js` 读 `ch.name` 取到 `undefined`。链接改写只需要 `type`/`ids`，栏目渲染需要完整结构，两份数据被当成了一份用。
 
-实测证据（2026-09-11，本机 `python3 -m http.server` + Playwright）：当前 `main`（`631d055`，与 `85918c2` 表现相同）下栏目页 `#listHeading` 停留在“栏目”，`#listWrap li` 为 0；同在 `85918c2^` 上跑同一命令，栏目页渲染出 20 行稿件、20 个 `detail.html` 链接，详情页标题为“许显辉赴河池市调研 · 政协动态 · 广西河池政协网”。因此回归由 `85918c2` 引入，而非样例数据缺失。GitHub Pages 线上站点（`https://wangyuehua0429.github.io/hechi-zhengxie/frontend/home/…`）实测表现一致。修复方向：`js/shell.js` 的 `channelsReady` 继续取完整 `data/channel.json`，精简索引只用于链接改写。
+**修复**：`js/shell.js` 的 `channelsReady` 改为独立请求 `data/channel.json`，精简索引只留给 `js/site-links.js` 做链接改写。内页本来就需要这份完整数据（列表、分页、栏目名），请求数不变；首页不加载 `shell.js`，首屏仍只取 4.4 KB 索引，`85918c2` 的性能收益保留。
+
+**验证**（2026-09-11，本机 `python3 -m http.server` + Playwright，脚本 `/tmp/hechi-inner-check.sh`）：
+
+| 检查项 | 修复前 | 修复后 |
+| --- | --- | --- |
+| `channel.html?id=904` | 报“数据加载失败”，列表 0 行 | 正常，首页列 20 行、分页 2 页 |
+| `channel.html?id=202`（政协领导） | 报“数据加载失败”，卡片 0 张 | 正常，10 张领导照片、20 个简介链接 |
+| `channel.html?id=314`（图片新闻） | 报“数据加载失败”，卡片 0 张 | 正常，首页列 20 张图集卡片 |
+| `detail.html?id=62180` | 标题 `…· undefined · 广西河池政协网` | 标题 `…· 政协动态 · 广西河池政协网` |
+
+脚本在修复前运行输出 `FAIL`（三档栏目页 `err=true`、详情页标题含 `undefined`），修复后输出 `PASS`；另在 390px 手机宽度复查栏目页与详情页：无横向溢出、无破图、控制台 0 报错。回归期间 GitHub Pages 线上站点表现与本机一致；本次修复尚未推送（`origin/main` 仍停在 `631d055`），线上仍是回归状态，重推后生效。
 
 ---
 
