@@ -34,6 +34,7 @@ return static function (Router $router, Db $db, Config $config): void {
     $router->get('/api/v1/home', [$home, 'show']);
     $router->get('/api/v1/channels', [$channels, 'index']);
     $router->get('/api/v1/channels/{type}', [$channels, 'show']);
+    $router->get('/api/v1/channel-index', [$channels, 'indexMap']);
     $router->get('/api/v1/articles', [$articles, 'index']);
     $router->get('/api/v1/article/{id}', [$articles, 'show']);
     $router->get('/api/v1/article/{id}/attachments', [$articles, 'attachments']);

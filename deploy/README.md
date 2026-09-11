@@ -20,10 +20,12 @@ docker compose exec php php bin/migrate.php
 docker compose exec php php bin/seed.php --snapshots=/var/www/snapshots
 ```
 
-- 站点：<http://127.0.0.1:8080>（`/api/v1/health` 可自检）
+- 站点：<http://127.0.0.1:8080>（首页即站点页面），后台 <http://127.0.0.1:8080/admin>，接口自检 `/api/v1/health`
 - MySQL：`127.0.0.1:3307`，库 `hechi_zx`，账号见 `docker-compose.yml`（**示例口令，上线前必须换成密钥管理下发的强口令**）
 - Redis：`127.0.0.1:6380`
-- 静态化产物：`backend/storage/publish/`，由 Nginx 直出 `/channel/`、`/article/`
+- 静态化产物：`backend/storage/publish/`，由 Nginx 直出 `/article/` 与 `/sitemap.xml`
+
+> 站点页面、接口、后台同源：`/api` 与 `/admin` 交给同一个 PHP 入口，前端取数不需要跨域。
 
 > 本目录的编排文件尚未在本机验证（开发机未安装 Docker），首次在有 Docker 的机器上跑时，先确认 `deploy/nginx/default.conf` 里的 `fastcgi_pass php:9000` 与实际服务名一致。
 

@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const DATA_URL = "data/home.json";
+  // 取数统一走 js/data-source.js：优先内容接口，接口不可用时回退 data/home.json
   const site = "https://www.gxhczx.gov.cn";
   let state = { data: null, slideIdx: 0, slideTimer: null, slideCount: 0, slides: [], autoOn: true, hovering: false, carouselBound: false };
 
@@ -759,9 +759,7 @@
       ? window.SITE_LINKS.ready.catch(function () { return []; })
       : Promise.resolve([]);
     try {
-      const res = await fetch(DATA_URL);
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const d = await res.json();
+      const d = await window.SITE_DATA.home();
       await linksReady;   // 取完数据再等映射，两者已经并行
       state.data = d;
       renderMarquee(d.meta.marquee);

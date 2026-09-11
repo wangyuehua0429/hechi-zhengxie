@@ -6,8 +6,7 @@
 (function () {
   "use strict";
 
-  const ARTICLE_URL = "data/article.json";
-  const CHANNEL_URL = "data/channel.json";
+  // 取数统一走 js/data-source.js（接口优先、静态快照兜底）
   const HOME_URL = "./index.html";
   const DEFAULT_ID = "62180";
   const BODY_SIZES = [0.92, 1, 1.12, 1.24];
@@ -36,12 +35,7 @@
   // 栏目索引由 shell.js 统一取，避免与导航重复请求
   function loadChannels() {
     if (window.SITE && window.SITE.channelsReady) return window.SITE.channelsReady;
-    return fetch(CHANNEL_URL)
-      .then(function (res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
-      })
-      .then(function (data) { return (data && data.channels) || []; });
+    return window.SITE_DATA.channels();
   }
 
   // 栏目列表里有、但原型未内置正文的稿件：用列表信息拼出详情页，正文留待内容接口接入
@@ -267,11 +261,43 @@
       views: item.views,
       attachments: [],
       images: [],
-      content: '<div class="empty-state">本篇正文未随原型内置，正式迁移后由内容接口提供。<br>' +
-        '<a href="channel.html?id=' + encodeURIComponent(hit.channel.type) + '">返回' +
-        esc(hit.channel.inner || hit.channel.name) + '</a></div>'
+      content: noBodyHtml(hit.channel.type, hit.channel.inner || hit.channel.name)
     };
     state.channel = hit.channel;
+    renderCrumb();
+    renderArticle();
+    renderSide();
+    bindToolbar();
+  }
+
+  // 列表里有这篇、但库里还没有正文（旧库未收正文，或后台新建后还没写内容）
+  function noBodyHtml(backType, backName) {
+    return '<div class="empty-state">该篇暂无正文内容。' +
+      (backType
+        ? '<br><a href="channel.html?id=' + encodeURIComponent(backType) + '">返回' +
+          esc(backName || "栏目") + '</a>'
+        : '') +
+      '</div>';
+  }
+
+  // 接口返回的稿件没有正文时，标题与元信息照常显示，正文位置给说明与返回入口
+  function renderNoBody(article) {
+    state.article = {
+      id: article.id,
+      channelType: article.channelType,
+      channelName: article.channelName,
+      title: article.title,
+      subtitle: article.subtitle || "",
+      date: article.date,
+      source: article.source || "",
+      author: article.author || "",
+      editor: article.editor || "",
+      views: article.views,
+      attachments: article.attachments || [],
+      images: article.images || [],
+      content: noBodyHtml(article.channelType,
+        state.channel ? (state.channel.inner || state.channel.name) : article.channelName)
+    };
     renderCrumb();
     renderArticle();
     renderSide();
@@ -288,14 +314,13 @@
   }
 
   function init() {
+    const id = param("id") || DEFAULT_ID;
     Promise.all([
-      fetch(ARTICLE_URL).then(function (r) { return r.json(); }),
+      window.SITE_DATA.article(id),
       loadChannels()
     ]).then(function (res) {
-      const articles = res[0].articles || [];
+      const article = res[0];
       state.channels = res[1] || [];
-      const id = param("id") || DEFAULT_ID;
-      const article = articles.filter(function (a) { return String(a.id) === String(id); })[0];
       if (!article) {
         const hit = listedItem(id);
         if (hit) renderListedOnly(hit);
@@ -304,6 +329,11 @@
       }
       state.article = article;
       state.channel = channelOf(article.channelType);
+      // hasBody=false：稿件在库里（列表可见），但正文还没录，正文位置出说明
+      if (article.hasBody === false || !String(article.content || "").trim()) {
+        renderNoBody(article);
+        return;
+      }
       renderCrumb();
       renderArticle();
       renderSide();

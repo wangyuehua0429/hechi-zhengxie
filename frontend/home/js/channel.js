@@ -15,7 +15,7 @@
 (function () {
   "use strict";
 
-  const DATA_URL = "data/channel.json";
+  // 取数统一走 js/data-source.js（接口优先、静态快照兜底）
   const HOME_URL = "./index.html";
   const DEFAULT_ID = "904";
   const PAGE_SIZE = 20;
@@ -33,12 +33,7 @@
   // 栏目索引由 shell.js 统一取，避免与导航重复请求
   function loadChannels() {
     if (window.SITE && window.SITE.channelsReady) return window.SITE.channelsReady;
-    return fetch(DATA_URL)
-      .then(function (res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
-      })
-      .then(function (data) { return (data && data.channels) || []; });
+    return window.SITE_DATA.channels();
   }
 
   function renderCrumb(channel) {

@@ -269,4 +269,48 @@ final class ChannelRepository
             $params
         );
     }
+
+    /**
+     * 链接映射用的精简索引：[{type, ids}]，等价于前端的 data/channel-index.json。
+     * 视频、专题这类取自首页模块的栏目没有稿件 id，返回空数组。
+     *
+     * @return list<array{type: string, ids: list<string>}>
+     */
+    public function indexMap(int $listSize = 50): array
+    {
+        $channels = $this->db->select(
+            'SELECT type_code, home_sourced FROM sys_channel
+             WHERE site_id = :site AND status = :status
+             ORDER BY sort_no ASC, channel_id ASC',
+            ['site' => $this->siteId, 'status' => 'published']
+        );
+
+        $rows = $this->db->select(
+            'SELECT ac.channel_type, ac.article_id
+             FROM cms_article_channel ac
+             JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
+             WHERE ac.site_id = :site AND a.status = :status AND a.public_scope = :scope
+             ORDER BY ac.channel_type ASC, ac.sort_no ASC, a.published_at DESC, a.article_id DESC',
+            ['site' => $this->siteId, 'status' => 'published', 'scope' => 'public']
+        );
+
+        $ids = [];
+        foreach ($rows as $row) {
+            $type = (string) $row['channel_type'];
+            if (count($ids[$type] ?? []) >= $listSize) {
+                continue;
+            }
+            $ids[$type][] = (string) $row['article_id'];
+        }
+
+        $index = [];
+        foreach ($channels as $channel) {
+            $type = (string) $channel['type_code'];
+            $index[] = [
+                'type' => $type,
+                'ids'  => (int) $channel['home_sourced'] === 1 ? [] : ($ids[$type] ?? []),
+            ];
+        }
+        return $index;
+    }
 }

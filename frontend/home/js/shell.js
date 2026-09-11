@@ -9,16 +9,7 @@
 (function () {
   "use strict";
 
-  const DATA_URL = "data/home.json";
-  const CHANNEL_URL = "data/channel.json";
   const site = "https://www.gxhczx.gov.cn";
-
-  function fetchJSON(url) {
-    return fetch(url).then(function (res) {
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return res.json();
-    });
-  }
 
   const el = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s)
@@ -345,18 +336,17 @@
 
   window.SITE.renderSidePanels = renderSidePanels;
 
-  // 栏目数据取完整的 data/channel.json：channel.js 要 list 渲染列表、detail.js 要 name 拼标题，
-  // 而 js/site-links.js 那份 4.4 KB 精简索引只有 type 与 ids，是给链接改写用的，不能当栏目数据。
+  // 栏目数据要完整的（channel.js 用 list 渲染列表、detail.js 用 name 拼标题），
+  // 而 js/site-links.js 那份精简索引只有 type 与 ids，是给链接改写用的，不能当栏目数据。
   // 全站只此一次请求，channel.js / detail.js 复用 channelsReady。
-  window.SITE.channelsReady = fetchJSON(CHANNEL_URL)
-    .then(function (data) { return (data && data.channels) || []; })
+  window.SITE.channelsReady = window.SITE_DATA.channels()
     .catch(function () { return []; });
 
   function init() {
     renderDate();
     bindInteractions();
     initMasthead();
-    window.SITE.dataReady = Promise.all([fetchJSON(DATA_URL), window.SITE.channelsReady])
+    window.SITE.dataReady = Promise.all([window.SITE_DATA.home(), window.SITE.channelsReady])
       .then(function (res) {
         const data = res[0];
         renderMarquee(data.meta.marquee);

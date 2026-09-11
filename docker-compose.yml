@@ -7,7 +7,10 @@ services:
       - "8080:80"
     volumes:
       - ./deploy/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./backend/public:/var/www/html:ro
+      # 站点页面（首页/栏目页/详情页 + js/css/data/images）作为站点根
+      - ./frontend/home:/var/www/site:ro
+      # 后台样式与上传文件
+      - ./backend/public:/var/www/backend/public:ro
       # 静态化产物由 publish 命令写入，Nginx 直出
       - ./backend/storage/publish:/var/www/publish:ro
     depends_on:
@@ -16,7 +19,7 @@ services:
   php:
     build:
       context: ./deploy/php
-    working_dir: /var/www/html
+    working_dir: /var/www/backend
     environment:
       APP_ENV: production
       APP_DEBUG: "0"
@@ -27,7 +30,7 @@ services:
       DB_USERNAME: hechi_zx
       DB_PASSWORD: hechi_zx_dev
     volumes:
-      - ./backend:/var/www/html
+      - ./backend:/var/www/backend
       - ./frontend/home/data:/var/www/snapshots:ro
     depends_on:
       - db

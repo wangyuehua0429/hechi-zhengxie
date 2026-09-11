@@ -7,10 +7,8 @@
 (function () {
   "use strict";
 
-  // 先取精简索引（4KB：栏目 type + 稿件 id），拿不到再退回完整的 channel.json（190KB）。
-  // 首页导航等链接映射，索引足够，且不会把首屏拖慢。
-  var INDEX_DATA = "data/channel-index.json";
-  var CHANNEL_DATA = "data/channel.json";
+  // 链接映射只要「栏目 type + 稿件 id」，取精简索引即可，不拉完整栏目数据。
+  // 取数统一走 js/data-source.js（接口优先，静态快照兜底）。
   var site = "https://www.gxhczx.gov.cn";
 
   // 全站规则：手动刷新（F5 / ⌘R）后回到页面顶部。
@@ -54,17 +52,9 @@
   }
 
   function load() {
-    return fetch(INDEX_DATA)
-      .then(function (res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
-      })
-      .catch(function () { return fetch(CHANNEL_DATA).then(function (res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
-      }); })
-      .then(function (data) {
-        var channels = (data && data.channels) || [];
+    return window.SITE_DATA.channelIndex()
+      .then(function (channels) {
+        channels = channels || [];
         channels.forEach(function (channel) {
           channelMap[String(channel.type)] = "channel.html?id=" + encodeURIComponent(channel.type);
           // 精简索引是 ids: ["62180", ...]，完整 channel.json 是 list: [{id, ...}, ...]

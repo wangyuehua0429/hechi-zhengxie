@@ -47,4 +47,16 @@ final class ChannelController
 
         return ['channel' => $channel];
     }
+
+    /**
+     * 链接映射用的精简索引（docs/api-contract.md 4.3 说明的 withList=0 场景的等价物）。
+     *
+     * @return array<string, mixed>
+     */
+    public function indexMap(Request $request): array
+    {
+        return [
+            'channels' => $this->channels->indexMap($request->int('listSize', 50, 1, 200)),
+        ];
+    }
 }
