@@ -108,17 +108,18 @@ foreach ($slides as $slide) {
     <?php else: ?>
       <p class="muted">
         <?php if ($searched): ?>
-          检索到 <?= count($found) ?> 条已发布稿件，点「加入轮播」即可引用（标题、摘要、链接自动带过来）。
+          检索到 <?= count($found) ?> 条：点标题预览前台，点「加入轮播」引用（标题、摘要、链接自动带过来）。
         <?php else: ?>
-          下面是最近发布的稿件（最多 10 条），点「加入轮播」即可引用（标题、摘要、链接自动带过来）。
+          下面是最近发布的稿件（最多 10 条），点标题预览前台，点「加入轮播」引用（标题、摘要、链接自动带过来）。
         <?php endif; ?>
       </p>
       <ul class="pick-list">
         <?php foreach ($found as $article): ?>
           <?php $id = (int) $article['article_id']; ?>
           <li>
-            <span class="pick-title"><?= hechi_e((string) $article['title']) ?></span>
-            <span class="muted">#<?= $id ?> · <?= hechi_e((string) ($article['channel_inner'] ?? '')) ?></span>
+            <a class="pick-title" href="/detail.html?id=<?= $id ?>" target="_blank" rel="noopener"
+               title="点击预览前台页面"><?= hechi_e((string) $article['title']) ?><span class="muted">#<?= $id ?> ·
+              <?= hechi_e((string) ($article['channel_inner'] ?? '')) ?></span></a>
             <form method="post" action="/admin/slides/create" class="inline">
               <?= $csrf ?>
               <input type="hidden" name="article_id" value="<?= $id ?>">

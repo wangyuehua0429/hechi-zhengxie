@@ -958,6 +958,9 @@ async function main() {
 
     const pickPage = await client.get("/admin/slides?q=" + encodeURIComponent("政协"));
     check("能检索已发布稿件并加入轮播", pickPage.text.includes("加入轮播"));
+    check("备选稿件的标题带前台预览链接",
+      /<a class="pick-title" href="\/detail\.html\?id=\d+" target="_blank" rel="noopener"/.test(pickPage.text),
+      (pickPage.text.match(/class="pick-title"[^>]*/) || [""])[0]);
     const addedFromArticle = await client.post("/admin/slides/create", {
       _token: csrfToken(pickPage.text),
       article_id: "62246"
