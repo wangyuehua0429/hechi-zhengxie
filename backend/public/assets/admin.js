@@ -309,4 +309,35 @@
       event.preventDefault();
     }
   });
+
+  /* ---------------------------------------------------------- 7. 提交中的反馈 */
+  // 统一给表单一个「处理中…」状态：整页提交要等一次往返，没有反馈时用户会以为没点上、再点一次。
+  // 两个约束：
+  //   1. 不能用 disabled——稿件保存、稿库流转靠 button 的 name/value 传参，禁用按钮会让参数丢失，
+  //      服务端就收不到 status/action 了；这里改用 aria-busy + 类名 + 让按钮不再响应点击；
+  //   2. 必须排在二次确认之后注册：确认框里点「取消」时 event.defaultPrevented 已经为真，不再改文案。
+  const busyText = "处理中…";
+  document.addEventListener("submit", (event) => {
+    if (event.defaultPrevented) return;
+    const form = event.target;
+    if (!form || form.tagName !== "FORM" || form.hasAttribute("data-no-busy")) return;
+
+    const buttons = Array.prototype.slice
+      .call(form.querySelectorAll('button[type="submit"], button:not([type])'))
+      .filter((button) => !button.disabled);
+    if (buttons.length === 0) return;
+
+    const submitter = event.submitter && buttons.indexOf(event.submitter) >= 0
+      ? event.submitter
+      : buttons[0];
+    if (submitter.dataset.busy === "1") return;
+
+    submitter.dataset.busy = "1";
+    submitter.dataset.busyLabel = submitter.textContent;
+    submitter.textContent = busyText;
+    submitter.classList.add("is-busy");
+    submitter.setAttribute("aria-busy", "true");
+    // 按钮本身不 disabled，只挡住后续点击；表单数据照常提交
+    submitter.style.pointerEvents = "none";
+  });
 })();

@@ -172,14 +172,27 @@ foreach ($slides as $slide) {
       </tr>
     </thead>
     <tbody>
+      <?php
+      // 「序」只数已上线的条目，即这条在前台轮播里的位次；已下线的没进轮播，不占号。
+      $publishedIndex = 0;
+      ?>
       <?php foreach ($slides as $index => $slide): ?>
         <?php
         $id = (int) $slide['slide_id'];
         $articleId = (int) $slide['article_id'];
         $status = (string) $slide['status'];
+        if ($status === 'published') {
+            $publishedIndex += 1;
+        }
         ?>
         <tr>
-          <td class="nowrap muted"><?= (int) $index + 1 ?></td>
+          <td class="nowrap muted">
+            <?php if ($status === 'published'): ?>
+              <?= (int) $publishedIndex ?>
+            <?php else: ?>
+              <span title="已下线，前台轮播里没有这一条">—</span>
+            <?php endif; ?>
+          </td>
           <td>
             <?php if ((string) $slide['image_url'] !== ''): ?>
               <img class="thumb-sm" src="<?= hechi_e(hechi_asset($slide['image_url'])) ?>" alt="">

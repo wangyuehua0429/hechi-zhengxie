@@ -22,10 +22,11 @@ $places = ArticleWorkflow::places();
 <h1>概览</h1>
 
 <div class="stats">
-  <div class="stat"><span class="stat-num"><?= (int) $total ?></span><span class="stat-label">稿件总数</span></div>
+  <div class="stat stat--primary"><span class="stat-num"><?= (int) $total ?></span><span class="stat-label">稿件总数</span></div>
   <?php foreach ($places as $place): ?>
-    <a class="stat" href="/admin/articles?status=<?= hechi_e((string) $place['status']) ?>">
-      <span class="stat-num"><?= (int) ($statusCount[(string) $place['status']] ?? 0) ?></span>
+    <?php $placeCount = (int) ($statusCount[(string) $place['status']] ?? 0); ?>
+    <a class="stat<?= $placeCount === 0 ? ' stat--zero' : '' ?>" href="/admin/articles?status=<?= hechi_e((string) $place['status']) ?>">
+      <span class="stat-num"><?= $placeCount ?></span>
       <span class="stat-label"><?= hechi_e((string) $place['label']) ?></span>
     </a>
   <?php endforeach; ?>
@@ -34,11 +35,11 @@ $places = ArticleWorkflow::places();
 
 <section class="card">
   <h2>发布全站</h2>
-  <p class="muted">
+  <p class="muted prose">
     把后台的内容重新生成一遍静态文件——文章详情页、站点地图与一份数据快照，生成后可以直接对外提供，
     不再走实时查询。
   </p>
-  <p class="muted">
+  <p class="muted prose">
     <strong>平时发稿不用点这里。</strong>稿件状态是「已发布」，前台立刻就看到了，走的是实时内容接口；
     这一步只影响上面的静态文件，改过栏目名称或顺序、想刷一遍详情页与站点地图时再点一次。
   </p>

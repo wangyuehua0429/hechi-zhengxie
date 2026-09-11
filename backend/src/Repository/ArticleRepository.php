@@ -152,43 +152,7 @@ final class ArticleRepository
      */
     public function adminPaginate(array $filters, int $page, int $size, ?array $channelScope = null): array
     {
-        $where = ['a.site_id = :site'];
-        $params = ['site' => $this->siteId];
-
-        if (($filters['channel'] ?? '') !== '') {
-            $where[] = 'a.channel_type = :channel';
-            $params['channel'] = (string) $filters['channel'];
-        }
-
-        if ($channelScope !== null) {
-            if ($channelScope === []) {
-                $where[] = '1 = 0';
-            } else {
-                $placeholders = [];
-                foreach (array_values($channelScope) as $index => $type) {
-                    $key = 'sc' . $index;
-                    $placeholders[] = ':' . $key;
-                    $params[$key] = (string) $type;
-                }
-                $where[] = 'a.channel_type IN (' . implode(', ', $placeholders) . ')';
-            }
-        }
-
-        $status = ArticleWorkflow::normalize((string) ($filters['status'] ?? ''));
-        if ($status !== '') {
-            if ($status === ArticleWorkflow::WITHDRAWN) {
-                $where[] = "(a.status = 'withdrawn' OR a.status = 'offline')";
-            } else {
-                $where[] = 'a.status = :status';
-                $params['status'] = $status;
-            }
-        }
-        if (($filters['keyword'] ?? '') !== '') {
-            $where[] = '(a.title LIKE :kw OR a.summary LIKE :kw)';
-            $params['kw'] = '%' . (string) $filters['keyword'] . '%';
-        }
-
-        $whereSql = implode(' AND ', $where);
+        [$whereSql, $params] = $this->adminCondition($filters, $channelScope);
         $total = (int) $this->db->scalar('SELECT COUNT(*) FROM cms_article a WHERE ' . $whereSql, $params);
         $offset = max(0, ($page - 1) * $size);
 
@@ -212,6 +176,94 @@ final class ArticleRepository
         );
 
         return ['items' => $items, 'total' => $total];
+    }
+
+    /**
+     * 后台列表与各种计数的公共筛选条件，保证「列表条数、稿库数字、栏目数字」三处口径一致。
+     *
+     * 栏目有两种筛法：
+     *   * channel：单个栏目号，精确匹配；
+     *   * group：一级栏目号，匹配该组全部子栏目。
+     * 必须分开传：一级栏目号经常同时是组内某个子栏目的号（例如「政协会议」401 组的
+     * 401 就是「全体会议」），只看号段无法判断用户想筛的是整组还是那一个栏目。
+     *
+     * @param array<string, mixed> $filters channel／group／status／keyword
+     * @param list<string>|null $channelScope 数据范围，null 表示不限栏目
+     * @return array{0:string, 1:array<string, mixed>}
+     */
+    private function adminCondition(array $filters, ?array $channelScope, bool $applyChannel = true): array
+    {
+        $where = ['a.site_id = :site'];
+        $params = ['site' => $this->siteId];
+
+        if ($applyChannel) {
+            $group = (string) ($filters['group'] ?? '');
+            $channel = (string) ($filters['channel'] ?? '');
+            if ($group !== '') {
+                $this->appendIn($where, $params, 'a.channel_type', $this->groupMembers($group), 'gp');
+            } elseif ($channel !== '') {
+                $where[] = 'a.channel_type = :channel';
+                $params['channel'] = $channel;
+            }
+        }
+
+        if ($channelScope !== null) {
+            if ($channelScope === []) {
+                $where[] = '1 = 0';
+            } else {
+                $this->appendIn($where, $params, 'a.channel_type', $channelScope, 'sc');
+            }
+        }
+
+        $status = ArticleWorkflow::normalize((string) ($filters['status'] ?? ''));
+        if ($status !== '') {
+            if ($status === ArticleWorkflow::WITHDRAWN) {
+                $where[] = "(a.status = 'withdrawn' OR a.status = 'offline')";
+            } else {
+                $where[] = 'a.status = :status';
+                $params['status'] = $status;
+            }
+        }
+
+        if ((string) ($filters['keyword'] ?? '') !== '') {
+            $where[] = '(a.title LIKE :kw OR a.summary LIKE :kw)';
+            $params['kw'] = '%' . (string) $filters['keyword'] . '%';
+        }
+
+        return [implode(' AND ', $where), $params];
+    }
+
+    /**
+     * @param list<string> $values
+     * @param list<string> $where
+     * @param array<string, mixed> $params
+     */
+    private function appendIn(array &$where, array &$params, string $column, array $values, string $prefix): void
+    {
+        $placeholders = [];
+        foreach (array_values($values) as $index => $value) {
+            $key = $prefix . $index;
+            $placeholders[] = ':' . $key;
+            $params[$key] = (string) $value;
+        }
+        $where[] = $column . ' IN (' . implode(', ', $placeholders) . ')';
+    }
+
+    /**
+     * 一级栏目号对应的组内栏目号；查不到子栏目时退化成它自己。
+     *
+     * @return list<string>
+     */
+    private function groupMembers(string $group): array
+    {
+        $rows = $this->db->select(
+            'SELECT type_code FROM sys_channel
+             WHERE site_id = :site AND parent_type = :group
+             ORDER BY sort_no ASC, channel_id ASC',
+            ['site' => $this->siteId, 'group' => $group]
+        );
+        $types = array_map(static fn (array $row): string => (string) $row['type_code'], $rows);
+        return $types === [] ? [$group] : $types;
     }
 
     /** @return array<string, mixed>|null */
@@ -393,37 +445,20 @@ final class ArticleRepository
     }
 
     /**
-     * 按稿库状态统计：后台首页用全站口径，稿件列表用「当前栏目 + 数据范围」口径。
+     * 按稿库状态统计：后台首页用全站口径（不传 $filters），
+     * 稿件列表用「当前栏目或栏目组 + 数据范围」口径。
      *
+     * @param array<string, mixed> $filters channel／group／status／keyword
      * @param list<string>|null $channelScope null 表示不限栏目
      *
      * @return array<string, int>
      */
-    public function statusCounts(?string $channelType = null, ?array $channelScope = null): array
+    public function statusCounts(array $filters = [], ?array $channelScope = null): array
     {
-        $where = ['site_id = :site'];
-        $params = ['site' => $this->siteId];
-        if ($channelType !== null && $channelType !== '') {
-            $where[] = 'channel_type = :channel';
-            $params['channel'] = $channelType;
-        }
-        if ($channelScope !== null) {
-            if ($channelScope === []) {
-                $where[] = '1 = 0';
-            } else {
-                $placeholders = [];
-                foreach (array_values($channelScope) as $index => $type) {
-                    $key = 'cs' . $index;
-                    $placeholders[] = ':' . $key;
-                    $params[$key] = (string) $type;
-                }
-                $where[] = 'channel_type IN (' . implode(', ', $placeholders) . ')';
-            }
-        }
-
+        [$whereSql, $params] = $this->adminCondition($filters, $channelScope);
         $rows = $this->db->select(
-            "SELECT CASE WHEN status = 'offline' THEN 'withdrawn' ELSE status END AS status, COUNT(*) AS n
-             FROM cms_article WHERE " . implode(' AND ', $where) . ' GROUP BY 1',
+            "SELECT CASE WHEN a.status = 'offline' THEN 'withdrawn' ELSE a.status END AS status, COUNT(*) AS n
+             FROM cms_article a WHERE " . $whereSql . ' GROUP BY 1',
             $params
         );
         $counts = [];
@@ -432,6 +467,30 @@ final class ArticleRepository
         }
         foreach ($rows as $row) {
             $counts[(string) $row['status']] = (int) $row['n'];
+        }
+        return $counts;
+    }
+
+    /**
+     * 按栏目统计稿件数，口径与列表当前筛选（稿库 + 关键词 + 数据范围）一致，
+     * 栏目导航条上的数字与列表条数因此不会打架。组内各栏目的数字由模板相加。
+     *
+     * @param array<string, mixed> $filters
+     * @param list<string>|null $channelScope
+     * @return array<string, int>
+     */
+    public function channelCounts(array $filters, ?array $channelScope = null): array
+    {
+        [$whereSql, $params] = $this->adminCondition($filters, $channelScope, false);
+        $rows = $this->db->select(
+            'SELECT a.channel_type AS channel_type, COUNT(*) AS n
+             FROM cms_article a WHERE ' . $whereSql . '
+             GROUP BY a.channel_type',
+            $params
+        );
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(string) $row['channel_type']] = (int) $row['n'];
         }
         return $counts;
     }

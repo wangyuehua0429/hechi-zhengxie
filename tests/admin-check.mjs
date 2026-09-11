@@ -229,6 +229,22 @@ async function main() {
     const dashboard = await client.get("/admin");
     check("概览页显示稿件总数与登录人", dashboard.status === 200 && dashboard.text.includes("稿件总数") && dashboard.text.includes("检查账号"));
     check("概览页有发布按钮", dashboard.text.includes('action="/admin/publish"'));
+    check("概览页不再重复显示面包屑（只有 H1 的「概览」）",
+      !dashboard.text.includes('class="breadcrumb"'));
+    check("概览统计卡分主次：主指标标红、0 值弱化",
+      dashboard.text.includes("stat stat--primary") && dashboard.text.includes("stat--zero"));
+    check("顶栏姓名与角色名相同时只显示一次",
+      (dashboard.text.match(/检查账号/g) || []).length === 1,
+      "出现 " + (dashboard.text.match(/检查账号/g) || []).length + " 次");
+    check("侧栏一级菜单带内联 SVG 图标（不引图标库）",
+      (dashboard.text.match(/class="ico"/g) || []).length >= 5);
+
+    // ---- 设计令牌：品牌红与站点前台一致
+    const cssText = readFileSync(path.join(REPO, "backend/public/assets/admin.css"), "utf8");
+    check("后台品牌色统一到前台红 #a51d22",
+      /--brand:\s*#a51d22/.test(cssText) && !/--brand:\s*#b01e23/.test(cssText));
+    check("令牌齐全（间距／圆角／字号／投影）",
+      ["--space-4", "--radius-lg", "--text-sm", "--shadow-float"].every((token) => cssText.includes(token + ":")));
 
     // ---- 稿件列表
     const list = await client.get("/admin/articles");
@@ -236,26 +252,82 @@ async function main() {
     const filtered = await client.get("/admin/articles?channel=904&keyword=" + encodeURIComponent("政协"));
     check("稿件列表支持栏目 + 关键词筛选", filtered.status === 200 && filtered.text.includes("共 "));
 
-    // ---- 栏目筛选是导航条（不是下拉），且顺序与前台一致
+    // ---- 栏目筛选是导航条（不是下拉）：默认只列一级项，选中哪一组就展开哪一组
     const chipLabels = (html) => {
       const out = [];
-      const re = /class="channel-chip[^"]*"[\s\S]{0,400}?>([^<]+)<\/a>/g;
+      // chip 里现在带计数 <span class="chip-num">，先把计数去掉再取名字，
+      // 否则 `>([^<]+)</a>` 这种写法只会抓到计数那个文本节点
+      const re = /<a class="channel-chip[^"]*"[^>]*>([\s\S]*?)<\/a>/g;
       let hit;
-      while ((hit = re.exec(html)) !== null) out.push(hit[1].trim());
+      while ((hit = re.exec(html)) !== null) {
+        out.push(hit[1].replace(/<span class="chip-num">[\s\S]*?<\/span>/g, "").replace(/<[^>]+>/g, "").trim());
+      }
       return out;
     };
     const listChips = chipLabels(list.text);
     check("稿件列表里的栏目是导航条而非下拉",
       list.text.includes('class="channel-nav"') && !/<select name="channel"/.test(list.text),
       "chip " + listChips.length + " 个");
-    check("导航条栏目顺序与前台一致（前 5 个）",
-      listChips.slice(1, 6).join(",") === "政协领导,全国政协动态,区（广西）政协动态,市政协动态,政协新闻",
+    check("栏目条默认只列一级项（不在首屏铺开 43 个 chip）",
+      listChips.length === 26 && (list.text.match(/channel-chip--group/g) || []).length === 5,
+      "chip " + listChips.length + " 个");
+    check("默认不展开任何子栏目",
+      !list.text.includes('class="channel-group"'));
+    check("一级项顺序与前台导航一致（前 5 个）",
+      listChips.slice(1, 6).join(",") === "政协领导,政协动态,政协会议,规章制度,政协提案",
       listChips.slice(0, 6).join("、"));
-    check("导航条按一级栏目分组", list.text.includes("channel-group-title"));
     const activeChip = (list.text.match(/class="channel-chip active"[\s\S]{0,400}?>([^<]+)<\/a>/) || [])[1] || "";
     check("选中栏目的 chip 高亮在「全部栏目」上", activeChip === "全部栏目", activeChip);
     const filteredChips = chipLabels((await client.get("/admin/articles?channel=314")).text);
-    check("按栏目筛选后仍在导航条上操作", filteredChips.length > 40);
+    check("按栏目筛选后仍在导航条上操作",
+      filteredChips.length === 26 && filteredChips.includes("图片新闻"),
+      "chip " + filteredChips.length + " 个");
+
+    // ---- 一级栏目点下去筛整组（栏目号 904 同时是组内「市政协动态」的号，必须能区分）
+    const groupPage = await client.get("/admin/articles?group=904");
+    const groupChips = chipLabels(groupPage.text);
+    const totalOf = (html) => {
+      const hit = html.match(/共 <strong>(\d+)<\/strong> 篇稿件/);
+      return hit ? Number(hit[1]) : -1;
+    };
+    const groupTotal = totalOf(groupPage.text);
+    const childTotals = [];
+    for (const type of ["902", "903", "904", "905", "906"]) {
+      childTotals.push(totalOf((await client.get("/admin/articles?channel=" + type)).text));
+    }
+    check("点一级栏目会展开该组的子栏目",
+      groupPage.text.includes('class="channel-group"') &&
+      groupChips.includes("全国政协动态") && groupChips.includes("县区政协工作动态"),
+      groupChips.length + " 个 chip");
+    check("按一级筛选时摘要写明「整个栏目」",
+      groupPage.text.includes("栏目：政协动态（整个栏目）"));
+    check("整组筛选条数 = 组内各子栏目之和",
+      groupTotal > 0 && groupTotal === childTotals.reduce((a, b) => a + b, 0),
+      "整组 " + groupTotal + "，子栏目 " + childTotals.join("+"));
+    check("点子栏目只筛它自己，不连带整组",
+      childTotals[1] > 0 && childTotals[1] < groupTotal,
+      "903=" + childTotals[1] + "，整组=" + groupTotal);
+
+    // ---- 母栏目是开关：展开状态下再点一次收起子栏目
+    check("子栏目用浅红底与母栏目连成一组",
+      /\.channel-chip--child\s*\{[^}]*var\(--brand-soft\)/s.test(cssText));
+    const openParentHref = (groupPage.text.match(/<a class="[^"]*channel-chip--group[^"]*"[^>]*href="([^"]+)"/) || [])[1] || "";
+    check("展开状态下母栏目的链接指回收起状态",
+      openParentHref !== "" && !openParentHref.includes("group=904"),
+      openParentHref);
+    const collapsed = await client.get(openParentHref);
+    const collapsedTotal = totalOf(collapsed.text);
+    check("再点一次母栏目会收起子栏目",
+      !collapsed.text.includes('class="channel-group"') &&
+      collapsedTotal === totalOf(list.text) && collapsedTotal !== groupTotal,
+      "收起后 " + collapsedTotal + " 篇，整组 " + groupTotal + " 篇");
+
+    // ---- 空状态：图标 + 出路，不是一行干文字
+    const emptyPage = await client.get("/admin/articles?keyword=" + encodeURIComponent("zzz不可能匹配的标题zzz"));
+    check("筛选无结果时给出图标与下一步",
+      emptyPage.text.includes('class="empty-icon"') &&
+      emptyPage.text.includes("empty-hint") &&
+      emptyPage.text.includes("清除全部筛选"));
 
     // ---- 稿库导航条（不是状态下拉）
     check("稿件列表用稿库导航条而不是状态下拉",
@@ -637,7 +709,8 @@ async function main() {
       _token: csrfToken(userNewForm.text),
       username: "checkreviewer",
       password: "check-review-2026",
-      real_name: "审核账号",
+      // 故意让姓名与角色名相同，用来验证顶栏不会显示成「审核 审核」
+      real_name: "审核",
       dept: "办公室",
       mobile: "13800000000",
       email: "reviewer@example.com",
@@ -661,6 +734,9 @@ async function main() {
     check("新建的审核账号可登录", reviewerOk.status === 302);
     const reviewerDash = await reviewerClient.get("/admin");
     check("审核账号顶栏显示角色名", reviewerDash.text.includes("审核"));
+    check("姓名与角色名相同时顶栏不重复显示",
+      (reviewerDash.text.match(/审核/g) || []).length === 1,
+      "「审核」出现 " + (reviewerDash.text.match(/审核/g) || []).length + " 次");
     check("审核账号访问用户管理被判 403", (await reviewerClient.get("/admin/users")).status === 403);
     check("无 article.edit 的账号看不到「新建稿件」按钮",
       !(await reviewerClient.get("/admin/articles")).text.includes('href="/admin/article/new'));
@@ -894,7 +970,8 @@ async function main() {
     const navPage = await client.get("/admin/nav");
     const navBefore = navRows(navPage.text);
     check("侧栏一级项是「概览／首页管理／稿件管理／用户管理／操作日志」",
-      /<summary>首页管理<\/summary>/.test(navPage.text) &&
+      // 菜单项现在带内联图标，summary 里图标在前、名字在 span 里
+      /<summary>[\s\S]{0,600}?首页管理<\/span><\/summary>/.test(navPage.text) &&
       navPage.text.includes(">稿件管理<") &&
       navPage.text.includes(">用户管理<") &&
       navPage.text.includes(">操作日志<") &&
@@ -997,6 +1074,17 @@ async function main() {
     });
     check("轮播条目可以下线",
       slideOff.status === 302 && /tag-offline">已下线/.test((await client.get("/admin/slides")).text));
+    // 「序」只数已上线的条目（即前台轮播位次），已下线的显示「—」不占号
+    const slideSeqRows = (html) => [...html.matchAll(
+      /<tr(?: class="[^"]*")?>\s*<td class="nowrap muted">([\s\S]*?)<\/td>[\s\S]*?<span class="tag tag-(?:published|offline)">(已上线|已下线)<\/span>/g
+    )].map((m) => ({ seq: m[1].replace(/<[^>]+>/g, "").trim(), status: m[2] }));
+    const seqRows = slideSeqRows((await client.get("/admin/slides")).text);
+    const seqOnline = seqRows.filter((r) => r.status === "已上线").map((r) => r.seq);
+    const seqOffline = seqRows.filter((r) => r.status === "已下线").map((r) => r.seq);
+    check("已下线的条目不占「序」，编号只数已上线",
+      seqOffline.length > 0 && seqOffline.every((s) => s === "—") &&
+      seqOnline.join(",") === seqOnline.map((_, i) => i + 1).join(","),
+      "上线：" + seqOnline.join("/") + "；下线：" + seqOffline.join("/"));
     const slideOn = await client.post("/admin/slides/" + firstSlideId + "/status", {
       _token: csrfToken((await client.get("/admin/slides")).text)
     });
@@ -1056,6 +1144,14 @@ async function main() {
       "标题/条数/更多链接三个框的值");
     check("其他栏目页列出未进首页导航的栏目",
       sectionsPage.text.includes("未进首页导航的栏目") && sectionsPage.text.includes("/admin/articles?channel="));
+    // 顶部栏目索引：模块绑定的跳到卡片，其余跳到页面下方清单；锚点必须都落在本页元素上
+    const indexAnchors = [...sectionsPage.text.matchAll(/class="channel-chip" href="(#[^"]+)"/g)].map((m) => m[1]);
+    const indexChips = [...sectionsPage.text.matchAll(/class="channel-chip" href="([^"]+)"/g)].map((m) => m[1]);
+    const pageIds = new Set([...sectionsPage.text.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]));
+    const dangling = indexAnchors.filter((h) => !pageIds.has(h.slice(1)));
+    check("其他栏目页顶部列出全部 43 个栏目，页内锚点都能跳到对应位置",
+      indexChips.length === 43 && indexAnchors.length >= 30 && dangling.length === 0,
+      "索引 " + indexChips.length + " 个（页内 " + indexAnchors.length + "，落空 " + dangling.length + "）");
 
     const resized = await client.post("/admin/section/notice", {
       _token: csrfToken(sectionsPage.text),

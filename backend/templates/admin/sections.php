@@ -15,6 +15,33 @@ $kindLabels = [
     'parent'   => '一级栏目（含全部子栏目）',
     'tabs'     => '分标签（每个子栏目一个标签）',
 ];
+
+// 顶部栏目索引：模块绑定的栏目跳到对应卡片，本页清单里的其他栏目跳到下面那一条；
+// 只在首页导航里、本页没有内容的栏目单独列出来，点开去它的稿件列表。
+$moduleAnchor = [];   // 栏目号 => 模块卡片锚点
+foreach ($sections as $section) {
+    foreach ($section['scopeChips'] as $chip) {
+        if (!isset($moduleAnchor[$chip['code']])) {
+            $moduleAnchor[$chip['code']] = 'section-' . (string) $section['row']['section_key'];
+        }
+    }
+}
+$listedAnchor = [];   // 栏目号 => 本页清单里的锚点
+foreach ($otherGroups as $group) {
+    foreach ($group['channels'] as $channel) {
+        $type = (string) $channel['type_code'];
+        if (!isset($moduleAnchor[$type]) && !isset($listedAnchor[$type])) {
+            $listedAnchor[$type] = (string) $channel['inner_name'];
+        }
+    }
+}
+$elsewhereChannels = [];   // 本页没有内容的栏目
+foreach ($channelNames as $type => $name) {
+    $type = (string) $type;
+    if (!isset($moduleAnchor[$type]) && !isset($listedAnchor[$type])) {
+        $elsewhereChannels[$type] = (string) $name;
+    }
+}
 ?>
 <div class="page-head">
   <div class="page-title">
@@ -30,13 +57,61 @@ $kindLabels = [
   </div>
 </div>
 
+<section class="card channel-index" id="channel-index">
+  <div class="card-head">
+    <h2>栏目索引</h2>
+    <span class="muted">
+      共 <?= count($moduleAnchor) + count($listedAnchor) + count($elsewhereChannels) ?> 个栏目，点名称跳到本页对应位置。
+    </span>
+  </div>
+
+  <div class="index-row">
+    <span class="index-label">首页模块绑定的栏目</span>
+    <span class="channel-nav">
+      <?php foreach ($sections as $section): ?>
+        <?php foreach ($section['scopeChips'] as $chip): ?>
+          <a class="channel-chip" href="#<?= hechi_e($moduleAnchor[$chip['code']]) ?>"
+             title="跳到「<?= hechi_e((string) $section['row']['label']) ?>」模块"><?= hechi_e($chip['name']) ?>
+            <span class="muted"><?= hechi_e($chip['code']) ?></span></a>
+        <?php endforeach; ?>
+      <?php endforeach; ?>
+    </span>
+  </div>
+
+  <?php if ($listedAnchor !== []): ?>
+    <div class="index-row">
+      <span class="index-label">未进首页导航的栏目</span>
+      <span class="channel-nav">
+        <?php foreach ($listedAnchor as $type => $name): ?>
+          <a class="channel-chip" href="#ch-<?= hechi_e((string) $type) ?>"><?= hechi_e($name) ?>
+            <span class="muted"><?= hechi_e((string) $type) ?></span></a>
+        <?php endforeach; ?>
+      </span>
+    </div>
+  <?php endif; ?>
+
+  <?php if ($elsewhereChannels !== []): ?>
+    <div class="index-row">
+      <span class="index-label">只在首页导航里</span>
+      <span class="channel-nav">
+        <?php foreach ($elsewhereChannels as $type => $name): ?>
+          <a class="channel-chip" href="/admin/articles?channel=<?= hechi_e((string) $type) ?>"
+             title="这个栏目不在本页显示稿件，点开进它的稿件列表"><?= hechi_e($name) ?>
+            <span class="muted"><?= hechi_e((string) $type) ?></span></a>
+        <?php endforeach; ?>
+      </span>
+      <span class="row-meta">这些栏目的稿件不进首页模块，本页不显示，点名称直接进稿件列表。</span>
+    </div>
+  <?php endif; ?>
+</section>
+
 <?php foreach ($sections as $section): ?>
   <?php
   $row = $section['row'];
   $key = (string) $row['section_key'];
   $status = (string) $row['status'];
   ?>
-  <section class="card">
+  <section class="card" id="section-<?= hechi_e($key) ?>">
     <div class="card-head">
       <h2>
         <?= hechi_e((string) $row['label'] !== '' ? (string) $row['label'] : $key) ?>
@@ -234,7 +309,7 @@ $kindLabels = [
       <ul class="other-channels">
         <?php foreach ($group['channels'] as $channel): ?>
           <?php $type = (string) $channel['type_code']; ?>
-          <li>
+          <li id="ch-<?= hechi_e($type) ?>">
             <a href="/admin/articles?channel=<?= hechi_e($type) ?>"><?= hechi_e((string) $channel['inner_name']) ?></a>
             <span class="muted"><?= hechi_e($type) ?> · <?= (int) $channel['article_count'] ?> 篇</span>
           </li>

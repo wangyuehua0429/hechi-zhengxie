@@ -1,8 +1,11 @@
-/* 后台样式：政务站点配色（红 #b01e23 + 灰白），不引第三方 UI 库，保持零依赖 */
+/* 后台样式：政务站点配色（品牌红 + 灰白），不引第三方 UI 库，保持零依赖 */
 :root {
   color-scheme: light;
-  --brand: #b01e23;
-  --brand-dark: #8d171b;
+  /* 品牌色与站点前台同一组值（frontend/home/css/style.css 的 --primary 系列）：
+     后台原来用 #b01e23，前台用 #a51d22，从后台点开前台会有色差。 */
+  --brand: #a51d22;
+  --brand-dark: #7f1418;
+  --brand-soft: #faeeee;
   --ink: #222;
   /* 原 #777 在白底上只有 4.48:1，差 0.02 不到 AA 的 4.5:1；换 #5f6771 后 5.73:1 */
   --muted: #5f6771;
@@ -11,6 +14,23 @@
   --bg: #f4f5f7;
   --ok: #1f7a3d;
   --err: #c0392b;
+  /* 刻度：新写的样式从这里取值，避免再出现 13px／18px 这类一次性数字 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-lg: 17px;
+  --text-xl: 22px;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, .04), 0 6px 18px rgba(15, 23, 42, .05);
+  --shadow-float: 0 -8px 18px rgba(15, 23, 42, .07);
 }
 
 * { box-sizing: border-box; }
@@ -113,16 +133,23 @@ a:hover { text-decoration: underline; }
   border-right: 1px solid var(--line);
 }
 .sidenav a {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: 10px 20px;
   color: var(--ink);
   border-left: 3px solid transparent;
 }
+.sidenav .ico { flex: 0 0 auto; color: var(--muted); }
+.sidenav a.active .ico, .sidenav-group.is-active > summary .ico { color: var(--brand); }
 .sidenav a:hover { background: #fafafa; text-decoration: none; }
 .sidenav a.active { color: var(--brand); background: #fdf3f3; border-left-color: var(--brand); font-weight: 700; }
 /* 树形分组（首页管理）：默认展开，组内子项缩进一级 */
 .sidenav-group > summary {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: 10px 20px 10px 30px;
   cursor: pointer;
   list-style: none;
@@ -145,7 +172,8 @@ a:hover { text-decoration: underline; }
 .sidenav-group[open] > summary::before { transform: rotate(45deg); }
 .sidenav-group > summary:hover { background: #fafafa; }
 .sidenav-group.is-active > summary { color: var(--brand); font-weight: 700; }
-.sidenav-children a { padding-left: 36px; font-size: 14px; }
+/* 一级项有图标，子项再缩进一点，让文字与一级项的文字对齐 */
+.sidenav-children a { padding-left: 44px; font-size: 14px; }
 .sidenav-children a.active { background: #fdf3f3; border-left-color: var(--brand); color: var(--brand); font-weight: 700; }
 .sidenav-note { display: block; padding: 16px 20px 0; color: var(--muted); font-size: 13px; }
 
@@ -160,6 +188,9 @@ code { background: #f2f3f5; padding: 1px 5px; border-radius: 3px; font-size: 13p
 
 /* 提示条 */
 .flash {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
   margin-bottom: 16px;
   padding: 10px 14px;
   border-radius: 4px;
@@ -168,28 +199,34 @@ code { background: #f2f3f5; padding: 1px 5px; border-radius: 3px; font-size: 13p
   color: #1d6b38;
 }
 .flash-error { border-left-color: var(--err); background: #fdeeec; color: #a5301f; }
+.flash-icon { flex: 0 0 auto; display: inline-flex; margin-top: 1px; }
 .saved-mark { color: var(--ok); }
 
 /* 卡片与统计 */
 .card {
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 16px 18px;
+  border-radius: var(--radius);
+  padding: var(--space-4);
   margin-bottom: 18px;
 }
-.stats { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+.stats { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: 18px; }
 .stat {
   flex: 1 1 120px;
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 14px 16px;
+  border-radius: var(--radius);
+  padding: var(--space-4);
   text-align: center;
 }
-.stat-num { display: block; font-size: 24px; font-weight: 700; color: var(--brand); }
-.stat-label { display: block; color: var(--muted); font-size: 13px; }
-a.stat:hover { text-decoration: none; border-color: #c8ced6; }
+/* 红色留给主指标与待办：八张卡片全部标红时，红色就不再表示「重要」了 */
+.stat-num { display: block; font-size: 24px; font-weight: 700; color: var(--ink); }
+.stat--primary .stat-num { color: var(--brand); }
+.stat--zero .stat-num { color: var(--muted); font-weight: 400; }
+.stat-label { display: block; color: var(--muted); font-size: var(--text-sm); }
+a.stat:hover { text-decoration: none; border-color: var(--field-line); }
+/* 长段落限宽：整行铺满时眼睛要来回扫，读起来累 */
+.prose { max-width: 68ch; }
 
 /* 表格 */
 .table-scroll { overflow-x: auto; }
@@ -202,30 +239,36 @@ a.stat:hover { text-decoration: none; border-color: #c8ced6; }
   overflow: hidden;
 }
 .grid th, .grid td {
-  padding: 9px 12px;
+  padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
 }
 .grid th { background: #fafbfc; font-weight: 700; color: #444; white-space: nowrap; }
+.grid tbody tr:hover td { background: #fafbfc; }
 .grid tr:last-child td { border-bottom: 0; }
 .grid .empty { text-align: center; color: var(--muted); padding: 24px; }
+/* 空结果行不该跟着鼠标变底色 */
+.grid tbody tr:hover td.empty { background: transparent; }
 
 /* 状态标签 */
 .tag {
   display: inline-block;
-  padding: 1px 8px;
-  border-radius: 10px;
-  font-size: 12px;
+  min-width: 3.4em;
+  padding: 2px 8px;
+  border-radius: 999px;   /* 状态用胶囊 */
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  text-align: center;
   background: #eef1f4;
   color: #55606b;
 }
 .tag-published { background: #eef8f1; color: #1d6b38; }
 .tag-draft { background: #fff6e6; color: #8a5d0f; }
-.tag-offline { background: #f2f3f5; color: #6b7280; }
+.tag-offline { background: #f2f3f5; color: #5f6771; }
 .tag-pending { background: #eef3fb; color: #2a5b9e; }
 .tag-rejected { background: #fdeeec; color: #a5301f; }
-.tag-withdrawn { background: #f2f3f5; color: #6b7280; }
+.tag-withdrawn { background: #f2f3f5; color: #5f6771; }
 .tag-deleted { background: #f7eef0; color: #8a4a55; }
 
 /* 稿库导航条（稿件列表顶部）：与栏目导航条同风格，带实时计数 */
@@ -248,17 +291,19 @@ a.stat:hover { text-decoration: none; border-color: #c8ced6; }
 }
 .vault-chip:hover { background: #fdf3f3; color: var(--brand); text-decoration: none; }
 .vault-chip.active { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 700; }
+/* 计数用小方角 + 描边，状态用胶囊：两种「标签」在形状上就能分开 */
 .vault-num {
   display: inline-block;
   min-width: 20px;
   padding: 0 5px;
-  border-radius: 9px;
-  background: #eef1f4;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
   color: #55606b;
-  font-size: 12px;
+  font-size: var(--text-xs);
   text-align: center;
 }
-.vault-chip.active .vault-num { background: rgba(255, 255, 255, .25); color: #fff; }
+.vault-chip.active .vault-num { border-color: transparent; background: rgba(255, 255, 255, .25); color: #fff; }
 
 /* 行内动作与流转区 */
 .row-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -356,29 +401,18 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
 /* 分页 */
 .pager { display: flex; align-items: center; gap: 14px; margin-top: 14px; color: var(--muted); }
 
-/* 栏目导航条：与前台主导航同样的横向排布，43 个栏目分两级展示 */
+/* 栏目导航条：一级项一行铺开，选中的那一组展开子栏目。
+   形态仍是导航条（不是下拉）——43 个 chip 全铺开时会占掉五分之一屏，把表格挤出首屏。 */
 .channel-nav {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 4px;
 }
-.channel-group {
+.channel-chip {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 2px 6px 2px 8px;
-  border-left: 1px solid var(--line);
-}
-.channel-group:first-of-type, .channel-nav > .channel-chip:first-child + .channel-group { border-left: 0; }
-.channel-group-title {
-  color: var(--muted);
-  font-size: 13px;
-  white-space: nowrap;
-}
-.channel-chip {
-  display: inline-block;
+  gap: 6px;
   padding: 3px 10px;
   border: 1px solid transparent;
   border-radius: 14px;
@@ -386,15 +420,65 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
   white-space: nowrap;
   font-size: 14px;
 }
-.channel-chip:hover { background: #fdf3f3; color: var(--brand); text-decoration: none; }
+.channel-chip:hover { background: var(--brand-soft); color: var(--brand); text-decoration: none; }
 .channel-chip.active {
   background: var(--brand);
   border-color: var(--brand);
   color: #fff;
   font-weight: 700;
 }
-/* 多子栏目的分组只留左侧分隔线与组名，不用底色——换行时底色会被拉成整行色带 */
-.channel-group--multi { padding-left: 10px; }
+
+/* 一级项：加粗，右侧小三角提示「点开有子栏目」 */
+.channel-chip--group { font-weight: 700; }
+.channel-chip--group::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  margin-top: -3px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+}
+.channel-chip--group.is-open::after { margin-top: 2px; transform: rotate(-135deg); }
+
+/* 展开出来的子栏目：左侧一条浅色分隔线，与一级项分层 */
+.channel-group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 10px;
+  border-left: 2px solid var(--brand-soft);
+}
+/* 展开出来的子栏目用浅红底：一眼看出「这几项属于上面那个母栏目」。
+   浅红底配品牌红文字是 6.62:1，够 AA。 */
+.channel-chip--child {
+  font-size: 13px;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.channel-chip--child:hover { background: #f6dcdf; }
+.channel-chip--child.active { background: var(--brand); color: #fff; }
+/* 母栏目处于展开状态时也给一层浅红，和它的子项连成一块 */
+.channel-chip--group.is-open:not(.active) {
+  background: var(--brand-soft);
+  border-color: #f0d3d6;
+  color: var(--brand);
+}
+
+/* 栏目／稿库 chip 上的计数：小方角 + 描边，与胶囊状的状态标签区分开 */
+.chip-num {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: #55606b;
+  font-size: var(--text-xs);
+  text-align: center;
+}
+.channel-chip.active .chip-num { border-color: transparent; background: rgba(255, 255, 255, .25); color: #fff; }
 
 /* 上传与危险操作 */
 .upload-form { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
@@ -414,8 +498,8 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
   min-height: 100vh;
   padding: 32px 16px;
   background:
-    radial-gradient(1100px 420px at 50% -160px, rgba(176, 30, 35, .18), transparent 70%),
-    linear-gradient(180deg, #b01e23 0, #8d171b 220px, #f4f5f7 220px);
+    radial-gradient(1100px 420px at 50% -160px, rgba(165, 29, 34, .18), transparent 70%),
+    linear-gradient(180deg, var(--brand) 0, var(--brand-dark) 220px, #f4f5f7 220px);
 }
 .login-shell { width: 100%; max-width: 420px; }
 .login-card {
@@ -537,12 +621,12 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
 /* 筛选面板：稿库、栏目、条件同处一块，不再是三个互不相干的区块 */
 .filter-panel {
   margin-bottom: 14px;
-  padding: 12px 14px;
+  padding: var(--space-3) var(--space-4);
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius);
 }
-.filter-panel--slim { padding: 10px 14px; }
+.filter-panel--slim { padding: var(--space-2) var(--space-4); }
 .filter-panel--slim .filter-row { align-items: flex-end; }
 .filter-row {
   display: flex;
@@ -621,6 +705,8 @@ html:not(.js) .bulk-col { display: none; }
 .list-meta { margin: 0 0 8px; }
 .empty-title { display: block; font-size: 15px; color: var(--ink); }
 .empty-hint { display: block; margin-top: 4px; }
+.empty-icon { display: inline-flex; margin-bottom: var(--space-2); color: #b0b8c1; }
+.empty-action { margin-top: var(--space-3); }
 .empty-card {
   padding: 24px;
   background: #fff;
@@ -641,6 +727,11 @@ html:not(.js) .bulk-col { display: none; }
   opacity: .45;
   cursor: default;
   pointer-events: none;
+}
+/* 提交中的按钮：不 disabled（会把 name/value 丢掉），只压暗并改游标 */
+.btn.is-busy, .btn-primary.is-busy {
+  opacity: .75;
+  cursor: progress;
 }
 
 /* 分页 */
@@ -678,15 +769,15 @@ html:not(.js) .bulk-col { display: none; }
   flex-wrap: wrap;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
+  padding: var(--space-3) var(--space-4);
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--radius);
   position: sticky;
   bottom: 0;
   z-index: 5;
   /* 粘在底部会盖住下边的内容，加一层投影说明它是浮起来的工具条 */
-  box-shadow: 0 -8px 18px rgba(15, 23, 42, .07);
+  box-shadow: var(--shadow-float);
 }
 .form-actions .muted { flex: 1 1 240px; margin: 0; }
 .meta-list { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 6px 10px; margin: 0; font-size: 14px; }
@@ -842,6 +933,21 @@ html:not(.js) .bulk-col { display: none; }
 .other-group-title { margin: 8px 0 4px; font-weight: 700; }
 .other-channels { display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; margin: 0; padding: 0; }
 .other-channels li { font-size: 14px; }
+
+/* 其他栏目页顶部的栏目索引：一行一类，点栏目名跳到本页对应位置 */
+.channel-index .index-row { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin-bottom: 8px; }
+.channel-index .index-label {
+  flex: 0 0 132px;
+  font-weight: 700;
+  font-size: 14px;
+  color: #444;
+}
+.channel-index .channel-nav { flex: 1 1 320px; }
+/* 说明文字单独占一行，别跟栏目挤在同一行右侧 */
+.channel-index .row-meta { flex: 1 1 100%; margin-top: 2px; }
+/* 跳过去以后给目标卡片一条边线提示，和旁边的卡片区分开 */
+.card:target { border-color: var(--brand); }
+.other-channels li:target { font-weight: 700; }
 
 /* 表格里的次要行：隐藏的导航项、展开的编辑行 */
 .row-hidden { background: #fafbfc; }

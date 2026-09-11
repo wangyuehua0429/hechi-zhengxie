@@ -54,6 +54,7 @@ final class SectionController extends AdminController
                 'kind'    => $this->scopeKind($row),
                 'scopeText' => $this->scopeText($row),
                 'channels' => $this->scopeChannelNames($row),
+                'scopeChips' => $this->scopeChips($row),
                 'firstChannel' => $this->firstScopeChannel($row),
                 'preview' => $this->previewOf($blocks[$key] ?? null),
                 // 库内稿件（可排序／置顶的那些），按标签分组
@@ -252,6 +253,56 @@ final class SectionController extends AdminController
         foreach ((array) ($scope['channels'] ?? []) as $channel) {
             $type = (string) $channel;
             $out[] = $type . ' ' . ($names[$type] ?? '?');
+        }
+        return $out;
+    }
+
+    /**
+     * 模块绑定的栏目拆成「栏目号 + 显示名」，页面顶部的栏目索引用它做跳转链接。
+     *
+     * 分标签模块用标签名（如「市政协动态」）而不是栏目名，跟卡片里的标签一致；
+     * 一级栏目用「党派团体（含全部子栏目）」这样的写法，说明子栏目也算在内。
+     *
+     * @param array<string, mixed> $row
+     * @return list<array{code:string,name:string}>
+     */
+    private function scopeChips(array $row): array
+    {
+        $names = $this->channelNames();
+        $scope = Json::decode((string) $row['scope_json'], []);
+        if (!is_array($scope)) {
+            return [];
+        }
+
+        $out = [];
+        if (isset($scope['tabs'])) {
+            foreach ((array) $scope['tabs'] as $tab) {
+                $channel = (string) ($tab['channel'] ?? '');
+                if ($channel === '') {
+                    continue;
+                }
+                $label = trim((string) ($tab['label'] ?? ''));
+                $out[] = ['code' => $channel, 'name' => $label !== '' ? $label : ($names[$channel] ?? $channel)];
+            }
+            return $out;
+        }
+
+        if (isset($scope['parent'])) {
+            $parent = (string) $scope['parent'];
+            if ($parent !== '') {
+                // 用模块标题而不是栏目的 inner_name：601 的 inner_name 是「民盟河池市委员会」，
+                // 拿来当「党派团体（含全部子栏目）」这个名字会让人误以为只指民盟。
+                $label = trim((string) ($row['label'] ?? ''));
+                $out[] = ['code' => $parent, 'name' => ($label !== '' ? $label : ($names[$parent] ?? $parent)) . '（含全部子栏目）'];
+            }
+            return $out;
+        }
+
+        foreach ((array) ($scope['channels'] ?? []) as $channel) {
+            $type = (string) $channel;
+            if ($type !== '') {
+                $out[] = ['code' => $type, 'name' => $names[$type] ?? $type];
+            }
         }
         return $out;
     }

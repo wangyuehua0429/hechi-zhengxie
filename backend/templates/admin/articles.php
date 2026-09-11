@@ -8,7 +8,7 @@
  * 2. 表格以稿件内容为主：标题即入口，ID 退到次要行，状态与最近动作合并成一列；
  * 3. 批量操作、排序、每页条数与分页跳转都在列表页完成，不必来回点栏目导航。
  *
- * @var array{channel:string,status:string,keyword:string,sort:string,order:string} $filters
+ * @var array{channel:string,group:string,status:string,keyword:string,sort:string,order:string} $filters
  * @var list<array<string, mixed>> $items
  * @var int $total
  * @var int $page
@@ -19,6 +19,7 @@
  * @var array<string, array{label:string, danger:bool, needNote:bool, noteLabel:string}> $bulkActions
  * @var list<array<string, mixed>> $channels
  * @var list<array{key:string,title:string,channels:list<array<string,mixed>>}> $navGroups
+ * @var array<string, int> $navCounts
  * @var array<string, int> $statusCounts
  * @var array<string, array{status:string,label:string,public:bool,sort:int}> $places
  * @var array<string, array<string, mixed>> $transitions
@@ -31,6 +32,7 @@ use HechiZx\Content\ArticleWorkflow;
 $places = $places ?? [];
 $transitions = $transitions ?? [];
 $statusCounts = $statusCounts ?? [];
+$adminIcons = require __DIR__ . '/_icons.php';
 $pageSizes = $pageSizes ?? [20];
 $sorts = $sorts ?? ['published_at' => '发布时间'];
 $bulkActions = $bulkActions ?? [];
@@ -52,6 +54,7 @@ $sortValue = (string) $filters['sort'] . ':' . (string) $filters['order'];
 $listUrl = static function (array $override = []) use ($filters, $pageSize): string {
     $params = [
         'channel' => (string) $filters['channel'],
+        'group'   => (string) ($filters['group'] ?? ''),
         'status'  => (string) $filters['status'],
         'keyword' => (string) $filters['keyword'],
         'size'    => $pageSize === 20 ? '' : (string) $pageSize,
@@ -74,6 +77,14 @@ $channelLabel = '';
 foreach ($channels as $channel) {
     if ((string) $channel['type_code'] === (string) $filters['channel']) {
         $channelLabel = (string) $channel['inner_name'];
+    }
+}
+// 按一级栏目整组筛选时，摘要里写清楚「整个栏目」，避免与同号的子栏目混淆
+if ((string) ($filters['group'] ?? '') !== '') {
+    foreach ($navGroups as $group) {
+        if ((string) $group['key'] === (string) $filters['group']) {
+            $channelLabel = (string) $group['title'] . '（整个栏目）';
+        }
     }
 }
 $activeFilters = [];
@@ -130,6 +141,8 @@ if ((string) $filters['keyword'] !== '') {
       <?php
       $navUrl = '/admin/articles';
       $navActive = (string) $filters['channel'];
+      $navGroup = (string) ($filters['group'] ?? '');
+      $navCounts = $navCounts ?? [];
       $navQuery = array_filter([
           'status'  => $current,
           'keyword' => (string) $filters['keyword'],
@@ -144,6 +157,7 @@ if ((string) $filters['keyword'] !== '') {
 
   <form class="filter-form" method="get" action="/admin/articles">
     <input type="hidden" name="channel" value="<?= hechi_e((string) $filters['channel']) ?>">
+    <input type="hidden" name="group" value="<?= hechi_e((string) ($filters['group'] ?? '')) ?>">
     <input type="hidden" name="status" value="<?= hechi_e($current) ?>">
     <label class="filter-field">标题或摘要关键词
       <input type="search" name="keyword" value="<?= hechi_e((string) $filters['keyword']) ?>" placeholder="如：政协">
@@ -300,6 +314,9 @@ if ((string) $filters['keyword'] !== '') {
     <?php if ($items === []): ?>
       <tr>
         <td colspan="<?= $bulkActions === [] ? 5 : 6 ?>" class="empty">
+          <span class="empty-icon" aria-hidden="true">
+            <?= $adminIcons['empty'] ?>
+          </span>
           <span class="empty-title">没有符合条件的稿件。</span>
           <span class="empty-hint">
             <?php if ($activeFilters !== []): ?>
@@ -308,6 +325,9 @@ if ((string) $filters['keyword'] !== '') {
               这个站还没有稿件，点右上角「新建稿件」开始。
             <?php endif; ?>
           </span>
+          <?php if ($activeFilters === [] && in_array('article.edit', $userPerms ?? [], true)): ?>
+            <a class="btn-primary empty-action" href="<?= hechi_e($newUrl) ?>">新建第一篇稿件</a>
+          <?php endif; ?>
         </td>
       </tr>
     <?php endif; ?>
@@ -356,6 +376,7 @@ if ((string) $filters['keyword'] !== '') {
 
     <form class="pager-jump" method="get" action="/admin/articles">
       <input type="hidden" name="channel" value="<?= hechi_e((string) $filters['channel']) ?>">
+      <input type="hidden" name="group" value="<?= hechi_e((string) ($filters['group'] ?? '')) ?>">
       <input type="hidden" name="status" value="<?= hechi_e($current) ?>">
       <input type="hidden" name="keyword" value="<?= hechi_e((string) $filters['keyword']) ?>">
       <input type="hidden" name="size" value="<?= $pageSize ?>">

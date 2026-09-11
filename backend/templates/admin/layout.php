@@ -30,7 +30,9 @@ $canAny = static function (array $perms) use ($can): bool {
 };
 
 // 侧栏：概览 / 首页管理（树形，默认展开）/ 稿件管理 / 用户管理 / 操作日志
-$navItems = ['dashboard' => ['label' => '概览', 'url' => '/admin']];
+$adminIcons = require __DIR__ . '/_icons.php';
+
+$navItems = ['dashboard' => ['label' => '概览', 'url' => '/admin', 'icon' => 'dashboard']];
 
 $homeChildren = [
     'nav'     => ['label' => '导航栏目', 'url' => '/admin/nav'],
@@ -46,19 +48,22 @@ if ($can('channel.manage') && !$can('home.manage')) {
     $homeChildren['channels'] = ['label' => '全部栏目', 'url' => '/admin/channels'];
 }
 if ($homeChildren !== []) {
-    $navItems['home'] = ['label' => '首页管理', 'children' => $homeChildren];
+    $navItems['home'] = ['label' => '首页管理', 'icon' => 'home', 'children' => $homeChildren];
 }
 
 if ($canAny(['article.edit', 'article.submit', 'article.review', 'article.publish', 'article.delete', 'article.restore'])) {
-    $navItems['articles'] = ['label' => '稿件管理', 'url' => '/admin/articles'];
+    $navItems['articles'] = ['label' => '稿件管理', 'url' => '/admin/articles', 'icon' => 'articles'];
 }
 if ($can('user.manage')) {
-    $navItems['users'] = ['label' => '用户管理', 'url' => '/admin/users'];
+    $navItems['users'] = ['label' => '用户管理', 'url' => '/admin/users', 'icon' => 'users'];
 }
 if ($can('log.view')) {
-    $navItems['logs'] = ['label' => '操作日志', 'url' => '/admin/logs'];
+    $navItems['logs'] = ['label' => '操作日志', 'url' => '/admin/logs', 'icon' => 'logs'];
 }
 $roleText = ($userRoleNames ?? []) === [] ? '未分配角色' : implode('、', $userRoleNames);
+// 姓名与角色名撞在一起时（管理员账号常见）不重复显示两遍
+$displayName = (string) (($user['real_name'] ?? '') !== '' ? $user['real_name'] : ($user['username'] ?? ''));
+$showRole = $roleText !== '' && $roleText !== $displayName;
 
 // 面包屑：章节名 → 地址，页面名取 <title> 里「·」之前的部分
 $homeCrumb = ['label' => '首页管理', 'url' => '/admin/nav'];
@@ -101,7 +106,7 @@ $rootCrumb = isset($section['parent']) ? $section['parent'] : ['label' => '概�
     </div>
     <div class="topbar-right">
       <?php if ($user): ?>
-        <span class="who"><?= hechi_e(($user['real_name'] ?? '') !== '' ? $user['real_name'] : $user['username']) ?><span class="who-role"><?= hechi_e($roleText) ?></span></span>
+        <span class="who"><?= hechi_e($displayName) ?><?php if ($showRole): ?><span class="who-role"><?= hechi_e($roleText) ?></span><?php endif; ?></span>
         <form method="post" action="/admin/logout" class="inline"><?= $csrf ?>
           <button type="submit" class="link-btn">退出</button>
         </form>
@@ -118,7 +123,7 @@ $rootCrumb = isset($section['parent']) ? $section['parent'] : ['label' => '概�
           $groupActive = isset($item['children'][$current]);
           ?>
           <details class="sidenav-group<?= $groupActive ? ' is-active' : '' ?>" open>
-            <summary><?= hechi_e($item['label']) ?></summary>
+            <summary><?= $adminIcons[(string) ($item['icon'] ?? '')] ?? '' ?><span><?= hechi_e($item['label']) ?></span></summary>
             <div class="sidenav-children">
               <?php foreach ($item['children'] as $childKey => $child): ?>
                 <a href="<?= hechi_e($child['url']) ?>"<?= $current === $childKey ? ' class="active" aria-current="page"' : '' ?>><?= hechi_e($child['label']) ?></a>
@@ -126,7 +131,7 @@ $rootCrumb = isset($section['parent']) ? $section['parent'] : ['label' => '概�
             </div>
           </details>
         <?php else: ?>
-          <a href="<?= hechi_e($item['url']) ?>"<?= $current === $key ? ' class="active" aria-current="page"' : '' ?>><?= hechi_e($item['label']) ?></a>
+          <a href="<?= hechi_e($item['url']) ?>"<?= $current === $key ? ' class="active" aria-current="page"' : '' ?>><?= $adminIcons[(string) ($item['icon'] ?? '')] ?? '' ?><span><?= hechi_e($item['label']) ?></span></a>
         <?php endif; ?>
       <?php endforeach; ?>
       <span class="sidenav-sep" aria-hidden="true"></span>
@@ -135,10 +140,9 @@ $rootCrumb = isset($section['parent']) ? $section['parent'] : ['label' => '概�
     </nav>
 
     <main class="main" id="main">
-      <nav class="breadcrumb" aria-label="当前位置">
-        <?php if ($section === null || $current === 'dashboard'): ?>
-          <span class="crumb-current">概览</span>
-        <?php else: ?>
+      <?php /* 概览页不再显示面包屑：只有一层，与下面的 H1「概览」重复 */ ?>
+      <?php if ($section !== null && $current !== 'dashboard'): ?>
+        <nav class="breadcrumb" aria-label="当前位置">
           <a href="<?= hechi_e($rootCrumb['url']) ?>"><?= hechi_e($rootCrumb['label']) ?></a>
           <span class="crumb-sep" aria-hidden="true">/</span>
           <?php if ($pageLabel === ''): ?>
@@ -148,11 +152,14 @@ $rootCrumb = isset($section['parent']) ? $section['parent'] : ['label' => '概�
             <span class="crumb-sep" aria-hidden="true">/</span>
             <span class="crumb-current"><?= hechi_e($pageLabel) ?></span>
           <?php endif; ?>
-        <?php endif; ?>
-      </nav>
+        </nav>
+      <?php endif; ?>
 
       <?php if ($flash): ?>
-        <div class="flash flash-<?= hechi_e($flash['type'] === 'ok' ? 'ok' : 'error') ?>" role="<?= $flash['type'] === 'ok' ? 'status' : 'alert' ?>"><?= hechi_e($flash['text']) ?></div>
+        <div class="flash flash-<?= hechi_e($flash['type'] === 'ok' ? 'ok' : 'error') ?>" role="<?= $flash['type'] === 'ok' ? 'status' : 'alert' ?>">
+          <span class="flash-icon" aria-hidden="true"><?= $adminIcons[$flash['type'] === 'ok' ? 'flash-ok' : 'flash-error'] ?></span>
+          <span><?= hechi_e($flash['text']) ?></span>
+        </div>
       <?php endif; ?>
       <?= $content ?>
     </main>

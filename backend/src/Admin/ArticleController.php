@@ -60,13 +60,23 @@ final class ArticleController extends AdminController
             $sortOrder = $orderParam;
         }
 
+        $navGroups = $this->channels->navGroups();
+
         $filters = [
             'channel' => (string) $request->query('channel', ''),
+            'group'   => (string) $request->query('group', ''),
             'status'  => (string) $request->query('status', ''),
             'keyword' => (string) $request->query('keyword', ''),
             'sort'    => isset(self::SORTS[$sortField]) ? $sortField : 'published_at',
             'order'   => in_array($sortOrder, ['asc', 'desc'], true) ? $sortOrder : 'desc',
         ];
+        // 栏目组只认导航里真实存在的一级栏目号；组与单栏目互斥，避免两个条件同时生效
+        $groupKeys = array_map(static fn (array $group): string => (string) $group['key'], $navGroups);
+        if ($filters['group'] === '' || !in_array($filters['group'], $groupKeys, true)) {
+            $filters['group'] = '';
+        } else {
+            $filters['channel'] = '';
+        }
         $pageSize = $request->int('size', self::PAGE_SIZE, 1);
         if (!in_array($pageSize, self::PAGE_SIZES, true)) {
             $pageSize = self::PAGE_SIZE;
@@ -99,8 +109,9 @@ final class ArticleController extends AdminController
             'sorts'    => self::SORTS,
             'bulkActions' => $this->bulkActions(),
             'channels' => $this->channels->adminAll(),
-            'navGroups' => $this->channels->navGroups(),
-            'statusCounts' => $this->articles->statusCounts($filters['channel'] !== '' ? $filters['channel'] : null, $scope),
+            'navGroups' => $navGroups,
+            'navCounts' => $this->articles->channelCounts($filters, $scope),
+            'statusCounts' => $this->articles->statusCounts($filters, $scope),
             'places'   => ArticleWorkflow::places(),
             'transitions' => ArticleWorkflow::transitions(),
         ], '稿件管理');
@@ -226,6 +237,24 @@ final class ArticleController extends AdminController
         if ($scope !== null) {
             $navGroups = $this->filterNavGroups($navGroups, $scope);
         }
+
+        // 新建页的栏目条与稿件列表同一套：一级项点开先按整组展开。
+        // 这里把「只选了组、没选具体子栏目」落到该组第一个子栏目，
+        // 页面显示的当前栏目与提交值就不会打架（导航也会自动展开该组）。
+        $defaultChannel = (string) $request->query('channel', '');
+        $groupParam = (string) $request->query('group', '');
+        if ($defaultChannel === '' && $groupParam !== '') {
+            foreach ($navGroups as $group) {
+                if ((string) $group['key'] === $groupParam) {
+                    $first = $group['channels'][0]['type_code'] ?? '';
+                    $defaultChannel = (string) $first;
+                }
+            }
+        }
+        if ($defaultChannel === '') {
+            $defaultChannel = '904';
+        }
+
         return $this->view->page('admin/article_edit', [
             'current'     => 'articles',
             'article'     => null,
@@ -237,7 +266,7 @@ final class ArticleController extends AdminController
             'saved'       => false,
             'channels'    => $this->channels->adminAll(),
             'navGroups'   => $navGroups,
-            'defaultChannel' => (string) $request->query('channel', '904'),
+            'defaultChannel' => $defaultChannel,
             // 新建默认「已发布」：编辑写完点保存就是要发出去，草稿/下线仍可手选
             'defaultStatus'  => 'published',
         ], '新建稿件');
