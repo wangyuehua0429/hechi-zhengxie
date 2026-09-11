@@ -1012,10 +1012,11 @@ async function main() {
     // 首屏预览：拖动排序。页面带着当前顺序，脚本拖完把整串交给 /admin/slides/order
     const stripPage = await client.get("/admin/slides");
     const stripIds = [...stripPage.text.matchAll(/data-slide-id="(\d+)"/g)].map((m) => m[1]);
-    check("首屏预览的每条都带排序与预览用的数据钩子",
+    check("首屏预览的每条都带排序、预览与删除用的数据钩子",
       stripIds.length > 0 && stripPage.text.includes("data-slide-strip") &&
       stripPage.text.includes('action="/admin/slides/order"') &&
-      stripPage.text.includes('class="slide-chip-media"'),
+      stripPage.text.includes('class="slide-chip-media"') &&
+      (stripPage.text.match(/data-slide-delete/g) || []).length === stripIds.length,
       "预览 " + stripIds.length + " 条");
 
     const flippedIds = stripIds.slice().reverse();

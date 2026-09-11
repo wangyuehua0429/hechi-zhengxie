@@ -77,16 +77,18 @@ foreach ($slides as $slide) {
           <?php if ($previewUrl !== ''): ?>
             </a>
           <?php endif; ?>
-          <figcaption><?= hechi_e((string) $slide['title']) ?></figcaption>
-          <form method="post" action="/admin/slides/<?= $slideId ?>/delete" class="slide-chip-del">
+          <form method="post" action="/admin/slides/<?= $slideId ?>/delete" class="slide-chip-del"
+                data-slide-delete data-slide-title="<?= hechi_e((string) $slide['title']) ?>">
             <?= $csrf ?>
-            <button type="submit" class="btn btn-sm btn-danger-outline">删除</button>
+            <button type="submit" title="从轮播里删除这一条"
+                    aria-label="从轮播里删除「<?= hechi_e((string) $slide['title']) ?>」">✕</button>
           </form>
+          <figcaption><?= hechi_e((string) $slide['title']) ?></figcaption>
         </figure>
       <?php endforeach; ?>
     </div>
     <p class="muted">
-      按住缩略图左右拖动可调整轮播顺序（松手即保存），点图片在新窗口预览前台页面，「删除」即时生效。
+      按住缩略图左右拖动可调整轮播顺序（松手即保存），点图片在新窗口预览前台页面，点右上角红叉确认后删除。
       前台按这个顺序轮播；图片为空时取稿件缩略图或正文首图。
     </p>
   </section>

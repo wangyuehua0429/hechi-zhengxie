@@ -7,7 +7,8 @@
  * 3. 稿件编辑页的正文预览与字数统计（预览走 sandbox iframe，脚本不执行）；
  * 4. Ctrl/⌘+S 保存与「有改动未保存」离开提醒；
  * 5. 上移／下移这类排序提交后还原滚动位置，长列表里不用每次再滚回去。
- * 6. 头条轮换「首屏效果预览」里拖动缩略图排序（拖完一次性提交整串顺序）。
+ * 6. 头条轮换「首屏效果预览」里拖动缩略图排序（拖完一次性提交整串顺序）；
+ *    点条目右上角红叉删除前先问一句。
  *
  * 所有逻辑都用 data-* 钩子，模板改名不影响；没有匹配元素时静默跳过。
  */
@@ -291,4 +292,15 @@
       slideOrderForm.requestSubmit();
     });
   }
+
+  // 预览区右上角的红叉：先问一句再提交，避免手滑把轮播条目删掉
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (!form || !form.matches || !form.matches("[data-slide-delete]")) return;
+    const title = form.getAttribute("data-slide-title") || "";
+    const message = title === ""
+      ? "确认从首屏轮播里删除这一条？"
+      : "确认从首屏轮播里删除「" + title + "」？";
+    if (!window.confirm(message)) event.preventDefault();
+  });
 })();
