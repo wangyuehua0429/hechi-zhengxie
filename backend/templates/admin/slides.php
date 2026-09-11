@@ -61,27 +61,30 @@ foreach ($slides as $slide) {
       </label>
       <button type="submit" class="btn">检索</button>
     </form>
-    <?php if ($keyword !== ''): ?>
-      <?php if ($found === []): ?>
-        <p class="muted">没有找到标题含「<?= hechi_e($keyword) ?>」的已发布稿件。</p>
-      <?php else: ?>
-        <ul class="pick-list">
-          <?php foreach ($found as $article): ?>
-            <?php $id = (int) $article['article_id']; ?>
-            <li>
-              <span class="pick-title"><?= hechi_e((string) $article['title']) ?></span>
-              <span class="muted">#<?= $id ?> · <?= hechi_e((string) ($article['channel_inner'] ?? '')) ?></span>
-              <form method="post" action="/admin/slides/create" class="inline">
-                <?= $csrf ?>
-                <input type="hidden" name="article_id" value="<?= $id ?>">
-                <button type="submit" class="btn btn-sm">加入轮播</button>
-              </form>
-            </li>
-          <?php endforeach; ?>
-        </ul>
-      <?php endif; ?>
+    <?php if ($searched && $found === []): ?>
+      <p class="muted">没有找到标题含「<?= hechi_e($keyword) ?>」的已发布稿件。</p>
     <?php else: ?>
-      <p class="muted">输入关键词检索已发布稿件，点「加入轮播」即可引用（标题、摘要、链接自动带过来）。</p>
+      <p class="muted">
+        <?php if ($searched): ?>
+          检索到 <?= count($found) ?> 条已发布稿件，点「加入轮播」即可引用（标题、摘要、链接自动带过来）。
+        <?php else: ?>
+          下面是最近发布的稿件（最多 10 条），点「加入轮播」即可引用（标题、摘要、链接自动带过来）。
+        <?php endif; ?>
+      </p>
+      <ul class="pick-list">
+        <?php foreach ($found as $article): ?>
+          <?php $id = (int) $article['article_id']; ?>
+          <li>
+            <span class="pick-title"><?= hechi_e((string) $article['title']) ?></span>
+            <span class="muted">#<?= $id ?> · <?= hechi_e((string) ($article['channel_inner'] ?? '')) ?></span>
+            <form method="post" action="/admin/slides/create" class="inline">
+              <?= $csrf ?>
+              <input type="hidden" name="article_id" value="<?= $id ?>">
+              <button type="submit" class="btn btn-sm">加入轮播</button>
+            </form>
+          </li>
+        <?php endforeach; ?>
+      </ul>
     <?php endif; ?>
   </section>
 

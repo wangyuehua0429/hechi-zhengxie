@@ -759,6 +759,8 @@ html:not(.js) .bulk-col { display: none; }
 /* 两栏：左边选稿、右边手工新增 */
 .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
 .two-col > .card { margin-bottom: 0; }
+/* 左栏是稿件清单：限高滚动，高度与右栏表单一并收在 240px 左右，两栏等高不留空 */
+.two-col .pick-list { max-height: 240px; overflow-y: auto; }
 
 /* 头条轮换：首屏效果预览 + 列表缩略图 */
 .slide-strip { display: flex; flex-wrap: wrap; gap: 12px; }

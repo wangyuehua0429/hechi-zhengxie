@@ -47,15 +47,13 @@ final class SlideController extends AdminController
         }
 
         $keyword = trim((string) $request->query('q', ''));
-        $found = [];
-        if ($keyword !== '') {
-            $found = $this->articles->adminPaginate(
-                ['status' => 'published', 'keyword' => $keyword],
-                1,
-                10,
-                null
-            )['items'];
-        }
+        // 没输关键词时给「最近发布」的稿件：左栏不至于空着，也省得先猜关键词再检索
+        $found = $this->articles->adminPaginate(
+            ['status' => 'published', 'keyword' => $keyword],
+            1,
+            10,
+            null
+        )['items'];
 
         $slides = [];
         foreach ($this->home->slideRows() as $row) {
@@ -66,6 +64,7 @@ final class SlideController extends AdminController
             'current' => 'slides',
             'slides'  => $slides,
             'keyword' => $keyword,
+            'searched' => $keyword !== '',
             'found'   => $found,
         ], '头条轮换');
     }
