@@ -6,6 +6,7 @@
 | --- | --- | --- |
 | `check-pages.mjs` | 前端静态版（首页／栏目页／详情页） | 无（自起静态服务器） |
 | `api-check.mjs` | 后端接口与静态化发布器 | 本机有 PHP（`brew install php`） |
+| `admin-check.mjs` | 后台管理界面（登录／编辑／保存／发布） | 本机有 PHP |
 
 ## 前端页面回归检查（check-pages.mjs）
 
@@ -91,3 +92,16 @@ node tests/api-check.mjs --keep                           # 保留临时库与�
 1. **一篇稿件可同时挂在多个栏目**：县区动态同时进“县区政协工作动态”（906）与“县（区）政协”（qy），原先按 `cms_article.channel_type` 单栏目录入，906 会变成空列表。改为 `cms_article_channel` 归属表承载。
 2. **视频、专题栏目的内容来自首页模块**：它们的列表项 id 是 `316-1` 这类原型合成值，不是旧库稿件号，不能进 `cms_article`；改由接口按 `home_sourced` 标识从 `cms_home_block` 现算。
 3. **详情页的 `channelName` 取子栏目名**（`sys_channel.inner_name`），与 `article.json` 一致；另把栏目 `listSize` 默认值从 24 提到 50，否则“公告通知”40 条会被截断。
+
+## 后台管理界面检查（admin-check.mjs）
+
+用临时 SQLite 库建表、灌数、建一个测试账号，再按真实用户路径把后台走一遍：
+
+```bash
+node tests/admin-check.mjs          # 30 项检查
+node tests/admin-check.mjs --keep   # 保留临时库与发布产物
+```
+
+覆盖：未登录访问 `/admin` 与 `/admin/articles` 是否被挡到登录页、登录页 CSRF 令牌、密码错误与缺令牌的提示、登录成功后的会话 Cookie、概览数据、稿件列表筛选、稿件编辑页带出原值、保存后数据真的进库（用 `/api/v1/article/{id}` 回读校验）、令牌错误返回 400、恢复原稿、栏目列表 43 行、栏目编辑页、一键发布后产物落盘（首页／栏目数据／详情静态页／sitemap）且详情页含标题、退出后再次被拦。
+
+检查全程对**临时库**操作，并把改动还原，不影响开发库。
