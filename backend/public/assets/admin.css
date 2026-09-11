@@ -230,7 +230,8 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
   color: #fff;
   font-weight: 700;
 }
-.channel-group--multi { background: #fafbfc; border-radius: 16px; }
+/* 多子栏目的分组只留左侧分隔线与组名，不用底色——换行时底色会被拉成整行色带 */
+.channel-group--multi { padding-left: 10px; }
 
 /* 上传与危险操作 */
 .upload-form { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
