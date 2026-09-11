@@ -13,6 +13,24 @@
   var CHANNEL_DATA = "data/channel.json";
   var site = "https://www.gxhczx.gov.cn";
 
+  // 全站规则：手动刷新（F5 / ⌘R）后回到页面顶部。
+  // 浏览器默认会在 reload 时恢复上次的滚动位置；这里按需求关闭该恢复。
+  // 前进/后退（back_forward）保持默认恢复；栏目页之间"点击栏目"的位置保持
+  // 由 channel.js 单独处理，与本逻辑互不影响。本文件三个页面都会加载。
+  (function pinTopOnReload() {
+    try {
+      var entries = performance.getEntriesByType && performance.getEntriesByType("navigation");
+      var type = entries && entries[0] && entries[0].type;
+      if (type !== "reload") return;
+      if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+      var root = document.documentElement;
+      var prev = root.style.scrollBehavior;
+      root.style.scrollBehavior = "auto";
+      window.scrollTo(0, 0);
+      root.style.scrollBehavior = prev;
+    } catch (e) { /* 拿不到导航类型时保持浏览器默认行为 */ }
+  })();
+
   // 旧库栏目号 / 稿件号 -> 本地内页地址
   var channelMap = {};
   var articleMap = {};
