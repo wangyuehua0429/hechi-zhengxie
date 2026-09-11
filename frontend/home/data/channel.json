@@ -1,31 +1,809 @@
 {
   "channels": [
     {
+      "type": "202",
+      "columnId": "202",
+      "slug": "zhengxie-gaikuang",
+      "name": "政协概况",
+      "inner": "政协概况",
+      "intro": "中国人民政治协商会议河池市委员会的性质定位、章程依据、机构设置与领导成员。",
+      "layout": "about",
+      "siblings": [
+        {
+          "type": "151",
+          "name": "政协简介",
+          "url": "detail.html?id=151",
+          "active": true
+        },
+        {
+          "type": "39588",
+          "name": "五届政协领导简介",
+          "url": "detail.html?id=39588",
+          "active": false
+        },
+        {
+          "type": "154",
+          "name": "政协章程",
+          "url": "detail.html?id=154",
+          "active": false
+        },
+        {
+          "type": "153",
+          "name": "机构设置",
+          "url": "detail.html?id=153",
+          "active": false
+        },
+        {
+          "type": "39588",
+          "name": "政协常委",
+          "url": "detail.html?id=39588",
+          "active": false
+        },
+        {
+          "type": "2522",
+          "name": "政协委员",
+          "url": "detail.html?id=2522",
+          "active": false
+        }
+      ],
+      "total": 10,
+      "list": [
+        {
+          "id": 39579,
+          "title": "韦懿格",
+          "url": "detail.html?id=39579",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 17:28:04",
+          "source": "政协河池市委员会",
+          "views": 172535,
+          "img": "images/channel/39579.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 39583,
+          "title": "黄大东",
+          "url": "detail.html?id=39583",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 17:27:57",
+          "source": "政协河池市委员会",
+          "views": 171508,
+          "img": "images/channel/39583.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 39584,
+          "title": "兰吉阳",
+          "url": "detail.html?id=39584",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 17:27:47",
+          "source": "政协河池市委员会",
+          "views": 172384,
+          "img": "images/channel/39584.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 39585,
+          "title": "韦祖林",
+          "url": "detail.html?id=39585",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 17:27:40",
+          "source": "政协河池市委员会",
+          "views": 173906,
+          "img": "images/channel/39585.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61542,
+          "title": "黄正华",
+          "url": "detail.html?id=61542",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 17:10:21",
+          "source": "政协河池市委员会",
+          "views": 7887,
+          "img": "images/channel/61542.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 39580,
+          "title": "潘秋琳",
+          "url": "detail.html?id=39580",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 12:39:33",
+          "source": "政协河池市委员会",
+          "views": 184891,
+          "img": "images/channel/39580.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 39582,
+          "title": "蓝启章",
+          "url": "detail.html?id=39582",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 12:37:42",
+          "source": "政协河池市委员会",
+          "views": 176296,
+          "img": "images/channel/39582.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 39578,
+          "title": "黄正华",
+          "url": "detail.html?id=39578",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 12:27:03",
+          "source": "政协河池市委员会",
+          "views": 181738,
+          "img": "images/channel/39578.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 39587,
+          "title": "黄 恩",
+          "url": "detail.html?id=39587",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 12:24:24",
+          "source": "政协河池市委员会",
+          "views": 179654,
+          "img": "images/channel/39587.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 44459,
+          "title": "韦伟松",
+          "url": "detail.html?id=44459",
+          "date": "2023-02-13",
+          "datetime": "2023-02-13 10:47:56",
+          "source": "政协河池市委员会",
+          "views": 134663,
+          "img": "images/channel/44459.jpg",
+          "hasBody": true
+        }
+      ],
+      "feature": {
+        "title": "中国人民政治协商会议简介",
+        "summary": "中国人民政治协商会议（简称人民政协）是中国人民爱国统一战线的组织，是中国共产党领导的多党合作和政治协商的重要机构，是中国政治生活中发扬社会主义民主的一种重要形式。 人民政协成立于1949年9月。政协第一届全体会议代行国家最高权力机关的职权，宣告了中华人民共和国的成立；通过了具有临时宪法性质的《中国人民政治协商会议共同纲领》，以及《中华人民共和国中央人民政府组织法》、《中国人民政治协商会议组织法》；选举产生了中央人民政府和政协第一届全国委员会。这次会议还决定了中华人民共和国的国",
+        "url": "detail.html?id=151"
+      }
+    },
+    {
+      "type": "902",
+      "columnId": "904",
+      "slug": "zhengxie-dongtai",
+      "name": "政协动态",
+      "inner": "全国政协动态",
+      "intro": "聚焦市政协重要会议、调研视察与履职活动，及时反映全市政协工作进展。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "902",
+          "name": "全国政协动态",
+          "url": "channel.html?id=902"
+        },
+        {
+          "type": "903",
+          "name": "区（广西）政协动态",
+          "url": "channel.html?id=903"
+        },
+        {
+          "type": "904",
+          "name": "市政协动态",
+          "url": "channel.html?id=904"
+        },
+        {
+          "type": "905",
+          "name": "政协新闻",
+          "url": "channel.html?id=905"
+        },
+        {
+          "type": "906",
+          "name": "县区政协工作动态",
+          "url": "channel.html?id=906"
+        }
+      ],
+      "total": 424,
+      "list": [
+        {
+          "id": 62246,
+          "title": "王沪宁主持召开全国政协主席会议",
+          "url": "detail.html?id=62246",
+          "date": "2026-04-27",
+          "datetime": "2026-04-27 11:47:13",
+          "source": "人民政协报",
+          "views": 15,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62245,
+          "title": "全国政协召开双周协商座谈会 围绕加快涉外法治体系和能力建设协商议政",
+          "url": "detail.html?id=62245",
+          "date": "2026-04-27",
+          "datetime": "2026-04-27 11:44:06",
+          "source": "人民政协报",
+          "views": 13,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62212,
+          "title": "全国政协召开第三十四次重点关切问题情况通报会",
+          "url": "detail.html?id=62212",
+          "date": "2026-04-24",
+          "datetime": "2026-04-24 15:58:40",
+          "source": "人民政协报",
+          "views": 25,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62165,
+          "title": "全国政协机关党组举行树立和践行正确政绩观学习教育专题读书班",
+          "url": "detail.html?id=62165",
+          "date": "2026-04-22",
+          "datetime": "2026-04-22 15:38:10",
+          "source": "人民政协报",
+          "views": 47,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62152,
+          "title": "中共全国政协党组举行树立和践行正确政绩观学习教育专题读书班",
+          "url": "detail.html?id=62152",
+          "date": "2026-04-21",
+          "datetime": "2026-04-21 16:37:54",
+          "source": "人民政协报",
+          "views": 37,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62099,
+          "title": "十四届全国政协党组第三轮专项巡视动员部署会召开",
+          "url": "detail.html?id=62099",
+          "date": "2026-04-14",
+          "datetime": "2026-04-14 12:05:15",
+          "source": "人民政协报",
+          "views": 1969,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62098,
+          "title": "十四届全国政协机关党组第三轮巡视动员部署会召开",
+          "url": "detail.html?id=62098",
+          "date": "2026-04-14",
+          "datetime": "2026-04-14 12:02:12",
+          "source": "人民政协报",
+          "views": 1973,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62080,
+          "title": "全国政协召开双周协商座谈会 围绕着力构建新型电力系统协商议政",
+          "url": "detail.html?id=62080",
+          "date": "2026-04-10",
+          "datetime": "2026-04-10 11:39:32",
+          "source": "人民政协报",
+          "views": 1983,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62079,
+          "title": "全国政协机关开展义务植树活动",
+          "url": "detail.html?id=62079",
+          "date": "2026-04-10",
+          "datetime": "2026-04-10 11:35:25",
+          "source": "人民政协报",
+          "views": 1975,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61977,
+          "title": "全国政协习近平新时代中国特色社会主义思想学习座谈小组第四组召开2026年第二季度学习座谈会",
+          "url": "detail.html?id=61977",
+          "date": "2026-04-02",
+          "datetime": "2026-04-02 12:00:48",
+          "source": "人民政协报",
+          "views": 3904,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61971,
+          "title": "全国政协办公厅召开2026年第一季度理论研讨会",
+          "url": "detail.html?id=61971",
+          "date": "2026-04-01",
+          "datetime": "2026-04-01 16:28:45",
+          "source": "人民政协报",
+          "views": 3888,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62019,
+          "title": "全国政协十四届四次会议提案交办会在京召开 石泰峰讲话",
+          "url": "detail.html?id=62019",
+          "date": "2026-03-31",
+          "datetime": "2026-03-31 11:31:01",
+          "source": "人民政协报",
+          "views": 2155,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62018,
+          "title": "全国政协习近平新时代中国特色社会主义思想学习座谈小组第八组召开2026年第一季度学习座谈会",
+          "url": "detail.html?id=62018",
+          "date": "2026-03-31",
+          "datetime": "2026-03-31 11:27:47",
+          "source": "人民政协报",
+          "views": 2149,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62012,
+          "title": "王沪宁主持召开全国政协主席会议",
+          "url": "detail.html?id=62012",
+          "date": "2026-03-30",
+          "datetime": "2026-03-30 15:51:06",
+          "source": "人民政协报",
+          "views": 2141,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61927,
+          "title": "全国政协习近平新时代中国特色社会主义思想学习座谈小组第二组召开2026年第一季度学习座谈会",
+          "url": "detail.html?id=61927",
+          "date": "2026-03-27",
+          "datetime": "2026-03-27 15:34:03",
+          "source": "人民政协报",
+          "views": 4058,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61926,
+          "title": "全国政协习近平新时代中国特色社会主义思想学习座谈小组第六组召开2026年第一季度学习座谈会",
+          "url": "detail.html?id=61926",
+          "date": "2026-03-27",
+          "datetime": "2026-03-27 15:30:55",
+          "source": "人民政协报",
+          "views": 4045,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61900,
+          "title": "全国政协召开远程协商会 围绕“推动生物医药产业健康发展”协商议政",
+          "url": "detail.html?id=61900",
+          "date": "2026-03-26",
+          "datetime": "2026-03-26 11:25:03",
+          "source": "人民政协报",
+          "views": 4136,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61882,
+          "title": "全国政协习近平新时代中国特色社会主义思想学习座谈小组第九组召开2026年第一季度学习座谈会",
+          "url": "detail.html?id=61882",
+          "date": "2026-03-25",
+          "datetime": "2026-03-25 16:27:14",
+          "source": "人民政协报",
+          "views": 4164,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61864,
+          "title": "全国政协主席会议成员到中国国家图书馆学习调研",
+          "url": "detail.html?id=61864",
+          "date": "2026-03-24",
+          "datetime": "2026-03-24 11:58:21",
+          "source": "人民政协报",
+          "views": 5511,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61852,
+          "title": "全国政协习近平新时代中国特色社会主义思想学习座谈小组第七组召开2026年第一季度学习座谈会",
+          "url": "detail.html?id=61852",
+          "date": "2026-03-23",
+          "datetime": "2026-03-23 12:04:19",
+          "source": "人民政协报",
+          "views": 5651,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61851,
+          "title": "全国政协习近平新时代中国特色社会主义思想学习座谈小组第一组召开2026年第一季度学习座谈会",
+          "url": "detail.html?id=61851",
+          "date": "2026-03-23",
+          "datetime": "2026-03-23 12:00:10",
+          "source": "人民政协报",
+          "views": 5593,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61850,
+          "title": "全国政协十四届四次会议综述之一",
+          "url": "detail.html?id=61850",
+          "date": "2026-03-23",
+          "datetime": "2026-03-23 11:57:20",
+          "source": "人民政协报",
+          "views": 5608,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61820,
+          "title": "全国政协习近平新时代中国特色社会主义思想学习座谈小组第十组召开2026年第一季度学习座谈会",
+          "url": "detail.html?id=61820",
+          "date": "2026-03-20",
+          "datetime": "2026-03-20 15:57:31",
+          "source": "人民政协报",
+          "views": 5672,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61819,
+          "title": "全国政协调研组来桂调研 梁振英率队 孙大伟参加",
+          "url": "detail.html?id=61819",
+          "date": "2026-03-20",
+          "datetime": "2026-03-20 15:53:30",
+          "source": "广西日报",
+          "views": 5652,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "903",
+      "columnId": "904",
+      "slug": "zhengxie-dongtai",
+      "name": "政协动态",
+      "inner": "区（广西）政协动态",
+      "intro": "聚焦市政协重要会议、调研视察与履职活动，及时反映全市政协工作进展。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "902",
+          "name": "全国政协动态",
+          "url": "channel.html?id=902"
+        },
+        {
+          "type": "903",
+          "name": "区（广西）政协动态",
+          "url": "channel.html?id=903"
+        },
+        {
+          "type": "904",
+          "name": "市政协动态",
+          "url": "channel.html?id=904"
+        },
+        {
+          "type": "905",
+          "name": "政协新闻",
+          "url": "channel.html?id=905"
+        },
+        {
+          "type": "906",
+          "name": "县区政协工作动态",
+          "url": "channel.html?id=906"
+        }
+      ],
+      "total": 320,
+      "list": [
+        {
+          "id": 62244,
+          "title": "王光谦率全国政协党外委员考察团在广西壮族自治区开展考察",
+          "url": "detail.html?id=62244",
+          "date": "2026-04-27",
+          "datetime": "2026-04-27 11:40:22",
+          "source": "人民政协报",
+          "views": 15,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62179,
+          "title": "许显辉赴河池市调研",
+          "url": "detail.html?id=62179",
+          "date": "2026-04-23",
+          "datetime": "2026-04-23 11:14:25",
+          "source": "广西政协报",
+          "views": 25,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61970,
+          "title": "十三届自治区政协举行第13期“同心”讲座",
+          "url": "detail.html?id=61970",
+          "date": "2026-04-01",
+          "datetime": "2026-04-01 16:25:22",
+          "source": "广西日报",
+          "views": 3845,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62017,
+          "title": "自治区政协党组开展树立和践行正确政绩观学习教育读书班暨理论学习中心组2026年第1次专题学习集中研讨",
+          "url": "detail.html?id=62017",
+          "date": "2026-03-31",
+          "datetime": "2026-03-31 11:24:12",
+          "source": "广西日报",
+          "views": 2152,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61925,
+          "title": "汇智汇力 情倾“三农” 自治区政协持续深化“乡村振兴 委员行动”",
+          "url": "detail.html?id=61925",
+          "date": "2026-03-27",
+          "datetime": "2026-03-27 15:25:24",
+          "source": "广西日报",
+          "views": 4031,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61849,
+          "title": "孙大伟深入崇左百色调研",
+          "url": "detail.html?id=61849",
+          "date": "2026-03-23",
+          "datetime": "2026-03-23 11:53:56",
+          "source": "广西日报",
+          "views": 5570,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61818,
+          "title": "全国政协调研组来桂调研 梁振英率队 孙大伟参加",
+          "url": "detail.html?id=61818",
+          "date": "2026-03-20",
+          "datetime": "2026-03-20 15:48:24",
+          "source": "广西日报",
+          "views": 5686,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61801,
+          "title": "自治区政协党组召开扩大会议传达学习全国两会精神 孙大伟主持并讲话",
+          "url": "detail.html?id=61801",
+          "date": "2026-03-19",
+          "datetime": "2026-03-19 15:32:55",
+          "source": "广西日报",
+          "views": 5720,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61708,
+          "title": "住桂全国政协委员离京返邕",
+          "url": "detail.html?id=61708",
+          "date": "2026-03-13",
+          "datetime": "2026-03-13 11:00:23",
+          "source": "广西日报",
+          "views": 7629,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61678,
+          "title": "住桂全国政协委员积极向大会提交提案",
+          "url": "detail.html?id=61678",
+          "date": "2026-03-12",
+          "datetime": "2026-03-12 15:27:06",
+          "source": "广西日报",
+          "views": 7703,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61653,
+          "title": "住桂全国政协委员分组讨论生态环境法典草案、民族团结进步促进法草案和国家发展规划法草案",
+          "url": "detail.html?id=61653",
+          "date": "2026-03-09",
+          "datetime": "2026-03-09 11:53:23",
+          "source": "广西日报",
+          "views": 7876,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61652,
+          "title": "部分住桂全国政协委员传达学习贯彻习近平总书记重要讲话精神座谈会召开 孙大伟主持",
+          "url": "detail.html?id=61652",
+          "date": "2026-03-09",
+          "datetime": "2026-03-09 11:48:37",
+          "source": "广西日报",
+          "views": 7898,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61651,
+          "title": "住桂全国政协委员分组讨论政府工作报告和计划报告、预算报告",
+          "url": "detail.html?id=61651",
+          "date": "2026-03-09",
+          "datetime": "2026-03-09 11:44:03",
+          "source": "广西日报",
+          "views": 7830,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61650,
+          "title": "住桂全国政协委员讨论“十五五”规划纲要草案",
+          "url": "detail.html?id=61650",
+          "date": "2026-03-09",
+          "datetime": "2026-03-09 11:40:05",
+          "source": "广西日报",
+          "views": 7765,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61649,
+          "title": "住桂全国政协委员分组讨论政府工作报告、审议政协常委会工作报告",
+          "url": "detail.html?id=61649",
+          "date": "2026-03-09",
+          "datetime": "2026-03-09 11:36:16",
+          "source": "广西日报",
+          "views": 7810,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61603,
+          "title": "住桂全国政协委员审议常委会工作报告和提案工作情况报告",
+          "url": "detail.html?id=61603",
+          "date": "2026-03-06",
+          "datetime": "2026-03-06 12:33:44",
+          "source": "广西日报",
+          "views": 7839,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61587,
+          "title": "聚众智 献良策 谋发展——住桂全国政协委员积极为高质量履职作准备",
+          "url": "detail.html?id=61587",
+          "date": "2026-03-04",
+          "datetime": "2026-03-04 17:20:36",
+          "source": "广西日报",
+          "views": 7779,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61582,
+          "title": "住桂全国政协委员赴京出席全国政协十四届四次会议行前会议召开",
+          "url": "detail.html?id=61582",
+          "date": "2026-03-03",
+          "datetime": "2026-03-03 11:32:19",
+          "source": "广西日报",
+          "views": 7760,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61581,
+          "title": "自治区政协十三届三次会议以来共收到提案1028件，已全部办复",
+          "url": "detail.html?id=61581",
+          "date": "2026-03-03",
+          "datetime": "2026-03-03 11:28:15",
+          "source": "广西日报",
+          "views": 7749,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61537,
+          "title": "自治区政协党组召开扩大会议 孙大伟主持并讲话",
+          "url": "detail.html?id=61537",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 16:29:17",
+          "source": "广西日报",
+          "views": 7858,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61220,
+          "title": "自治区政协十三届四次会议胜利闭幕",
+          "url": "detail.html?id=61220",
+          "date": "2026-02-06",
+          "datetime": "2026-02-06 16:24:19",
+          "source": "广西日报",
+          "views": 8840,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61219,
+          "title": "中国人民政治协商会议第十三届广西壮族自治区委员会第四次会议政治决议",
+          "url": "detail.html?id=61219",
+          "date": "2026-02-06",
+          "datetime": "2026-02-06 16:19:31",
+          "source": "广西日报",
+          "views": 8828,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61218,
+          "title": "中国人民政治协商会议第十三届广西壮族自治区委员会提案委员会关于政协十三届四次会议提案审查情况的报告",
+          "url": "detail.html?id=61218",
+          "date": "2026-02-06",
+          "datetime": "2026-02-06 16:15:26",
+          "source": "广西日报",
+          "views": 8790,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61217,
+          "title": "助力桂港澳协同发展——自治区政协港澳委员赴南宁考察侧记",
+          "url": "detail.html?id=61217",
+          "date": "2026-02-06",
+          "datetime": "2026-02-06 16:11:07",
+          "source": "广西日报",
+          "views": 8749,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
       "type": "904",
+      "columnId": "904",
       "slug": "zhengxie-dongtai",
       "name": "政协动态",
       "inner": "市政协动态",
       "intro": "聚焦市政协重要会议、调研视察与履职活动，及时反映全市政协工作进展。",
+      "layout": "list",
       "siblings": [
         {
           "type": "902",
-          "name": "全国政协动态"
+          "name": "全国政协动态",
+          "url": "channel.html?id=902"
         },
         {
           "type": "903",
-          "name": "区（广西）政协动态"
+          "name": "区（广西）政协动态",
+          "url": "channel.html?id=903"
         },
         {
           "type": "904",
-          "name": "市政协动态"
+          "name": "市政协动态",
+          "url": "channel.html?id=904"
         },
         {
           "type": "905",
-          "name": "政协新闻"
+          "name": "政协新闻",
+          "url": "channel.html?id=905"
         },
         {
           "type": "906",
-          "name": "县区政协工作动态"
+          "name": "县区政协工作动态",
+          "url": "channel.html?id=906"
         }
       ],
       "total": 825,
@@ -38,7 +816,7 @@
           "datetime": "2026-04-23 11:17:56",
           "source": "广西政协报",
           "views": 81,
-          "img": "images/channel/62180.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -49,7 +827,7 @@
           "datetime": "2026-04-21 16:13:42",
           "source": "河池日报",
           "views": 178,
-          "img": "images/channel/62147.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -71,7 +849,7 @@
           "datetime": "2026-04-14 11:51:30",
           "source": "河池日报",
           "views": 2243,
-          "img": "images/channel/62095.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -82,7 +860,7 @@
           "datetime": "2026-04-08 15:52:03",
           "source": "桂在协商微信公众号",
           "views": 3350,
-          "img": "images/channel/62036.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -93,7 +871,7 @@
           "datetime": "2026-04-07 15:10:25",
           "source": "河池融媒客户端",
           "views": 4005,
-          "img": "images/channel/62020.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -104,7 +882,7 @@
           "datetime": "2026-04-03 16:10:31",
           "source": "市政协办",
           "views": 4413,
-          "img": "images/channel/62033.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -115,7 +893,7 @@
           "datetime": "2026-04-02 15:36:02",
           "source": "市政协办",
           "views": 5205,
-          "img": "images/channel/62031.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -126,7 +904,7 @@
           "datetime": "2026-04-02 11:46:45",
           "source": "河池日报",
           "views": 4488,
-          "img": "images/channel/61973.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -170,7 +948,7 @@
           "datetime": "2026-03-30 15:26:08",
           "source": "河池日报",
           "views": 4336,
-          "img": "images/channel/61949.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -181,7 +959,7 @@
           "datetime": "2026-03-26 11:14:23",
           "source": "河池日报",
           "views": 4417,
-          "img": "images/channel/61897.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -192,7 +970,7 @@
           "datetime": "2026-03-25 16:14:24",
           "source": "河池日报",
           "views": 4504,
-          "img": "images/channel/61878.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -203,7 +981,7 @@
           "datetime": "2026-03-25 16:10:45",
           "source": "市政协办",
           "views": 4383,
-          "img": "images/channel/61883.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -225,7 +1003,7 @@
           "datetime": "2026-03-18 15:20:14",
           "source": "河池日报",
           "views": 8536,
-          "img": "images/channel/61780.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -236,7 +1014,7 @@
           "datetime": "2026-03-16 16:20:36",
           "source": "河池日报",
           "views": 8136,
-          "img": "images/channel/61744.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -247,7 +1025,7 @@
           "datetime": "2026-03-13 11:37:15",
           "source": "今日宜州微信公众号",
           "views": 8997,
-          "img": "images/channel/61718.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -269,7 +1047,7 @@
           "datetime": "2026-03-12 15:05:00",
           "source": "河池融媒客户端",
           "views": 9198,
-          "img": "images/channel/61672.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -280,7 +1058,7 @@
           "datetime": "2026-03-11 11:27:46",
           "source": "河池日报",
           "views": 8841,
-          "img": "images/channel/61644.jpg",
+          "img": "",
           "hasBody": true
         },
         {
@@ -297,286 +1075,3576 @@
       ]
     },
     {
-      "type": "306",
-      "slug": "shizheng-yaowen",
-      "name": "时政要闻",
-      "inner": "时政要闻",
-      "intro": "汇集全市时政要闻与重大部署，反映河池经济社会发展动态。",
-      "siblings": [],
-      "total": 1696,
+      "type": "905",
+      "columnId": "904",
+      "slug": "zhengxie-dongtai",
+      "name": "政协动态",
+      "inner": "政协新闻",
+      "intro": "聚焦市政协重要会议、调研视察与履职活动，及时反映全市政协工作进展。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "902",
+          "name": "全国政协动态",
+          "url": "channel.html?id=902"
+        },
+        {
+          "type": "903",
+          "name": "区（广西）政协动态",
+          "url": "channel.html?id=903"
+        },
+        {
+          "type": "904",
+          "name": "市政协动态",
+          "url": "channel.html?id=904"
+        },
+        {
+          "type": "905",
+          "name": "政协新闻",
+          "url": "channel.html?id=905"
+        },
+        {
+          "type": "906",
+          "name": "县区政协工作动态",
+          "url": "channel.html?id=906"
+        }
+      ],
+      "total": 0,
+      "list": []
+    },
+    {
+      "type": "906",
+      "columnId": "904",
+      "slug": "zhengxie-dongtai",
+      "name": "政协动态",
+      "inner": "县区政协工作动态",
+      "intro": "聚焦市政协重要会议、调研视察与履职活动，及时反映全市政协工作进展。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "902",
+          "name": "全国政协动态",
+          "url": "channel.html?id=902"
+        },
+        {
+          "type": "903",
+          "name": "区（广西）政协动态",
+          "url": "channel.html?id=903"
+        },
+        {
+          "type": "904",
+          "name": "市政协动态",
+          "url": "channel.html?id=904"
+        },
+        {
+          "type": "905",
+          "name": "政协新闻",
+          "url": "channel.html?id=905"
+        },
+        {
+          "type": "906",
+          "name": "县区政协工作动态",
+          "url": "channel.html?id=906"
+        }
+      ],
+      "total": 530,
       "list": [
         {
-          "id": 62243,
-          "title": "广西领导干部“时代前沿知识”系列讲座第135讲举行",
-          "url": "detail.html?id=62243",
+          "id": 62239,
+          "title": "环江政协开展跨市专题学习考察 深挖民间故事 共筑精神家园",
+          "url": "detail.html?id=62239",
           "date": "2026-04-27",
-          "datetime": "2026-04-27 11:36:06",
-          "source": "广西日报 河池日报",
+          "datetime": "2026-04-27 11:19:49",
+          "source": "河池日报",
           "views": 106,
           "img": "",
           "hasBody": true
         },
         {
-          "id": 62242,
-          "title": "朱会东到金城江龙江河谷灌区项目点调研",
-          "url": "detail.html?id=62242",
+          "id": 62238,
+          "title": "广西河池天峨县政协：“马上办”守住“枝头甜”",
+          "url": "detail.html?id=62238",
           "date": "2026-04-27",
-          "datetime": "2026-04-27 11:31:02",
-          "source": "河池日报",
-          "views": 109,
+          "datetime": "2026-04-27 11:16:39",
+          "source": "人民政协报",
+          "views": 106,
           "img": "",
           "hasBody": true
         },
         {
-          "id": 62241,
-          "title": "汪东明到宜州开展历史矛盾纠纷化解工作",
-          "url": "detail.html?id=62241",
-          "date": "2026-04-27",
-          "datetime": "2026-04-27 11:27:34",
-          "source": "河池日报",
-          "views": 115,
-          "img": "",
-          "hasBody": true
-        },
-        {
-          "id": 62240,
-          "title": "市政府与桐昆控股集团举行座谈会",
-          "url": "detail.html?id=62240",
-          "date": "2026-04-27",
-          "datetime": "2026-04-27 11:23:03",
-          "source": "河池日报",
-          "views": 118,
-          "img": "",
-          "hasBody": true
-        },
-        {
-          "id": 62211,
-          "title": "朱会东到南丹县调研",
-          "url": "detail.html?id=62211",
-          "date": "2026-04-24",
-          "datetime": "2026-04-24 15:53:53",
-          "source": "河池融媒客户端",
-          "views": 163,
-          "img": "",
-          "hasBody": true
-        },
-        {
-          "id": 62210,
-          "title": "汪东明会见中国物流集团有限公司党委常委、副总经理杜波一行",
-          "url": "detail.html?id=62210",
-          "date": "2026-04-24",
-          "datetime": "2026-04-24 15:48:42",
-          "source": "河池日报",
-          "views": 158,
-          "img": "",
-          "hasBody": true
-        },
-        {
-          "id": 62182,
-          "title": "自治区党委理论学习中心组（扩大）专题辅导报告会举行",
-          "url": "detail.html?id=62182",
+          "id": 62178,
+          "title": "环江政协开展专题考察 助力非遗传承与文旅融合发展",
+          "url": "detail.html?id=62178",
           "date": "2026-04-23",
-          "datetime": "2026-04-23 11:28:48",
-          "source": "广西日报 河池日报",
-          "views": 69,
+          "datetime": "2026-04-23 11:10:45",
+          "source": "广西政协报",
+          "views": 50,
           "img": "",
           "hasBody": true
         },
         {
-          "id": 62164,
-          "title": "秦春成到宜州督导调研城乡污水治理工作",
-          "url": "detail.html?id=62164",
-          "date": "2026-04-22",
-          "datetime": "2026-04-22 15:35:32",
-          "source": "河池日报",
-          "views": 222,
-          "img": "",
-          "hasBody": true
-        },
-        {
-          "id": 62151,
-          "title": "壮大产业龙头 厚植民生福祉 全力推动东巴凤区域一体化提质发展",
-          "url": "detail.html?id=62151",
-          "date": "2026-04-21",
-          "datetime": "2026-04-21 16:33:21",
-          "source": "河池日报",
-          "views": 199,
-          "img": "",
-          "hasBody": true
-        },
-        {
-          "id": 62150,
-          "title": "2026年“广西三月三·河池嘉年华”系列活动拉开帷幕",
-          "url": "detail.html?id=62150",
-          "date": "2026-04-21",
-          "datetime": "2026-04-21 16:28:09",
-          "source": "河池日报",
-          "views": 190,
-          "img": "",
-          "hasBody": true
-        },
-        {
-          "id": 62149,
-          "title": "汪东明到巴马蹲点调研巡视反馈问题整改工作",
-          "url": "detail.html?id=62149",
-          "date": "2026-04-21",
-          "datetime": "2026-04-21 16:23:19",
-          "source": "河池日报",
-          "views": 175,
-          "img": "",
-          "hasBody": true
-        },
-        {
-          "id": 62146,
-          "title": "中央层面整治形式主义为基层减负专项工作机制办公室 中央纪委办公厅公开通报4起整治形式主义为基层减负典型问题",
-          "url": "detail.html?id=62146",
-          "date": "2026-04-21",
-          "datetime": "2026-04-21 16:07:20",
-          "source": "新华社",
-          "views": 164,
-          "img": "",
-          "hasBody": true
-        },
-        {
-          "id": 62144,
-          "title": "我市组织收看广西勤廉榜样先进事迹主题情景报告会实况录像",
-          "url": "detail.html?id=62144",
-          "date": "2026-04-21",
-          "datetime": "2026-04-21 16:00:17",
-          "source": "河池日报",
-          "views": 159,
-          "img": "",
-          "hasBody": true
-        },
-        {
-          "id": 62127,
-          "title": "自治区党委树立和践行正确政绩观学习教育第三督导组进驻河池",
-          "url": "detail.html?id=62127",
+          "id": 62123,
+          "title": "南丹政协：37件立案提案集中交办落地",
+          "url": "detail.html?id=62123",
           "date": "2026-04-16",
-          "datetime": "2026-04-16 15:24:03",
+          "datetime": "2026-04-16 15:04:52",
           "source": "河池日报",
-          "views": 1916,
+          "views": 2290,
           "img": "",
           "hasBody": true
         },
         {
-          "id": 62126,
-          "title": "统筹建好“两个生态” 推动“十五五”开好局起好步",
-          "url": "detail.html?id=62126",
-          "date": "2026-04-16",
-          "datetime": "2026-04-16 15:20:43",
-          "source": "河池日报",
-          "views": 1659,
-          "img": "",
-          "hasBody": true
-        },
-        {
-          "id": 62125,
-          "title": "河池市2026年全民国家安全教育日主题活动举行",
-          "url": "detail.html?id=62125",
-          "date": "2026-04-16",
-          "datetime": "2026-04-16 15:14:27",
-          "source": "河池日报",
-          "views": 1873,
-          "img": "",
-          "hasBody": true
-        },
-        {
-          "id": 62124,
-          "title": "汪东明率队赴深圳大学考察交流 加快科研成果转化 助推南丹试验区建设",
-          "url": "detail.html?id=62124",
-          "date": "2026-04-16",
-          "datetime": "2026-04-16 15:09:16",
-          "source": "河池日报",
-          "views": 2671,
-          "img": "",
-          "hasBody": true
-        },
-        {
-          "id": 62097,
-          "title": "秦春成主持召开市委常委会会议 凝聚推动河池高质量发展强大合力",
-          "url": "detail.html?id=62097",
+          "id": 62094,
+          "title": "罗城政协：赴环江考察学习 助推特色产业发展",
+          "url": "detail.html?id=62094",
           "date": "2026-04-14",
-          "datetime": "2026-04-14 11:57:41",
+          "datetime": "2026-04-14 11:48:21",
           "source": "河池日报",
-          "views": 2976,
+          "views": 2475,
           "img": "",
           "hasBody": true
         },
         {
-          "id": 62078,
-          "title": "秦春成到天峨开展历史矛盾纠纷化解并督导调研水库移民后期扶持工作",
-          "url": "detail.html?id=62078",
+          "id": 62076,
+          "title": "“委员+”撬动乡村振兴新引擎——环江毛南族自治县政协书写履职为民新答卷",
+          "url": "detail.html?id=62076",
           "date": "2026-04-10",
-          "datetime": "2026-04-10 11:32:28",
-          "source": "河池日报",
-          "views": 3702,
+          "datetime": "2026-04-10 11:24:35",
+          "source": "广西政协报",
+          "views": 2123,
           "img": "",
           "hasBody": true
         },
         {
-          "id": 62077,
-          "title": "汪东明主持召开市政府常务会议",
-          "url": "detail.html?id=62077",
-          "date": "2026-04-10",
-          "datetime": "2026-04-10 11:28:14",
-          "source": "河池日报",
-          "views": 3369,
+          "id": 61923,
+          "title": "广西河池市天峨县政协助力破解库区移民出行难 提案“筑起”民生桥",
+          "url": "detail.html?id=61923",
+          "date": "2026-03-27",
+          "datetime": "2026-03-27 15:17:10",
+          "source": "人民政协报",
+          "views": 4311,
           "img": "",
           "hasBody": true
         },
         {
-          "id": 62035,
-          "title": "河池以化解历史矛盾践行正确政绩观——把历史旧账变成幸福清单",
-          "url": "detail.html?id=62035",
-          "date": "2026-04-08",
-          "datetime": "2026-04-08 15:45:16",
-          "source": "河池日报",
-          "views": 3878,
+          "id": 61896,
+          "title": "小菜园“种”出邻里情——广西天峨县政协助推搬迁社区构建共建共治共享新格局",
+          "url": "detail.html?id=61896",
+          "date": "2026-03-26",
+          "datetime": "2026-03-26 11:08:35",
+          "source": "人民政协网",
+          "views": 4354,
           "img": "",
           "hasBody": true
         },
         {
-          "id": 62023,
-          "title": "河池市高标准农田建设和农村水利项目突出问题专项巡察工作动员部署会召开",
-          "url": "detail.html?id=62023",
-          "date": "2026-04-07",
-          "datetime": "2026-04-07 15:21:07",
-          "source": "河池日报",
-          "views": 3349,
+          "id": 61845,
+          "title": "广西诗词学会到环江政协文史馆调研",
+          "url": "detail.html?id=61845",
+          "date": "2026-03-23",
+          "datetime": "2026-03-23 11:40:36",
+          "source": "河池日报 3",
+          "views": 5678,
           "img": "",
           "hasBody": true
         },
         {
-          "id": 61997,
-          "title": "秦春成到环江开展历史矛盾纠纷化解工作",
-          "url": "detail.html?id=61997",
-          "date": "2026-04-03",
-          "datetime": "2026-04-03 16:04:13",
+          "id": 61813,
+          "title": "天峨县政协：以提案之力 展政协之为",
+          "url": "detail.html?id=61813",
+          "date": "2026-03-20",
+          "datetime": "2026-03-20 15:22:18",
           "source": "河池日报",
-          "views": 4419,
+          "views": 7560,
           "img": "",
           "hasBody": true
         },
         {
-          "id": 61996,
-          "title": "汪东明以普通党员身份参加市政府办公室第一党支部组织生活会",
-          "url": "detail.html?id=61996",
-          "date": "2026-04-03",
-          "datetime": "2026-04-03 16:00:26",
+          "id": 61777,
+          "title": "政协第十三届都安瑶族自治县委员会第六次会议召开",
+          "url": "detail.html?id=61777",
+          "date": "2026-03-18",
+          "datetime": "2026-03-18 14:57:26",
           "source": "河池日报",
-          "views": 5818,
+          "views": 6944,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61604,
+          "title": "罗城政协：70件提案办复率达100%",
+          "url": "detail.html?id=61604",
+          "date": "2026-03-09",
+          "datetime": "2026-03-09 10:20:15",
+          "source": "河池日报",
+          "views": 7846,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61531,
+          "title": "同心筑梦向未来 团结奋进谱新篇 政协罗城十届六次会议召开",
+          "url": "detail.html?id=61531",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 16:09:15",
+          "source": "河池日报",
+          "views": 8232,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61322,
+          "title": "南丹政协:提案落地有声 履职为民有痕",
+          "url": "detail.html?id=61322",
+          "date": "2026-02-13",
+          "datetime": "2026-02-13 10:31:13",
+          "source": "河池日报",
+          "views": 8891,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61214,
+          "title": "政协南丹县第十届委员会第六次会议召开",
+          "url": "detail.html?id=61214",
+          "date": "2026-02-06",
+          "datetime": "2026-02-06 16:00:39",
+          "source": "河池日报",
+          "views": 9108,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61085,
+          "title": "罗城仫佬族自治县政协十届二十八次常委会议侧记",
+          "url": "detail.html?id=61085",
+          "date": "2026-01-29",
+          "datetime": "2026-01-29 15:27:09",
+          "source": "罗城政协网",
+          "views": 9365,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61034,
+          "title": "政协第十届天峨县委员会第六次会议开幕",
+          "url": "detail.html?id=61034",
+          "date": "2026-01-26",
+          "datetime": "2026-01-26 15:21:35",
+          "source": "天峨政协网",
+          "views": 9336,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60914,
+          "title": "南丹县政协为专业化队伍建设“把脉开方”",
+          "url": "detail.html?id=60914",
+          "date": "2026-01-19",
+          "datetime": "2026-01-19 14:48:56",
+          "source": "广西政协报",
+          "views": 9428,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60883,
+          "title": "环江毛南族自治县政协助解移民社区照明问题",
+          "url": "detail.html?id=60883",
+          "date": "2026-01-16",
+          "datetime": "2026-01-16 15:42:08",
+          "source": "广西政协报",
+          "views": 9601,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60772,
+          "title": "罗城仫佬族自治县政协推动履职提质增效侧记",
+          "url": "detail.html?id=60772",
+          "date": "2026-01-08",
+          "datetime": "2026-01-08 16:19:25",
+          "source": "广西政协报",
+          "views": 9801,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60736,
+          "title": "服务中心献良策 履职担当促发展 罗城政协获评全区政协履职提质增效先进集体",
+          "url": "detail.html?id=60736",
+          "date": "2026-01-06",
+          "datetime": "2026-01-06 15:20:43",
+          "source": "河池日报",
+          "views": 9811,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60735,
+          "title": "协商在现场 落实有回响 环江政协推动解决搬迁社区路灯不亮难题",
+          "url": "detail.html?id=60735",
+          "date": "2026-01-06",
+          "datetime": "2026-01-06 15:16:09",
+          "source": "河池日报",
+          "views": 9796,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60621,
+          "title": "为瑶山文旅添彩赋能——都安瑶族自治县政协助力全域旅游提质增效侧记",
+          "url": "detail.html?id=60621",
+          "date": "2025-12-29",
+          "datetime": "2025-12-29 16:39:26",
+          "source": "广西政协报",
+          "views": 10111,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60620,
+          "title": "从“出行难”到“抬脚就走”——天峨县“最后一公里”畅通背后的“政协温度”",
+          "url": "detail.html?id=60620",
+          "date": "2025-12-29",
+          "datetime": "2025-12-29 16:36:55",
+          "source": "广西政协报",
+          "views": 10149,
           "img": "",
           "hasBody": true
         }
       ]
     },
     {
+      "type": "401",
+      "columnId": "401",
+      "slug": "zhengxie-huiyi",
+      "name": "政协会议",
+      "inner": "全体会议",
+      "intro": "发布市政协全体会议、常委会议、主席会议及其它会议的议程与报道。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "401",
+          "name": "全体会议",
+          "url": "channel.html?id=401"
+        },
+        {
+          "type": "402",
+          "name": "常委会议",
+          "url": "channel.html?id=402"
+        },
+        {
+          "type": "403",
+          "name": "主席会议",
+          "url": "channel.html?id=403"
+        },
+        {
+          "type": "404",
+          "name": "其它会议",
+          "url": "channel.html?id=404"
+        }
+      ],
+      "total": 6,
+      "list": [
+        {
+          "id": 61578,
+          "title": "市政协五届六次会议胜利闭幕 秦春成黄锦锋黎丽出席 黄恩讲话",
+          "url": "detail.html?id=61578",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 23:29:06",
+          "source": "河池融媒客户端",
+          "views": 8200,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61454,
+          "title": "市政协五届六次会议开幕",
+          "url": "detail.html?id=61454",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 09:44:40",
+          "source": "河池融媒",
+          "views": 8253,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 55740,
+          "title": "市政协五届三次会议胜利闭幕",
+          "url": "detail.html?id=55740",
+          "date": "2023-02-10",
+          "datetime": "2023-02-10 12:20:12",
+          "source": "河池日报",
+          "views": 35385,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 55739,
+          "title": "政协第五届河池市委员会第三次会议开幕",
+          "url": "detail.html?id=55739",
+          "date": "2023-02-08",
+          "datetime": "2023-02-08 13:39:06",
+          "source": "河池日报",
+          "views": 35313,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 45091,
+          "title": "政协第五届河池市委员会第一次会议选出新领导班子",
+          "url": "detail.html?id=45091",
+          "date": "2021-10-14",
+          "datetime": "2021-10-14 16:37:38",
+          "source": "河池日报APP",
+          "views": 142818,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 45089,
+          "title": "市政协五届一次会议举行全体政协委员培训会",
+          "url": "detail.html?id=45089",
+          "date": "2021-10-12",
+          "datetime": "2021-10-12 16:34:04",
+          "source": "河池日报APP",
+          "views": 142334,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "402",
+      "columnId": "401",
+      "slug": "zhengxie-huiyi",
+      "name": "政协会议",
+      "inner": "常委会议",
+      "intro": "发布市政协全体会议、常委会议、主席会议及其它会议的议程与报道。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "401",
+          "name": "全体会议",
+          "url": "channel.html?id=401"
+        },
+        {
+          "type": "402",
+          "name": "常委会议",
+          "url": "channel.html?id=402"
+        },
+        {
+          "type": "403",
+          "name": "主席会议",
+          "url": "channel.html?id=403"
+        },
+        {
+          "type": "404",
+          "name": "其它会议",
+          "url": "channel.html?id=404"
+        }
+      ],
+      "total": 4,
+      "list": [
+        {
+          "id": 60666,
+          "title": "政协第五届河池市委员会常务委员会第十九次会议在宜州召开",
+          "url": "detail.html?id=60666",
+          "date": "2025-12-31",
+          "datetime": "2025-12-31 16:15:33",
+          "source": "河池融媒客户端",
+          "views": 9656,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 59114,
+          "title": "市政协五届常委会第十八次会议召开 强化担当作为 精准建言促发展",
+          "url": "detail.html?id=59114",
+          "date": "2025-09-30",
+          "datetime": "2025-09-30 16:28:40",
+          "source": "河池日报",
+          "views": 15893,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 57717,
+          "title": "市政协五届常委会第十七次会议召开 建言献策惠民生 凝心聚力谋发展",
+          "url": "detail.html?id=57717",
+          "date": "2025-06-27",
+          "datetime": "2025-06-27 15:48:32",
+          "source": "河池日报",
+          "views": 20669,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 47700,
+          "title": "政协第五届河池市委员会常务委员会第九次会议召开",
+          "url": "detail.html?id=47700",
+          "date": "2023-05-31",
+          "datetime": "2023-05-31 10:40:09",
+          "source": "河池日报",
+          "views": 121760,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "403",
+      "columnId": "401",
+      "slug": "zhengxie-huiyi",
+      "name": "政协会议",
+      "inner": "主席会议",
+      "intro": "发布市政协全体会议、常委会议、主席会议及其它会议的议程与报道。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "401",
+          "name": "全体会议",
+          "url": "channel.html?id=401"
+        },
+        {
+          "type": "402",
+          "name": "常委会议",
+          "url": "channel.html?id=402"
+        },
+        {
+          "type": "403",
+          "name": "主席会议",
+          "url": "channel.html?id=403"
+        },
+        {
+          "type": "404",
+          "name": "其它会议",
+          "url": "channel.html?id=404"
+        }
+      ],
+      "total": 13,
+      "list": [
+        {
+          "id": 61598,
+          "title": "市政协党组（扩大）会议暨五届60次主席会议召开",
+          "url": "detail.html?id=61598",
+          "date": "2026-03-06",
+          "datetime": "2026-03-06 12:11:09",
+          "source": "河池日报",
+          "views": 7762,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60957,
+          "title": "市政协五届57次主席会议召开",
+          "url": "detail.html?id=60957",
+          "date": "2026-01-21",
+          "datetime": "2026-01-21 15:10:42",
+          "source": "河池融媒客户端",
+          "views": 11643,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60537,
+          "title": "河池市政协五届55次主席会议召开",
+          "url": "detail.html?id=60537",
+          "date": "2025-12-24",
+          "datetime": "2025-12-24 11:54:36",
+          "source": "河池融媒客户端",
+          "views": 11051,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 59882,
+          "title": "市政协五届54次主席会议举行 以高质量履职助推“六新河池”建设",
+          "url": "detail.html?id=59882",
+          "date": "2025-11-19",
+          "datetime": "2025-11-19 11:17:06",
+          "source": "河池日报",
+          "views": 12520,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 59018,
+          "title": "政协第五届河池市委员会第51次主席会议召开",
+          "url": "detail.html?id=59018",
+          "date": "2025-09-24",
+          "datetime": "2025-09-24 15:24:52",
+          "source": "河池日报",
+          "views": 15980,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 58229,
+          "title": "政协第五届河池市委员会第50次主席会议召开 在增进民生福祉上展现新作为",
+          "url": "detail.html?id=58229",
+          "date": "2025-07-31",
+          "datetime": "2025-07-31 15:29:46",
+          "source": "河池日报",
+          "views": 19160,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 57674,
+          "title": "市政协五届48次主席会议召开 为科学编制“十五五”规划建言献策",
+          "url": "detail.html?id=57674",
+          "date": "2025-06-25",
+          "datetime": "2025-06-25 16:47:48",
+          "source": "河池日报",
+          "views": 20606,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 57066,
+          "title": "市政协五届47次主席会议要求 以履职之效彰显政协担当",
+          "url": "detail.html?id=57066",
+          "date": "2025-05-06",
+          "datetime": "2025-05-06 16:19:05",
+          "source": "河池日报",
+          "views": 26271,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56970,
+          "title": "市政协五届46次主席会议召开 扎实推进政协各项重点工作",
+          "url": "detail.html?id=56970",
+          "date": "2025-04-23",
+          "datetime": "2025-04-23 15:36:16",
+          "source": "河池日报",
+          "views": 26288,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 55340,
+          "title": "市政协五届42次主席会议召开 努力推动政协 履职工作迈上新台阶",
+          "url": "detail.html?id=55340",
+          "date": "2025-01-07",
+          "datetime": "2025-01-07 11:50:04",
+          "source": "河池日报",
+          "views": 36528,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 51621,
+          "title": "市政协五届36次主席会议要求 提高政协履职整体质效 干出新时代人民政协新样子",
+          "url": "detail.html?id=51621",
+          "date": "2024-04-18",
+          "datetime": "2024-04-18 16:53:01",
+          "source": "河池日报",
+          "views": 73321,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 47699,
+          "title": "市政协五届27次主席会议要求 提升政协工作质效 助力“六新河池”建设",
+          "url": "detail.html?id=47699",
+          "date": "2023-07-26",
+          "datetime": "2023-07-26 10:39:11",
+          "source": "河池日报",
+          "views": 121856,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 45088,
+          "title": "市政协五届17次主席会议召开 不断夯实多党合作的 共同思想政治基础",
+          "url": "detail.html?id=45088",
+          "date": "2022-12-27",
+          "datetime": "2022-12-27 17:30:39",
+          "source": "河池日报",
+          "views": 141538,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "404",
+      "columnId": "401",
+      "slug": "zhengxie-huiyi",
+      "name": "政协会议",
+      "inner": "其它会议",
+      "intro": "发布市政协全体会议、常委会议、主席会议及其它会议的议程与报道。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "401",
+          "name": "全体会议",
+          "url": "channel.html?id=401"
+        },
+        {
+          "type": "402",
+          "name": "常委会议",
+          "url": "channel.html?id=402"
+        },
+        {
+          "type": "403",
+          "name": "主席会议",
+          "url": "channel.html?id=403"
+        },
+        {
+          "type": "404",
+          "name": "其它会议",
+          "url": "channel.html?id=404"
+        }
+      ],
+      "total": 34,
+      "list": [
+        {
+          "id": 62022,
+          "title": "市政协党组、机关党组举行开展树立和践行正确政绩观学习教育读书班暨理论学习中心组2026年第1次专题学习会",
+          "url": "detail.html?id=62022",
+          "date": "2026-04-07",
+          "datetime": "2026-04-07 15:16:14",
+          "source": "河池融媒客户端",
+          "views": 2084,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61880,
+          "title": "市政协党组（扩大）会议召开 传达全国两会精神 部署贯彻落实工作",
+          "url": "detail.html?id=61880",
+          "date": "2026-03-25",
+          "datetime": "2026-03-25 16:20:46",
+          "source": "河池日报",
+          "views": 4003,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61674,
+          "title": "河池市政协党组（扩大）会议召开",
+          "url": "detail.html?id=61674",
+          "date": "2026-03-12",
+          "datetime": "2026-03-12 15:11:17",
+          "source": "河池融媒客户端",
+          "views": 6943,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61599,
+          "title": "市政协党组（扩大）会议暨五届60次主席会议召开",
+          "url": "detail.html?id=61599",
+          "date": "2026-03-06",
+          "datetime": "2026-03-06 12:14:37",
+          "source": "河池日报",
+          "views": 6905,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61403,
+          "title": "市政协党组班子召开2025年度民主生活会暨蓝天立案以案促改、中央巡视整改专题民主生活会",
+          "url": "detail.html?id=61403",
+          "date": "2026-02-24",
+          "datetime": "2026-02-24 15:55:43",
+          "source": "河池日报",
+          "views": 6872,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60961,
+          "title": "黄恩主持召开市政协党组会议 传达学习上级相关精神 部署安排近期主要工作",
+          "url": "detail.html?id=60961",
+          "date": "2026-01-21",
+          "datetime": "2026-01-21 15:21:48",
+          "source": "河池日报",
+          "views": 7041,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60451,
+          "title": "河池市政协召开理论研讨会",
+          "url": "detail.html?id=60451",
+          "date": "2025-12-18",
+          "datetime": "2025-12-18 16:32:52",
+          "source": "市政协办",
+          "views": 7033,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60071,
+          "title": "市政协党组、机关党组理论学习中心组2025年第五次集中学习会召开",
+          "url": "detail.html?id=60071",
+          "date": "2025-12-01",
+          "datetime": "2025-12-01 15:29:43",
+          "source": "河池日报",
+          "views": 8787,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 59498,
+          "title": "市政协党组（扩大）会议召开",
+          "url": "detail.html?id=59498",
+          "date": "2025-10-31",
+          "datetime": "2025-10-31 11:17:17",
+          "source": "河池融媒客户端",
+          "views": 8829,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 59458,
+          "title": "市政协召开专题界别协商会 凝聚协商力量 赋能技艺传承",
+          "url": "detail.html?id=59458",
+          "date": "2025-10-30",
+          "datetime": "2025-10-30 17:31:39",
+          "source": "河池日报",
+          "views": 8791,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 59295,
+          "title": "市政协“加强普惠育幼服务体系建设，推动我市托育服务高质量发展”对口协商会召开",
+          "url": "detail.html?id=59295",
+          "date": "2025-10-20",
+          "datetime": "2025-10-20 15:22:30",
+          "source": "河池网-河池新闻（2025年10月17日）",
+          "views": 8735,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 58925,
+          "title": "市政协党组（扩大）会议召开 推进作风建设常态化长效化",
+          "url": "detail.html?id=58925",
+          "date": "2025-09-17",
+          "datetime": "2025-09-17 16:17:01",
+          "source": "河池日报",
+          "views": 10644,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 58161,
+          "title": "市政协党组召开会议听取市政协深入贯彻中央八项规定精神学习教育进展情况汇报",
+          "url": "detail.html?id=58161",
+          "date": "2025-07-28",
+          "datetime": "2025-07-28 16:03:26",
+          "source": "河池日报",
+          "views": 14081,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 58092,
+          "title": "市政协党组、机关党组深入贯彻中央八项规定精神学习教育集中研讨暨理论学习中心组2025年第三次专题学习会召开",
+          "url": "detail.html?id=58092",
+          "date": "2025-07-24",
+          "datetime": "2025-07-24 15:41:03",
+          "source": "河池日报",
+          "views": 14070,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 57714,
+          "title": "市政协“科学推进矿山生态环境修复治理，助力河池绿色发展先行试验区建设”对口协商会召开",
+          "url": "detail.html?id=57714",
+          "date": "2025-06-27",
+          "datetime": "2025-06-27 12:36:35",
+          "source": "河池网-河池新闻（2025年6月21日）",
+          "views": 14095,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 57665,
+          "title": "市政协及机关深入贯彻中央八项规定精神学习教育警示教育会召开",
+          "url": "detail.html?id=57665",
+          "date": "2025-06-23",
+          "datetime": "2025-06-23 16:21:31",
+          "source": "河池日报",
+          "views": 14103,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 57247,
+          "title": "市政协党组召开扩大会议",
+          "url": "detail.html?id=57247",
+          "date": "2025-05-19",
+          "datetime": "2025-05-19 16:19:23",
+          "source": "河池日报",
+          "views": 18382,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 57069,
+          "title": "为河池进一步全面深化改革 贡献政协智慧力量",
+          "url": "detail.html?id=57069",
+          "date": "2025-05-06",
+          "datetime": "2025-05-06 16:32:03",
+          "source": "河池日报",
+          "views": 19604,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56864,
+          "title": "市政协提案法制委员会全体会议暨“加强基层群众自治制度建设 助力乡村全面振兴”专题研讨会召开",
+          "url": "detail.html?id=56864",
+          "date": "2025-04-16",
+          "datetime": "2025-04-16 15:36:34",
+          "source": "河池网-河池新闻（2025年4月18日）",
+          "views": 19519,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56801,
+          "title": "市政协党组深入贯彻中央八项规定精神学习教育读书班暨理论学习中心组2025年第1次专题学习交流研讨会召开",
+          "url": "detail.html?id=56801",
+          "date": "2025-04-10",
+          "datetime": "2025-04-10 14:53:44",
+          "source": "河池日报",
+          "views": 19720,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56712,
+          "title": "全市政协农业和农村委员会工作座谈会暨2028年“乡村振兴 委员行动”工作推进会召开",
+          "url": "detail.html?id=56712",
+          "date": "2025-04-07",
+          "datetime": "2025-04-07 16:43:38",
+          "source": "河池网-河池新闻",
+          "views": 19733,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56648,
+          "title": "市政协“科教振兴 委员行动”工作交流会召开",
+          "url": "detail.html?id=56648",
+          "date": "2025-04-02",
+          "datetime": "2025-04-02 16:30:35",
+          "source": "河池网-河池新闻",
+          "views": 19661,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56623,
+          "title": "河池市政协文化文史和学习委员会全体委员会议召开",
+          "url": "detail.html?id=56623",
+          "date": "2025-03-28",
+          "datetime": "2025-03-28 12:39:03",
+          "source": "河池网-河池新闻",
+          "views": 19664,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56582,
+          "title": "我市安排部署2025年政协民族宗教委员会工作",
+          "url": "detail.html?id=56582",
+          "date": "2025-03-26",
+          "datetime": "2025-03-26 16:49:44",
+          "source": "河池网-河池新闻",
+          "views": 19686,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "307",
+      "columnId": "307",
+      "slug": "guizhang-zhidu",
+      "name": "规章制度",
+      "inner": "规章制度",
+      "intro": "汇集政协工作相关规章、制度与规范性文件。",
+      "layout": "list",
+      "siblings": [],
+      "total": 0,
+      "list": []
+    },
+    {
+      "type": "501",
+      "columnId": "501",
+      "slug": "zhengxie-tian",
+      "name": "政协提案",
+      "inner": "提案工作",
+      "intro": "反映提案工作动态，提供提案查询、答复与督办情况。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "501",
+          "name": "提案工作",
+          "url": "channel.html?id=501"
+        },
+        {
+          "type": "502",
+          "name": "提案查询",
+          "url": "channel.html?id=502"
+        },
+        {
+          "type": "503",
+          "name": "提案答复",
+          "url": "channel.html?id=503"
+        },
+        {
+          "type": "504",
+          "name": "提案督办",
+          "url": "channel.html?id=504"
+        }
+      ],
+      "total": 0,
+      "list": []
+    },
+    {
+      "type": "502",
+      "columnId": "501",
+      "slug": "zhengxie-tian",
+      "name": "政协提案",
+      "inner": "提案查询",
+      "intro": "反映提案工作动态，提供提案查询、答复与督办情况。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "501",
+          "name": "提案工作",
+          "url": "channel.html?id=501"
+        },
+        {
+          "type": "502",
+          "name": "提案查询",
+          "url": "channel.html?id=502"
+        },
+        {
+          "type": "503",
+          "name": "提案答复",
+          "url": "channel.html?id=503"
+        },
+        {
+          "type": "504",
+          "name": "提案督办",
+          "url": "channel.html?id=504"
+        }
+      ],
+      "total": 0,
+      "list": []
+    },
+    {
+      "type": "503",
+      "columnId": "501",
+      "slug": "zhengxie-tian",
+      "name": "政协提案",
+      "inner": "提案答复",
+      "intro": "反映提案工作动态，提供提案查询、答复与督办情况。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "501",
+          "name": "提案工作",
+          "url": "channel.html?id=501"
+        },
+        {
+          "type": "502",
+          "name": "提案查询",
+          "url": "channel.html?id=502"
+        },
+        {
+          "type": "503",
+          "name": "提案答复",
+          "url": "channel.html?id=503"
+        },
+        {
+          "type": "504",
+          "name": "提案督办",
+          "url": "channel.html?id=504"
+        }
+      ],
+      "total": 0,
+      "list": []
+    },
+    {
+      "type": "504",
+      "columnId": "501",
+      "slug": "zhengxie-tian",
+      "name": "政协提案",
+      "inner": "提案督办",
+      "intro": "反映提案工作动态，提供提案查询、答复与督办情况。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "501",
+          "name": "提案工作",
+          "url": "channel.html?id=501"
+        },
+        {
+          "type": "502",
+          "name": "提案查询",
+          "url": "channel.html?id=502"
+        },
+        {
+          "type": "503",
+          "name": "提案答复",
+          "url": "channel.html?id=503"
+        },
+        {
+          "type": "504",
+          "name": "提案督办",
+          "url": "channel.html?id=504"
+        }
+      ],
+      "total": 0,
+      "list": []
+    },
+    {
+      "type": "310",
+      "columnId": "310",
+      "slug": "sheqing-minyi",
+      "name": "社情民意",
+      "inner": "社情民意",
+      "intro": "汇集委员反映的社情民意信息与意见建议。",
+      "layout": "list",
+      "siblings": [],
+      "total": 7,
+      "list": [
+        {
+          "id": 44794,
+          "title": "关于在金宜一级路沿线两侧全程安装太阳能路灯和安全提示牌的建议",
+          "url": "detail.html?id=44794",
+          "date": "2022-12-02",
+          "datetime": "2022-12-02 13:51:56",
+          "source": "河池政协网",
+          "views": 142062,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 44793,
+          "title": "关于加快宜州龙溪路非机动车道修缮进度并在其畅通后再行交通执法的建议",
+          "url": "detail.html?id=44793",
+          "date": "2022-07-28",
+          "datetime": "2022-07-28 13:50:03",
+          "source": "河池政协网",
+          "views": 142467,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 44792,
+          "title": "关于进一步深化市本级检验检测机构改革整合的建议",
+          "url": "detail.html?id=44792",
+          "date": "2022-07-13",
+          "datetime": "2022-07-13 13:47:49",
+          "source": "河池政协网",
+          "views": 143342,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 44791,
+          "title": "关于改扩建刘三姐大道与金山大道连接路段道路的建议",
+          "url": "detail.html?id=44791",
+          "date": "2022-06-18",
+          "datetime": "2022-06-18 13:42:47",
+          "source": "河池政协网",
+          "views": 142593,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 44790,
+          "title": "关于调整完善宜州城区道路交通标线的建议",
+          "url": "detail.html?id=44790",
+          "date": "2022-04-29",
+          "datetime": "2022-04-29 13:39:50",
+          "source": "河池政协网",
+          "views": 142448,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 44789,
+          "title": "关于加快推进宜州新区金山湖文化生态片区建设的建议",
+          "url": "detail.html?id=44789",
+          "date": "2022-03-26",
+          "datetime": "2022-03-26 13:37:25",
+          "source": "河池政协网",
+          "views": 144370,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 44788,
+          "title": "关于加强安置小区从前期物业服务过渡到正常物业服务的工作建议",
+          "url": "detail.html?id=44788",
+          "date": "2022-01-25",
+          "datetime": "2022-01-25 13:32:21",
+          "source": "河池政协网",
+          "views": 142047,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "308",
+      "columnId": "308",
+      "slug": "zhuanweihui-gongzuo",
+      "name": "专委会工作",
+      "inner": "专委会工作",
+      "intro": "展示各专门委员会调研、视察与协商议政工作。",
+      "layout": "list",
+      "siblings": [],
+      "total": 32,
+      "list": [
+        {
+          "id": 60368,
+          "title": "河池市政协召开2025年提案办理评议工作会议",
+          "url": "detail.html?id=60368",
+          "date": "2025-12-15",
+          "datetime": "2025-12-15 11:40:32",
+          "source": "市政协办",
+          "views": 10502,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60319,
+          "title": "2025年河池市政协民族宗教委员会工作座谈会召开",
+          "url": "detail.html?id=60319",
+          "date": "2025-12-12",
+          "datetime": "2025-12-12 16:38:21",
+          "source": "河池融媒客户端",
+          "views": 12293,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60316,
+          "title": "2025年市政协文化文史和学习委员会召开工作座谈会",
+          "url": "detail.html?id=60316",
+          "date": "2025-12-12",
+          "datetime": "2025-12-12 16:28:44",
+          "source": "河池日报",
+          "views": 12933,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60286,
+          "title": "2025年河池市政协外事联谊委员会工作座谈会在宜州召开",
+          "url": "detail.html?id=60286",
+          "date": "2025-12-11",
+          "datetime": "2025-12-11 17:51:24",
+          "source": "市政协办",
+          "views": 11836,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60285,
+          "title": "市政协经济和资源环境委员会召开工作座谈会",
+          "url": "detail.html?id=60285",
+          "date": "2025-12-11",
+          "datetime": "2025-12-11 17:48:33",
+          "source": "市政协办",
+          "views": 11979,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60284,
+          "title": "2025年市政协农业和农村委、研究室、委员联络办工作座谈会召开",
+          "url": "detail.html?id=60284",
+          "date": "2025-12-11",
+          "datetime": "2025-12-11 17:45:55",
+          "source": "市政协办",
+          "views": 12166,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60283,
+          "title": "市政协召开2025年提案法制工作座谈交流会",
+          "url": "detail.html?id=60283",
+          "date": "2025-12-11",
+          "datetime": "2025-12-11 17:42:12",
+          "source": "市政协办",
+          "views": 12505,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60282,
+          "title": "市政协教科卫体委召开2025年工作座谈会",
+          "url": "detail.html?id=60282",
+          "date": "2025-12-11",
+          "datetime": "2025-12-11 17:39:03",
+          "source": "市政协办",
+          "views": 12509,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 58087,
+          "title": "市政协各专委（室）工作开展情况交流会召开",
+          "url": "detail.html?id=58087",
+          "date": "2025-07-24",
+          "datetime": "2025-07-24 15:28:36",
+          "source": "河池日报",
+          "views": 21427,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56865,
+          "title": "市政协提案法制委员会全体会议暨“加强基层群众自治制度建设 助力乡村全面振兴”专题研讨会召开",
+          "url": "detail.html?id=56865",
+          "date": "2025-04-16",
+          "datetime": "2025-04-16 15:40:57",
+          "source": "河池网-河池新闻（2025年4月18日）",
+          "views": 27039,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56711,
+          "title": "全市政协农业和农村委员会工作座谈会暨2027年“乡村振兴 委员行动”工作推进会召开",
+          "url": "detail.html?id=56711",
+          "date": "2025-04-07",
+          "datetime": "2025-04-07 16:40:19",
+          "source": "河池网-河池新闻",
+          "views": 26880,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56649,
+          "title": "市政协“科教振兴 委员行动”工作交流会召开",
+          "url": "detail.html?id=56649",
+          "date": "2025-04-02",
+          "datetime": "2025-04-02 16:34:28",
+          "source": "河池网-河池新闻",
+          "views": 28538,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56624,
+          "title": "河池市政协文化文史和学习委员会全体委员会议召开",
+          "url": "detail.html?id=56624",
+          "date": "2025-03-28",
+          "datetime": "2025-03-28 12:43:13",
+          "source": "河池网-河池新闻",
+          "views": 27955,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56585,
+          "title": "我市安排部署2025年政协民族宗教委员会工作",
+          "url": "detail.html?id=56585",
+          "date": "2025-03-26",
+          "datetime": "2025-03-26 16:59:17",
+          "source": "河池网-河池新闻",
+          "views": 32139,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56584,
+          "title": "2025年市政协经济和资源环境委员会全体委员会议召开",
+          "url": "detail.html?id=56584",
+          "date": "2025-03-26",
+          "datetime": "2025-03-26 16:56:28",
+          "source": "河池网-河池新闻",
+          "views": 27441,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56583,
+          "title": "河池市政协外事联谊委全体委员会议在宜州召开",
+          "url": "detail.html?id=56583",
+          "date": "2025-03-26",
+          "datetime": "2025-03-26 16:53:57",
+          "source": "河池网-河池新闻",
+          "views": 28177,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56032,
+          "title": "市政协办公室2024年工作总结",
+          "url": "detail.html?id=56032",
+          "date": "2025-02-21",
+          "datetime": "2025-02-21 11:09:21",
+          "source": "市政协办",
+          "views": 33568,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56031,
+          "title": "市政协提案法制委员会2024年工作总结",
+          "url": "detail.html?id=56031",
+          "date": "2025-02-21",
+          "datetime": "2025-02-21 11:02:53",
+          "source": "市政协办",
+          "views": 34376,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56030,
+          "title": "市政协经济和资源环境委员会2024年工作总结",
+          "url": "detail.html?id=56030",
+          "date": "2025-02-21",
+          "datetime": "2025-02-21 10:57:26",
+          "source": "市政协办",
+          "views": 32807,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56029,
+          "title": "市政协农业和农村委员会2024年工作总结",
+          "url": "detail.html?id=56029",
+          "date": "2025-02-21",
+          "datetime": "2025-02-21 10:51:58",
+          "source": "市政协办",
+          "views": 33203,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56028,
+          "title": "市政协教科卫体委员会2024年工作总结",
+          "url": "detail.html?id=56028",
+          "date": "2025-02-21",
+          "datetime": "2025-02-21 10:44:37",
+          "source": "市政协办",
+          "views": 33023,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56027,
+          "title": "市政协民族宗教委员会2024年工作总结",
+          "url": "detail.html?id=56027",
+          "date": "2025-02-21",
+          "datetime": "2025-02-21 10:40:47",
+          "source": "市政协办",
+          "views": 32828,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56026,
+          "title": "市政协外事联谊委员会2024年工作总结",
+          "url": "detail.html?id=56026",
+          "date": "2025-02-21",
+          "datetime": "2025-02-21 10:35:49",
+          "source": "市政协办",
+          "views": 32242,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56025,
+          "title": "市政协文化文史和学习委员会2024年工作总结",
+          "url": "detail.html?id=56025",
+          "date": "2025-02-21",
+          "datetime": "2025-02-21 10:30:54",
+          "source": "市政协办",
+          "views": 32806,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "601",
+      "columnId": "601",
+      "slug": "dangpai-tuanti",
+      "name": "党派团体",
+      "inner": "民盟河池市委员会",
+      "intro": "汇聚各民主党派河池市委会、工商联等党派团体的履职动态。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "601",
+          "name": "民盟河池市委员会",
+          "url": "channel.html?id=601"
+        },
+        {
+          "type": "602",
+          "name": "民革河池市委员会",
+          "url": "channel.html?id=602"
+        },
+        {
+          "type": "603",
+          "name": "民进河池市总支部",
+          "url": "channel.html?id=603"
+        },
+        {
+          "type": "604",
+          "name": "河池工商业联合会",
+          "url": "channel.html?id=604"
+        },
+        {
+          "type": "605",
+          "name": "农工党河池市委员会",
+          "url": "channel.html?id=605"
+        },
+        {
+          "type": "606",
+          "name": "民建河池市委员会",
+          "url": "channel.html?id=606"
+        },
+        {
+          "type": "607",
+          "name": "九三学社河池委员会",
+          "url": "channel.html?id=607"
+        }
+      ],
+      "total": 3,
+      "list": [
+        {
+          "id": 60764,
+          "title": "民盟十三届四中全会在京开幕",
+          "url": "detail.html?id=60764",
+          "date": "2026-01-07",
+          "datetime": "2026-01-07 16:22:13",
+          "source": "人民政协报",
+          "views": 9601,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60737,
+          "title": "中国民主同盟河池市第三次代表大会召开",
+          "url": "detail.html?id=60737",
+          "date": "2026-01-06",
+          "datetime": "2026-01-06 15:25:43",
+          "source": "广西民盟微信公众号",
+          "views": 9770,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 52008,
+          "title": "民盟中央调研组来桂开展调研",
+          "url": "detail.html?id=52008",
+          "date": "2024-05-11",
+          "datetime": "2024-05-11 17:31:45",
+          "source": "广西政协报",
+          "views": 71546,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "602",
+      "columnId": "601",
+      "slug": "dangpai-tuanti",
+      "name": "党派团体",
+      "inner": "民革河池市委员会",
+      "intro": "汇聚各民主党派河池市委会、工商联等党派团体的履职动态。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "601",
+          "name": "民盟河池市委员会",
+          "url": "channel.html?id=601"
+        },
+        {
+          "type": "602",
+          "name": "民革河池市委员会",
+          "url": "channel.html?id=602"
+        },
+        {
+          "type": "603",
+          "name": "民进河池市总支部",
+          "url": "channel.html?id=603"
+        },
+        {
+          "type": "604",
+          "name": "河池工商业联合会",
+          "url": "channel.html?id=604"
+        },
+        {
+          "type": "605",
+          "name": "农工党河池市委员会",
+          "url": "channel.html?id=605"
+        },
+        {
+          "type": "606",
+          "name": "民建河池市委员会",
+          "url": "channel.html?id=606"
+        },
+        {
+          "type": "607",
+          "name": "九三学社河池委员会",
+          "url": "channel.html?id=607"
+        }
+      ],
+      "total": 7,
+      "list": [
+        {
+          "id": 60738,
+          "title": "民革河池市第三次代表大会召开 选举产生新一届领导班子",
+          "url": "detail.html?id=60738",
+          "date": "2026-01-06",
+          "datetime": "2026-01-06 15:29:08",
+          "source": "河池日报",
+          "views": 9385,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60569,
+          "title": "巫家世率队到中国—东盟国家人工智能应用合作中心开展学习调研",
+          "url": "detail.html?id=60569",
+          "date": "2025-12-25",
+          "datetime": "2025-12-25 15:35:22",
+          "source": "广西民革微信公众号",
+          "views": 9684,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60464,
+          "title": "庆祝中国民主建国会成立80周年大会举行 李干杰代表中共中央致贺词",
+          "url": "detail.html?id=60464",
+          "date": "2025-12-19",
+          "datetime": "2025-12-19 16:40:16",
+          "source": "人民政协报",
+          "views": 9947,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60463,
+          "title": "民革十四届四中全会在京开幕",
+          "url": "detail.html?id=60463",
+          "date": "2025-12-18",
+          "datetime": "2025-12-18 16:36:23",
+          "source": "人民政协报",
+          "views": 10057,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60401,
+          "title": "民革河池市委会召开专题会议 传达学习中共二十届四中全会精神",
+          "url": "detail.html?id=60401",
+          "date": "2025-11-24",
+          "datetime": "2025-11-24 11:14:45",
+          "source": "广西民革微信公众号",
+          "views": 10331,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 53244,
+          "title": "民革十四届七次中常会在京召开",
+          "url": "detail.html?id=53244",
+          "date": "2024-07-29",
+          "datetime": "2024-07-29 16:33:00",
+          "source": "人民政协报",
+          "views": 61940,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 47958,
+          "title": "聚焦“双碳”目标实现 民革中央理论学习中心组集体学习（扩大）会召开",
+          "url": "detail.html?id=47958",
+          "date": "2023-08-18",
+          "datetime": "2023-08-18 16:37:47",
+          "source": "人民政协报",
+          "views": 120259,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "603",
+      "columnId": "601",
+      "slug": "dangpai-tuanti",
+      "name": "党派团体",
+      "inner": "民进河池市总支部",
+      "intro": "汇聚各民主党派河池市委会、工商联等党派团体的履职动态。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "601",
+          "name": "民盟河池市委员会",
+          "url": "channel.html?id=601"
+        },
+        {
+          "type": "602",
+          "name": "民革河池市委员会",
+          "url": "channel.html?id=602"
+        },
+        {
+          "type": "603",
+          "name": "民进河池市总支部",
+          "url": "channel.html?id=603"
+        },
+        {
+          "type": "604",
+          "name": "河池工商业联合会",
+          "url": "channel.html?id=604"
+        },
+        {
+          "type": "605",
+          "name": "农工党河池市委员会",
+          "url": "channel.html?id=605"
+        },
+        {
+          "type": "606",
+          "name": "民建河池市委员会",
+          "url": "channel.html?id=606"
+        },
+        {
+          "type": "607",
+          "name": "九三学社河池委员会",
+          "url": "channel.html?id=607"
+        }
+      ],
+      "total": 6,
+      "list": [
+        {
+          "id": 60695,
+          "title": "在全国政协新年茶话会上的讲话",
+          "url": "detail.html?id=60695",
+          "date": "2026-01-04",
+          "datetime": "2026-01-04 16:40:14",
+          "source": "人民日报 2026年1月1日 2版",
+          "views": 9451,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60567,
+          "title": "民进中央印发关于学习宣传贯彻中共中央致庆祝民进成立80周年大会的贺词精神的通知",
+          "url": "detail.html?id=60567",
+          "date": "2025-12-25",
+          "datetime": "2025-12-25 15:27:44",
+          "source": "广西民进微信公众号",
+          "views": 9662,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60549,
+          "title": "民进广西区委会机关开展学习贯彻中共二十届四中全会精神第四次专题学习",
+          "url": "detail.html?id=60549",
+          "date": "2025-12-24",
+          "datetime": "2025-12-24 15:39:10",
+          "source": "广西民进微信公众号",
+          "views": 9734,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60396,
+          "title": "民进河池市总支部开展 “送法进校园” 活动 助力青少年法治教育",
+          "url": "detail.html?id=60396",
+          "date": "2025-06-09",
+          "datetime": "2025-06-09 16:43:17",
+          "source": "魅力金城微信公众号",
+          "views": 10507,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60392,
+          "title": "民进河池市总支开展“同心学会史 巾帼绽芳华”三八节主题活动",
+          "url": "detail.html?id=60392",
+          "date": "2025-03-13",
+          "datetime": "2025-03-13 16:34:15",
+          "source": "广西民进微信公众号",
+          "views": 10394,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 55975,
+          "title": "民进广西区十二届四次全会召开",
+          "url": "detail.html?id=55975",
+          "date": "2025-02-19",
+          "datetime": "2025-02-19 10:48:43",
+          "source": "广西政协报",
+          "views": 32262,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "604",
+      "columnId": "601",
+      "slug": "dangpai-tuanti",
+      "name": "党派团体",
+      "inner": "河池工商业联合会",
+      "intro": "汇聚各民主党派河池市委会、工商联等党派团体的履职动态。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "601",
+          "name": "民盟河池市委员会",
+          "url": "channel.html?id=601"
+        },
+        {
+          "type": "602",
+          "name": "民革河池市委员会",
+          "url": "channel.html?id=602"
+        },
+        {
+          "type": "603",
+          "name": "民进河池市总支部",
+          "url": "channel.html?id=603"
+        },
+        {
+          "type": "604",
+          "name": "河池工商业联合会",
+          "url": "channel.html?id=604"
+        },
+        {
+          "type": "605",
+          "name": "农工党河池市委员会",
+          "url": "channel.html?id=605"
+        },
+        {
+          "type": "606",
+          "name": "民建河池市委员会",
+          "url": "channel.html?id=606"
+        },
+        {
+          "type": "607",
+          "name": "九三学社河池委员会",
+          "url": "channel.html?id=607"
+        }
+      ],
+      "total": 3,
+      "list": [
+        {
+          "id": 61643,
+          "title": "市工商联五届五次执委会议召开 促进民营经济行稳致远",
+          "url": "detail.html?id=61643",
+          "date": "2026-03-11",
+          "datetime": "2026-03-11 11:24:04",
+          "source": "河池日报",
+          "views": 7608,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60552,
+          "title": "全国工商联十三届四次执委会议在长沙召开",
+          "url": "detail.html?id=60552",
+          "date": "2025-12-24",
+          "datetime": "2025-12-24 15:50:39",
+          "source": "人民政协报",
+          "views": 9790,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60391,
+          "title": "市工商业联合会五届四次执委会议召开 坚定信心迎挑战 狠抓落实促发展",
+          "url": "detail.html?id=60391",
+          "date": "2025-02-27",
+          "datetime": "2025-02-27 16:31:49",
+          "source": "河池统一战线微信公众号",
+          "views": 10403,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "605",
+      "columnId": "601",
+      "slug": "dangpai-tuanti",
+      "name": "党派团体",
+      "inner": "农工党河池市委员会",
+      "intro": "汇聚各民主党派河池市委会、工商联等党派团体的履职动态。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "601",
+          "name": "民盟河池市委员会",
+          "url": "channel.html?id=601"
+        },
+        {
+          "type": "602",
+          "name": "民革河池市委员会",
+          "url": "channel.html?id=602"
+        },
+        {
+          "type": "603",
+          "name": "民进河池市总支部",
+          "url": "channel.html?id=603"
+        },
+        {
+          "type": "604",
+          "name": "河池工商业联合会",
+          "url": "channel.html?id=604"
+        },
+        {
+          "type": "605",
+          "name": "农工党河池市委员会",
+          "url": "channel.html?id=605"
+        },
+        {
+          "type": "606",
+          "name": "民建河池市委员会",
+          "url": "channel.html?id=606"
+        },
+        {
+          "type": "607",
+          "name": "九三学社河池委员会",
+          "url": "channel.html?id=607"
+        }
+      ],
+      "total": 3,
+      "list": [
+        {
+          "id": 60566,
+          "title": "蒋和生参加自治区党外人士座谈会暨经济工作专题协商会并建言",
+          "url": "detail.html?id=60566",
+          "date": "2025-12-25",
+          "datetime": "2025-12-25 15:23:05",
+          "source": "广西农工微信公众号",
+          "views": 9676,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60548,
+          "title": "蒋和生主委在农工党中央思想政治工作会议上作经验交流发言",
+          "url": "detail.html?id=60548",
+          "date": "2025-12-24",
+          "datetime": "2025-12-24 15:34:49",
+          "source": "广西农工微信公众号",
+          "views": 9749,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60524,
+          "title": "农工党十七届四中全会在京召开",
+          "url": "detail.html?id=60524",
+          "date": "2025-12-22",
+          "datetime": "2025-12-22 15:38:48",
+          "source": "人民政协报",
+          "views": 9754,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "606",
+      "columnId": "601",
+      "slug": "dangpai-tuanti",
+      "name": "党派团体",
+      "inner": "民建河池市委员会",
+      "intro": "汇聚各民主党派河池市委会、工商联等党派团体的履职动态。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "601",
+          "name": "民盟河池市委员会",
+          "url": "channel.html?id=601"
+        },
+        {
+          "type": "602",
+          "name": "民革河池市委员会",
+          "url": "channel.html?id=602"
+        },
+        {
+          "type": "603",
+          "name": "民进河池市总支部",
+          "url": "channel.html?id=603"
+        },
+        {
+          "type": "604",
+          "name": "河池工商业联合会",
+          "url": "channel.html?id=604"
+        },
+        {
+          "type": "605",
+          "name": "农工党河池市委员会",
+          "url": "channel.html?id=605"
+        },
+        {
+          "type": "606",
+          "name": "民建河池市委员会",
+          "url": "channel.html?id=606"
+        },
+        {
+          "type": "607",
+          "name": "九三学社河池委员会",
+          "url": "channel.html?id=607"
+        }
+      ],
+      "total": 14,
+      "list": [
+        {
+          "id": 61848,
+          "title": "民建广西区委：2025年参政履职与社会服务双丰收",
+          "url": "detail.html?id=61848",
+          "date": "2026-03-23",
+          "datetime": "2026-03-23 11:50:29",
+          "source": "广西日报",
+          "views": 5563,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60811,
+          "title": "凝心铸魂担使命 履职尽责促发展——民建中央2025年工作综述",
+          "url": "detail.html?id=60811",
+          "date": "2026-01-12",
+          "datetime": "2026-01-12 16:32:45",
+          "source": "人民政协报",
+          "views": 9280,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60741,
+          "title": "民建十二届四中全会在京开幕",
+          "url": "detail.html?id=60741",
+          "date": "2026-01-06",
+          "datetime": "2026-01-06 15:41:22",
+          "source": "人民日报",
+          "views": 9390,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60568,
+          "title": "广西民建建华课堂举办“从‘人力密集’到‘智能增效’”讲座",
+          "url": "detail.html?id=60568",
+          "date": "2025-12-25",
+          "datetime": "2025-12-25 15:31:56",
+          "source": "广西民建微信公众号",
+          "views": 9739,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60551,
+          "title": "民建广西区直同建支部开展中共二十届四中全会精神学习沙龙",
+          "url": "detail.html?id=60551",
+          "date": "2025-12-24",
+          "datetime": "2025-12-24 15:46:08",
+          "source": "广西民建微信公众号",
+          "views": 9758,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60550,
+          "title": "民建广西区委“两个健康”服务团走进会员企业广西极光蓝科技有限公司",
+          "url": "detail.html?id=60550",
+          "date": "2025-12-24",
+          "datetime": "2025-12-24 15:42:25",
+          "source": "广西民建微信公众号",
+          "views": 9740,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60519,
+          "title": "喜讯！民建河池市总支部荣获“全国先进集体”称号",
+          "url": "detail.html?id=60519",
+          "date": "2025-12-22",
+          "datetime": "2025-12-22 15:17:31",
+          "source": "河池融媒客户端",
+          "views": 9770,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60418,
+          "title": "八秩同心共筑华章 守正笃实再谱新篇——热烈庆祝中国民主建国会成立80周年",
+          "url": "detail.html?id=60418",
+          "date": "2025-12-17",
+          "datetime": "2025-12-17 17:41:37",
+          "source": "河池统一战线微信公众号",
+          "views": 9990,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60417,
+          "title": "民建河池市总支部举行庆祝民建成立80周年文艺晚会",
+          "url": "detail.html?id=60417",
+          "date": "2025-12-17",
+          "datetime": "2025-12-17 17:38:18",
+          "source": "广西民建微信公众号",
+          "views": 10015,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60400,
+          "title": "民建河池市总支部赴河池市大任产业园开展市委重点课题调研",
+          "url": "detail.html?id=60400",
+          "date": "2025-10-01",
+          "datetime": "2025-10-01 11:10:58",
+          "source": "广西民建微信公众号",
+          "views": 10232,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60399,
+          "title": "民建河池市总支部开展党委重点课题专题调研",
+          "url": "detail.html?id=60399",
+          "date": "2025-08-05",
+          "datetime": "2025-08-05 11:08:21",
+          "source": "广西民建微信公众号",
+          "views": 10225,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60394,
+          "title": "民建河池市总支部召开中共中央八项规定精神专题学习会",
+          "url": "detail.html?id=60394",
+          "date": "2025-04-28",
+          "datetime": "2025-04-28 16:39:02",
+          "source": "广西民建微信公众号",
+          "views": 10271,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 55976,
+          "title": "民建广西区十届四次全会召开",
+          "url": "detail.html?id=55976",
+          "date": "2025-02-19",
+          "datetime": "2025-02-19 10:51:14",
+          "source": "广西政协报",
+          "views": 31771,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56002,
+          "title": "民建广西区委：凝心聚力建言践行 履职尽责服务社会",
+          "url": "detail.html?id=56002",
+          "date": "2025-02-17",
+          "datetime": "2025-02-17 16:55:00",
+          "source": "广西日报",
+          "views": 32029,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "607",
+      "columnId": "601",
+      "slug": "dangpai-tuanti",
+      "name": "党派团体",
+      "inner": "九三学社河池委员会",
+      "intro": "汇聚各民主党派河池市委会、工商联等党派团体的履职动态。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "601",
+          "name": "民盟河池市委员会",
+          "url": "channel.html?id=601"
+        },
+        {
+          "type": "602",
+          "name": "民革河池市委员会",
+          "url": "channel.html?id=602"
+        },
+        {
+          "type": "603",
+          "name": "民进河池市总支部",
+          "url": "channel.html?id=603"
+        },
+        {
+          "type": "604",
+          "name": "河池工商业联合会",
+          "url": "channel.html?id=604"
+        },
+        {
+          "type": "605",
+          "name": "农工党河池市委员会",
+          "url": "channel.html?id=605"
+        },
+        {
+          "type": "606",
+          "name": "民建河池市委员会",
+          "url": "channel.html?id=606"
+        },
+        {
+          "type": "607",
+          "name": "九三学社河池委员会",
+          "url": "channel.html?id=607"
+        }
+      ],
+      "total": 13,
+      "list": [
+        {
+          "id": 60920,
+          "title": "九三学社十五届四中全会在京开幕",
+          "url": "detail.html?id=60920",
+          "date": "2026-01-19",
+          "datetime": "2026-01-19 15:17:04",
+          "source": "人民政协报",
+          "views": 8884,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60547,
+          "title": "九三学社广西区委法律专门委员会第一次法治座谈会在南宁举行",
+          "url": "detail.html?id=60547",
+          "date": "2025-12-24",
+          "datetime": "2025-12-24 15:31:09",
+          "source": "九三学社广西壮族自治区委员会微信公众号",
+          "views": 9776,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60385,
+          "title": "十五秒通关——广西智慧口岸背后的九三学社“金点子”",
+          "url": "detail.html?id=60385",
+          "date": "2025-12-16",
+          "datetime": "2025-12-16 15:32:11",
+          "source": "广西政协报",
+          "views": 10072,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60402,
+          "title": "九三学社河池市基层委开展2025年基层组织活动",
+          "url": "detail.html?id=60402",
+          "date": "2025-12-10",
+          "datetime": "2025-12-10 11:15:56",
+          "source": "九三学社广西壮族自治区委员会微信公众号",
+          "views": 10174,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60398,
+          "title": "九三学社河池市基层委参加河池市开展自治区市级水网先导区建设工作情况专题政党协商座谈会",
+          "url": "detail.html?id=60398",
+          "date": "2025-08-01",
+          "datetime": "2025-08-01 11:05:47",
+          "source": "九三学社广西壮族自治区委员会微信公众号",
+          "views": 10209,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60397,
+          "title": "九三学社河池市基层委员会召开“学规定、强作风、树形象”主题教育学习会",
+          "url": "detail.html?id=60397",
+          "date": "2025-07-22",
+          "datetime": "2025-07-22 16:45:03",
+          "source": "九三学社广西壮族自治区委员会微信公众号",
+          "views": 10292,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60395,
+          "title": "九三学社河池市基层委参加河池市推进“十四五”土壤污染防治先行区建设工作情况专题政党协商会",
+          "url": "detail.html?id=60395",
+          "date": "2025-05-29",
+          "datetime": "2025-05-29 16:41:12",
+          "source": "九三学社广西壮族自治区委员会微信公众号",
+          "views": 10285,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60393,
+          "title": "九三学社河池市基层委召开二届六次全体（扩大）会议",
+          "url": "detail.html?id=60393",
+          "date": "2025-03-19",
+          "datetime": "2025-03-19 16:36:51",
+          "source": "九三学社广西壮族自治区委员会微信公众号",
+          "views": 10309,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 55278,
+          "title": "九三学社广西区委八届四次全会召开",
+          "url": "detail.html?id=55278",
+          "date": "2024-12-31",
+          "datetime": "2024-12-31 16:17:58",
+          "source": "广西政协报",
+          "views": 36726,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 55266,
+          "title": "九三学社广西区委会：聚合力献良策 惠民生显担当",
+          "url": "detail.html?id=55266",
+          "date": "2024-12-31",
+          "datetime": "2024-12-31 15:10:23",
+          "source": "广西日报",
+          "views": 36664,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 53947,
+          "title": "九三学社广西区委成立40周年庆祝大会召开",
+          "url": "detail.html?id=53947",
+          "date": "2024-09-25",
+          "datetime": "2024-09-25 16:42:46",
+          "source": "广西政协报",
+          "views": 52090,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 53243,
+          "title": "九三学社十五届七次中常会在京召开",
+          "url": "detail.html?id=53243",
+          "date": "2024-07-29",
+          "datetime": "2024-07-29 16:31:15",
+          "source": "人民政协报",
+          "views": 60586,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 51461,
+          "title": "九三学社河池市基层委开展春节前走访慰问活动",
+          "url": "detail.html?id=51461",
+          "date": "2024-04-03",
+          "datetime": "2024-04-03 16:09:23",
+          "source": "九三学社河池市基层委员会",
+          "views": 73278,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "312",
+      "columnId": "312",
+      "slug": "shicha-diaoyan",
+      "name": "视察调研",
+      "inner": "视察调研",
+      "intro": "记录市政协组织的视察、调研与专题协商活动。",
+      "layout": "list",
+      "siblings": [],
+      "total": 0,
+      "list": []
+    },
+    {
+      "type": "311",
+      "columnId": "311",
+      "slug": "weiyuan-fengcai",
+      "name": "委员风采",
+      "inner": "委员风采",
+      "intro": "展示政协委员的履职故事、发言与建言成果。",
+      "layout": "list",
+      "siblings": [],
+      "total": 45,
+      "list": [
+        {
+          "id": 61469,
+          "title": "韦海良委员的发言：聚力机制创新　构建全域生态 奋力谱写河池关键金属产业高质量发展新篇章",
+          "url": "detail.html?id=61469",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 10:41:12",
+          "source": "河池日报",
+          "views": 8219,
+          "img": "images/channel/61469.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61468,
+          "title": "莫秋婷委员的发言：运用数智化提升河池红色教育基地建设 赋能红色文旅发展",
+          "url": "detail.html?id=61468",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 10:39:03",
+          "source": "河池日报",
+          "views": 7889,
+          "img": "images/channel/61468.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61467,
+          "title": "黄兰爱委员的发言：构建“金融+科技+产业”良性循环体系 赋能河池高质量发展",
+          "url": "detail.html?id=61467",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 10:36:26",
+          "source": "河池日报",
+          "views": 8214,
+          "img": "images/channel/61467.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61466,
+          "title": "刘丽红委员的发言：进一步完善河池市中小学心理健康服务体系 护航青少年健康成长",
+          "url": "detail.html?id=61466",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 10:34:02",
+          "source": "河池日报",
+          "views": 8202,
+          "img": "images/channel/61466.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61465,
+          "title": "丁玎委员的发言：加大AI科普宣传力度 赋能河池农业高质量发展",
+          "url": "detail.html?id=61465",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 10:32:27",
+          "source": "河池日报",
+          "views": 8164,
+          "img": "images/channel/61465.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61464,
+          "title": "花锦鸿委员的发言：高水平打造红水河流域经济带",
+          "url": "detail.html?id=61464",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 10:30:15",
+          "source": "河池日报",
+          "views": 8205,
+          "img": "images/channel/61464.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61463,
+          "title": "黄焕军委员的发言：大力推进全市移风易俗 助力乡村全面振兴",
+          "url": "detail.html?id=61463",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 10:28:07",
+          "source": "河池日报",
+          "views": 8192,
+          "img": "images/channel/61463.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61462,
+          "title": "姜凤珍委员的发言：以桑蚕产业升级为突破 推动河池深度融入双循环市场经营便利地",
+          "url": "detail.html?id=61462",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 10:26:44",
+          "source": "河池日报",
+          "views": 8214,
+          "img": "images/channel/61462.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61461,
+          "title": "黄丽琼委员的发言：弘扬优秀山歌文化 铸牢中华民族共同体意识",
+          "url": "detail.html?id=61461",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 10:24:02",
+          "source": "河池日报",
+          "views": 8247,
+          "img": "images/channel/61461.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61460,
+          "title": "刘帆委员的发言：高质量打造金宜大道沿线特色产业示范带 加速金宜同城化发展",
+          "url": "detail.html?id=61460",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 10:21:18",
+          "source": "河池日报",
+          "views": 8214,
+          "img": "images/channel/61460.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61459,
+          "title": "张文迪委员的发言：构建“金融创新　智享养老”体系 助推河池养老服务高质量发展",
+          "url": "detail.html?id=61459",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 10:18:55",
+          "source": "河池日报",
+          "views": 8166,
+          "img": "images/channel/61459.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 61458,
+          "title": "黄小耿委员的发言：推进龙滩航区建设 助力南丹试验区高质量发展",
+          "url": "detail.html?id=61458",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 10:15:43",
+          "source": "河池日报",
+          "views": 8200,
+          "img": "images/channel/61458.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 55792,
+          "title": "韦海良：不断推进家事司法工作 持续加强河池平安法治建设",
+          "url": "detail.html?id=55792",
+          "date": "2025-02-08",
+          "datetime": "2025-02-08 19:57:05",
+          "source": "广西河池政协网",
+          "views": 34959,
+          "img": "images/channel/55792.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 55791,
+          "title": "梁 华：完善乡村集镇建设 助力乡村全面振兴",
+          "url": "detail.html?id=55791",
+          "date": "2025-02-08",
+          "datetime": "2025-02-08 19:54:00",
+          "source": "广西河池政协网",
+          "views": 34781,
+          "img": "images/channel/55791.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 55790,
+          "title": "黄兰爱:强化“三项措施” 服务打造粤港澳大湾区重要战略腹地",
+          "url": "detail.html?id=55790",
+          "date": "2025-02-08",
+          "datetime": "2025-02-08 19:51:23",
+          "source": "广西河池政协网",
+          "views": 37323,
+          "img": "images/channel/55790.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 55789,
+          "title": "黄瑞立:发展特色粮食产业 夯实粮食安全根基",
+          "url": "detail.html?id=55789",
+          "date": "2025-02-08",
+          "datetime": "2025-02-08 19:45:41",
+          "source": "广西河池政协网",
+          "views": 36680,
+          "img": "images/channel/55789.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 55788,
+          "title": "谭晓璇：聚焦“五个着力” 加快创建国家5A级旅游景区和国家旅游度假区",
+          "url": "detail.html?id=55788",
+          "date": "2025-02-08",
+          "datetime": "2025-02-08 19:41:35",
+          "source": "广西河池政协网",
+          "views": 36888,
+          "img": "images/channel/55788.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 50662,
+          "title": "牛得斌：持续创建田园综合体 为乡村振兴赋能添翼",
+          "url": "detail.html?id=50662",
+          "date": "2024-02-02",
+          "datetime": "2024-02-02 12:40:54",
+          "source": "广西河池政协网",
+          "views": 90003,
+          "img": "images/channel/50662.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 50661,
+          "title": "莫秋婷：关于在“三元及第”冯京故里建设状元文化主题园的建议",
+          "url": "detail.html?id=50661",
+          "date": "2024-02-02",
+          "datetime": "2024-02-02 12:39:23",
+          "source": "广西河池政协网",
+          "views": 88979,
+          "img": "images/channel/50661.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 50660,
+          "title": "黄兰爱：以科技创新推动河池工业经济高质量发展",
+          "url": "detail.html?id=50660",
+          "date": "2024-02-02",
+          "datetime": "2024-02-02 12:36:41",
+          "source": "广西河池政协网",
+          "views": 90694,
+          "img": "images/channel/50660.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 50659,
+          "title": "谭晓璇：发挥国家级铜鼓文化（河池）生态保护区优势助力文化强市建设",
+          "url": "detail.html?id=50659",
+          "date": "2024-02-02",
+          "datetime": "2024-02-02 12:35:08",
+          "source": "广西河池政协网",
+          "views": 90299,
+          "img": "images/channel/50659.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 50658,
+          "title": "蓝江培：关于加快推进河池市从“蚕桑之乡”到“丝绸新都”飞跃的建议",
+          "url": "detail.html?id=50658",
+          "date": "2024-02-02",
+          "datetime": "2024-02-02 12:33:26",
+          "source": "广西河池政协网",
+          "views": 91448,
+          "img": "images/channel/50658.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 50657,
+          "title": "赖开福：精准服务规下企业助推工业做优做强",
+          "url": "detail.html?id=50657",
+          "date": "2024-02-02",
+          "datetime": "2024-02-02 12:31:37",
+          "source": "广西河池政协网",
+          "views": 90170,
+          "img": "images/channel/50657.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 50656,
+          "title": "索忠勇：推动“公铁水”联运联通成环成网打造开放发展新高地",
+          "url": "detail.html?id=50656",
+          "date": "2024-02-02",
+          "datetime": "2024-02-02 12:30:11",
+          "source": "广西河池政协网",
+          "views": 88888,
+          "img": "images/channel/50656.jpg",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "313",
+      "columnId": "313",
+      "slug": "youhao-wanglai",
+      "name": "友好往来",
+      "inner": "友好往来",
+      "intro": "记录市政协与各地政协及社会各界的交流往来。",
+      "layout": "list",
+      "siblings": [],
+      "total": 0,
+      "list": []
+    },
+    {
+      "type": "qy",
+      "columnId": "qy",
+      "slug": "xianqu-zhengxie",
+      "name": "县（区）政协",
+      "inner": "县（区）政协",
+      "intro": "汇集各县（区）政协工作动态，并提供县级政协站点入口。",
+      "layout": "county",
+      "siblings": [],
+      "total": 530,
+      "list": [
+        {
+          "id": 62239,
+          "title": "环江政协开展跨市专题学习考察 深挖民间故事 共筑精神家园",
+          "url": "detail.html?id=62239",
+          "date": "2026-04-27",
+          "datetime": "2026-04-27 11:19:49",
+          "source": "河池日报",
+          "views": 106,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62238,
+          "title": "广西河池天峨县政协：“马上办”守住“枝头甜”",
+          "url": "detail.html?id=62238",
+          "date": "2026-04-27",
+          "datetime": "2026-04-27 11:16:39",
+          "source": "人民政协报",
+          "views": 106,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62178,
+          "title": "环江政协开展专题考察 助力非遗传承与文旅融合发展",
+          "url": "detail.html?id=62178",
+          "date": "2026-04-23",
+          "datetime": "2026-04-23 11:10:45",
+          "source": "广西政协报",
+          "views": 50,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62123,
+          "title": "南丹政协：37件立案提案集中交办落地",
+          "url": "detail.html?id=62123",
+          "date": "2026-04-16",
+          "datetime": "2026-04-16 15:04:52",
+          "source": "河池日报",
+          "views": 2290,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62094,
+          "title": "罗城政协：赴环江考察学习 助推特色产业发展",
+          "url": "detail.html?id=62094",
+          "date": "2026-04-14",
+          "datetime": "2026-04-14 11:48:21",
+          "source": "河池日报",
+          "views": 2475,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62076,
+          "title": "“委员+”撬动乡村振兴新引擎——环江毛南族自治县政协书写履职为民新答卷",
+          "url": "detail.html?id=62076",
+          "date": "2026-04-10",
+          "datetime": "2026-04-10 11:24:35",
+          "source": "广西政协报",
+          "views": 2123,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61923,
+          "title": "广西河池市天峨县政协助力破解库区移民出行难 提案“筑起”民生桥",
+          "url": "detail.html?id=61923",
+          "date": "2026-03-27",
+          "datetime": "2026-03-27 15:17:10",
+          "source": "人民政协报",
+          "views": 4311,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61896,
+          "title": "小菜园“种”出邻里情——广西天峨县政协助推搬迁社区构建共建共治共享新格局",
+          "url": "detail.html?id=61896",
+          "date": "2026-03-26",
+          "datetime": "2026-03-26 11:08:35",
+          "source": "人民政协网",
+          "views": 4354,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61845,
+          "title": "广西诗词学会到环江政协文史馆调研",
+          "url": "detail.html?id=61845",
+          "date": "2026-03-23",
+          "datetime": "2026-03-23 11:40:36",
+          "source": "河池日报 3",
+          "views": 5678,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61813,
+          "title": "天峨县政协：以提案之力 展政协之为",
+          "url": "detail.html?id=61813",
+          "date": "2026-03-20",
+          "datetime": "2026-03-20 15:22:18",
+          "source": "河池日报",
+          "views": 7560,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61777,
+          "title": "政协第十三届都安瑶族自治县委员会第六次会议召开",
+          "url": "detail.html?id=61777",
+          "date": "2026-03-18",
+          "datetime": "2026-03-18 14:57:26",
+          "source": "河池日报",
+          "views": 6944,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61604,
+          "title": "罗城政协：70件提案办复率达100%",
+          "url": "detail.html?id=61604",
+          "date": "2026-03-09",
+          "datetime": "2026-03-09 10:20:15",
+          "source": "河池日报",
+          "views": 7846,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61531,
+          "title": "同心筑梦向未来 团结奋进谱新篇 政协罗城十届六次会议召开",
+          "url": "detail.html?id=61531",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 16:09:15",
+          "source": "河池日报",
+          "views": 8232,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61322,
+          "title": "南丹政协:提案落地有声 履职为民有痕",
+          "url": "detail.html?id=61322",
+          "date": "2026-02-13",
+          "datetime": "2026-02-13 10:31:13",
+          "source": "河池日报",
+          "views": 8891,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61214,
+          "title": "政协南丹县第十届委员会第六次会议召开",
+          "url": "detail.html?id=61214",
+          "date": "2026-02-06",
+          "datetime": "2026-02-06 16:00:39",
+          "source": "河池日报",
+          "views": 9108,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61085,
+          "title": "罗城仫佬族自治县政协十届二十八次常委会议侧记",
+          "url": "detail.html?id=61085",
+          "date": "2026-01-29",
+          "datetime": "2026-01-29 15:27:09",
+          "source": "罗城政协网",
+          "views": 9365,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61034,
+          "title": "政协第十届天峨县委员会第六次会议开幕",
+          "url": "detail.html?id=61034",
+          "date": "2026-01-26",
+          "datetime": "2026-01-26 15:21:35",
+          "source": "天峨政协网",
+          "views": 9336,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60914,
+          "title": "南丹县政协为专业化队伍建设“把脉开方”",
+          "url": "detail.html?id=60914",
+          "date": "2026-01-19",
+          "datetime": "2026-01-19 14:48:56",
+          "source": "广西政协报",
+          "views": 9428,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60883,
+          "title": "环江毛南族自治县政协助解移民社区照明问题",
+          "url": "detail.html?id=60883",
+          "date": "2026-01-16",
+          "datetime": "2026-01-16 15:42:08",
+          "source": "广西政协报",
+          "views": 9601,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60772,
+          "title": "罗城仫佬族自治县政协推动履职提质增效侧记",
+          "url": "detail.html?id=60772",
+          "date": "2026-01-08",
+          "datetime": "2026-01-08 16:19:25",
+          "source": "广西政协报",
+          "views": 9801,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60736,
+          "title": "服务中心献良策 履职担当促发展 罗城政协获评全区政协履职提质增效先进集体",
+          "url": "detail.html?id=60736",
+          "date": "2026-01-06",
+          "datetime": "2026-01-06 15:20:43",
+          "source": "河池日报",
+          "views": 9811,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60735,
+          "title": "协商在现场 落实有回响 环江政协推动解决搬迁社区路灯不亮难题",
+          "url": "detail.html?id=60735",
+          "date": "2026-01-06",
+          "datetime": "2026-01-06 15:16:09",
+          "source": "河池日报",
+          "views": 9796,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60621,
+          "title": "为瑶山文旅添彩赋能——都安瑶族自治县政协助力全域旅游提质增效侧记",
+          "url": "detail.html?id=60621",
+          "date": "2025-12-29",
+          "datetime": "2025-12-29 16:39:26",
+          "source": "广西政协报",
+          "views": 10111,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60620,
+          "title": "从“出行难”到“抬脚就走”——天峨县“最后一公里”畅通背后的“政协温度”",
+          "url": "detail.html?id=60620",
+          "date": "2025-12-29",
+          "datetime": "2025-12-29 16:36:55",
+          "source": "广西政协报",
+          "views": 10149,
+          "img": "",
+          "hasBody": true
+        }
+      ],
+      "counties": [
+        {
+          "name": "金城江",
+          "url": ""
+        },
+        {
+          "name": "宜州",
+          "url": ""
+        },
+        {
+          "name": "罗城",
+          "url": "http://lc.gxhczx.gov.cn/"
+        },
+        {
+          "name": "环江",
+          "url": "http://hj.gxhczx.gov.cn/"
+        },
+        {
+          "name": "南丹",
+          "url": "http://nd.gxhczx.gov.cn/"
+        },
+        {
+          "name": "天峨",
+          "url": "http://te.gxhczx.gov.cn/"
+        },
+        {
+          "name": "东兰",
+          "url": ""
+        },
+        {
+          "name": "巴马",
+          "url": ""
+        },
+        {
+          "name": "凤山",
+          "url": ""
+        },
+        {
+          "name": "都安",
+          "url": "http://da.gxhczx.gov.cn/"
+        },
+        {
+          "name": "大化",
+          "url": "http://dh.gxhczx.gov.cn/"
+        }
+      ]
+    },
+    {
+      "type": "317",
+      "columnId": "317",
+      "slug": "lilun-yanjiu",
+      "name": "理论研究",
+      "inner": "理论研究",
+      "intro": "刊载政协理论研究文章与学习成果。",
+      "layout": "list",
+      "siblings": [],
+      "total": 25,
+      "list": [
+        {
+          "id": 60860,
+          "title": "从河池奋斗史中汲取政协履职的智慧力量",
+          "url": "detail.html?id=60860",
+          "date": "2026-01-15",
+          "datetime": "2026-01-15 15:38:37",
+          "source": "广西政协报",
+          "views": 9502,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 58542,
+          "title": "以新谋远 向实而行——河池市政协以创新驱动赋能履职新实践",
+          "url": "detail.html?id=58542",
+          "date": "2025-08-21",
+          "datetime": "2025-08-21 16:32:27",
+          "source": "广西政协报 2025年8月21日 1&2版",
+          "views": 19525,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 58540,
+          "title": "浅析政协协商议事室在基层社会治理中的时代贡献",
+          "url": "detail.html?id=58540",
+          "date": "2025-08-21",
+          "datetime": "2025-08-21 16:24:41",
+          "source": "河池日报",
+          "views": 19404,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 58044,
+          "title": "创新改进政协调研工作的路径思考",
+          "url": "detail.html?id=58044",
+          "date": "2025-07-23",
+          "datetime": "2025-07-23 15:09:33",
+          "source": "广西政协报",
+          "views": 21587,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 57304,
+          "title": "聚焦“五大效应” 做大做强林业产业——河池市政协调研组考察调研体会与思考",
+          "url": "detail.html?id=57304",
+          "date": "2025-05-22",
+          "datetime": "2025-05-22 16:14:45",
+          "source": "河池日报",
+          "views": 24825,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56974,
+          "title": "宜州区政协：夯实“三个基础” 为促进各民族和谐共融繁荣发展贡献力量",
+          "url": "detail.html?id=56974",
+          "date": "2025-04-23",
+          "datetime": "2025-04-23 15:11:27",
+          "source": "宜州区政协",
+          "views": 26553,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 56973,
+          "title": "宜州区政协：发挥专委作用  汇聚“科教之光”",
+          "url": "detail.html?id=56973",
+          "date": "2025-04-23",
+          "datetime": "2025-04-23 15:05:47",
+          "source": "宜州区政协",
+          "views": 26514,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 55955,
+          "title": "以“政协之为”赋能“人道之光”",
+          "url": "detail.html?id=55955",
+          "date": "2025-02-13",
+          "datetime": "2025-02-13 15:40:37",
+          "source": "河池日报",
+          "views": 32926,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 55274,
+          "title": "《桂在协商》平台聚焦民族地区职业教育“河池现象” 推动职业教育高质量发展",
+          "url": "detail.html?id=55274",
+          "date": "2024-12-31",
+          "datetime": "2024-12-31 16:04:49",
+          "source": "河池日报",
+          "views": 38046,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 54453,
+          "title": "河池红十字运动发展现状与前瞻",
+          "url": "detail.html?id=54453",
+          "date": "2024-11-01",
+          "datetime": "2024-11-01 11:12:54",
+          "source": "河池日报 2024年10月31日 2版",
+          "views": 46222,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 54452,
+          "title": "团结奋进 担当有为 创新履职",
+          "url": "detail.html?id=54452",
+          "date": "2024-11-01",
+          "datetime": "2024-11-01 11:08:50",
+          "source": "河池日报 2024年10月31日 2版",
+          "views": 45166,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 53815,
+          "title": "推动少数民族地区铸牢中华民族共同体意识的路径思考",
+          "url": "detail.html?id=53815",
+          "date": "2024-09-14",
+          "datetime": "2024-09-14 16:30:30",
+          "source": "广西政协报 2024年9月14日 3版",
+          "views": 56255,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 52768,
+          "title": "破解河池中医药健康产业 发展困局的路径及对策浅析",
+          "url": "detail.html?id=52768",
+          "date": "2024-06-26",
+          "datetime": "2024-06-26 16:42:56",
+          "source": "河池日报 2024年6月21日 6版",
+          "views": 68155,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 51372,
+          "title": "深入学习贯彻习近平总书记对广西重大方略要求 奋力推进新时代人民政协事业高质量发展",
+          "url": "detail.html?id=51372",
+          "date": "2024-03-28",
+          "datetime": "2024-03-28 16:35:30",
+          "source": "广西政协报",
+          "views": 81194,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 51395,
+          "title": "推动民族地区职业教育 技术技能型人才培养浅析",
+          "url": "detail.html?id=51395",
+          "date": "2024-03-26",
+          "datetime": "2024-03-26 16:23:48",
+          "source": "河池日报",
+          "views": 78825,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 50579,
+          "title": "河池铜鼓文化生态保护利用探索",
+          "url": "detail.html?id=50579",
+          "date": "2024-01-29",
+          "datetime": "2024-01-29 16:19:01",
+          "source": "河池日报",
+          "views": 90019,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 50576,
+          "title": "河池市创建田园综合体推动“三大专项行动”走深走实",
+          "url": "detail.html?id=50576",
+          "date": "2024-01-25",
+          "datetime": "2024-01-25 11:52:15",
+          "source": "广西日报",
+          "views": 88003,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 50381,
+          "title": "持续深化田园综合体创建 推进“三大专项行动”走深走实",
+          "url": "detail.html?id=50381",
+          "date": "2024-01-12",
+          "datetime": "2024-01-12 16:19:15",
+          "source": "河池日报",
+          "views": 89277,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 45366,
+          "title": "在推进政协协商向基层延伸中发展全过程人民民主",
+          "url": "detail.html?id=45366",
+          "date": "2023-04-11",
+          "datetime": "2023-04-11 18:08:11",
+          "source": "广西政协报",
+          "views": 138971,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 43808,
+          "title": "政协迈出一小步，发展稳定进大步",
+          "url": "detail.html?id=43808",
+          "date": "2022-12-22",
+          "datetime": "2022-12-22 14:30:51",
+          "source": "河池日报",
+          "views": 150836,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 43404,
+          "title": "学深悟透大会精神 踔厉奋发勇毅前行 努力开创政协工作新局面",
+          "url": "detail.html?id=43404",
+          "date": "2022-11-24",
+          "datetime": "2022-11-24 16:41:27",
+          "source": "广西政协报",
+          "views": 158699,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 41404,
+          "title": "发挥三大优势 努力建设绿色发展先行试验区",
+          "url": "detail.html?id=41404",
+          "date": "2022-06-23",
+          "datetime": "2022-06-23 13:45:16",
+          "source": "广西日报",
+          "views": 183645,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 40153,
+          "title": "为建设新时代中国特色社会主义 壮美广西贡献力量",
+          "url": "detail.html?id=40153",
+          "date": "2021-12-24",
+          "datetime": "2021-12-24 10:12:06",
+          "source": "河池日报",
+          "views": 200223,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 39691,
+          "title": "以改革创新驱动实现高质量发展",
+          "url": "detail.html?id=39691",
+          "date": "2021-10-25",
+          "datetime": "2021-10-25 12:04:10",
+          "source": "河池日报",
+          "views": 198471,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "315",
+      "columnId": "315",
+      "slug": "hechi-wenshi",
+      "name": "河池文史",
+      "inner": "河池文史",
+      "intro": "整理发布河池文史资料与地方史料。",
+      "layout": "list",
+      "siblings": [],
+      "total": 3,
+      "list": [
+        {
+          "id": 62030,
+          "title": "一座魁星楼，半部武篆魂一一为纪念魁星楼建成120周年而作",
+          "url": "detail.html?id=62030",
+          "date": "2026-04-02",
+          "datetime": "2026-04-02 15:31:36",
+          "source": "市政协办",
+          "views": 2093,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 39907,
+          "title": "毛泽东关注和赞扬东兰农民运动",
+          "url": "detail.html?id=39907",
+          "date": "2021-11-20",
+          "datetime": "2021-11-20 10:58:51",
+          "source": "河池日报",
+          "views": 200446,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 39740,
+          "title": "红军岩&mdash;&mdash;恒里绝唱传千秋",
+          "url": "detail.html?id=39740",
+          "date": "2021-10-30",
+          "datetime": "2021-10-30 11:04:37",
+          "source": "河池日报",
+          "views": 206203,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "801",
+      "columnId": "803",
+      "slug": "zhengxie-yiyuan",
+      "name": "政协艺苑",
+      "inner": "政协摄影",
+      "intro": "展示政协委员与机关干部的摄影、书画与文学创作。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "801",
+          "name": "政协摄影",
+          "url": "channel.html?id=801"
+        },
+        {
+          "type": "802",
+          "name": "政协书画",
+          "url": "channel.html?id=802"
+        },
+        {
+          "type": "803",
+          "name": "文学创作",
+          "url": "channel.html?id=803"
+        }
+      ],
+      "total": 0,
+      "list": []
+    },
+    {
+      "type": "802",
+      "columnId": "803",
+      "slug": "zhengxie-yiyuan",
+      "name": "政协艺苑",
+      "inner": "政协书画",
+      "intro": "展示政协委员与机关干部的摄影、书画与文学创作。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "801",
+          "name": "政协摄影",
+          "url": "channel.html?id=801"
+        },
+        {
+          "type": "802",
+          "name": "政协书画",
+          "url": "channel.html?id=802"
+        },
+        {
+          "type": "803",
+          "name": "文学创作",
+          "url": "channel.html?id=803"
+        }
+      ],
+      "total": 0,
+      "list": []
+    },
+    {
+      "type": "803",
+      "columnId": "803",
+      "slug": "zhengxie-yiyuan",
+      "name": "政协艺苑",
+      "inner": "文学创作",
+      "intro": "展示政协委员与机关干部的摄影、书画与文学创作。",
+      "layout": "list",
+      "siblings": [
+        {
+          "type": "801",
+          "name": "政协摄影",
+          "url": "channel.html?id=801"
+        },
+        {
+          "type": "802",
+          "name": "政协书画",
+          "url": "channel.html?id=802"
+        },
+        {
+          "type": "803",
+          "name": "文学创作",
+          "url": "channel.html?id=803"
+        }
+      ],
+      "total": 12,
+      "list": [
+        {
+          "id": 61580,
+          "title": "书写政协履职新答卷",
+          "url": "detail.html?id=61580",
+          "date": "2026-03-03",
+          "datetime": "2026-03-03 11:20:14",
+          "source": "河池日报",
+          "views": 7769,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60915,
+          "title": "从一纸来信到民意回声",
+          "url": "detail.html?id=60915",
+          "date": "2026-01-19",
+          "datetime": "2026-01-19 14:53:42",
+          "source": "广西政协报",
+          "views": 9272,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 55565,
+          "title": "破解“拒保”困局 为纯电动货车的发展扫清障碍",
+          "url": "detail.html?id=55565",
+          "date": "2025-01-21",
+          "datetime": "2025-01-21 15:33:34",
+          "source": "河池日报",
+          "views": 38619,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 54264,
+          "title": "团结奋进 担当有为 创新履职",
+          "url": "detail.html?id=54264",
+          "date": "2024-10-22",
+          "datetime": "2024-10-22 11:33:24",
+          "source": "市政协经资委",
+          "views": 48494,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 40412,
+          "title": "春节拾逸",
+          "url": "detail.html?id=40412",
+          "date": "2022-02-09",
+          "datetime": "2022-02-09 13:29:57",
+          "source": "河池日报",
+          "views": 199358,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 40411,
+          "title": "陪父母过幸福年",
+          "url": "detail.html?id=40411",
+          "date": "2022-02-09",
+          "datetime": "2022-02-09 13:26:51",
+          "source": "河池日报",
+          "views": 200374,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 40167,
+          "title": "粥生腊八岁月香",
+          "url": "detail.html?id=40167",
+          "date": "2022-01-10",
+          "datetime": "2022-01-10 13:50:18",
+          "source": "河池日报",
+          "views": 199579,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 40103,
+          "title": "凤凰山",
+          "url": "detail.html?id=40103",
+          "date": "2021-12-17",
+          "datetime": "2021-12-17 21:46:27",
+          "source": "河池日报",
+          "views": 199565,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 40067,
+          "title": "梦醒烂柯山",
+          "url": "detail.html?id=40067",
+          "date": "2021-12-10",
+          "datetime": "2021-12-10 22:19:43",
+          "source": "河池日报",
+          "views": 203134,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 40008,
+          "title": "探寻老河池",
+          "url": "detail.html?id=40008",
+          "date": "2021-12-03",
+          "datetime": "2021-12-03 13:21:10",
+          "source": "河池日报",
+          "views": 203338,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 39984,
+          "title": "院子里早起的那只鸟",
+          "url": "detail.html?id=39984",
+          "date": "2021-12-01",
+          "datetime": "2021-12-01 09:30:14",
+          "source": "河池日报",
+          "views": 199746,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 39962,
+          "title": "热闹非凡的河池学院的文学创作",
+          "url": "detail.html?id=39962",
+          "date": "2021-11-29",
+          "datetime": "2021-11-29 10:49:02",
+          "source": "河池日报",
+          "views": 200783,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "319",
+      "columnId": "319",
+      "slug": "tashan-zhishi",
+      "name": "他山之石",
+      "inner": "他山之石",
+      "intro": "转载各地政协工作的经验与做法。",
+      "layout": "list",
+      "siblings": [],
+      "total": 0,
+      "list": []
+    },
+    {
       "type": "314",
+      "columnId": "314",
       "slug": "tupian-xinwen",
       "name": "图片新闻",
       "inner": "图片新闻",
       "intro": "以图片记录政协履职与全市发展现场，直观呈现重要时刻。",
+      "layout": "list",
       "siblings": [],
       "total": 349,
       "list": [

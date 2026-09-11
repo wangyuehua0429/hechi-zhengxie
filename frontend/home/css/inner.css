@@ -33,77 +33,6 @@
 .crumb a:hover { color: var(--primary); }
 .crumb .is-current { color: var(--text); font-weight: 600; }
 
-/* ---------- 栏目页头 ---------- */
-.channel-hero {
-  position: relative;
-  overflow: hidden;
-  color: #fff;
-  background:
-    linear-gradient(120deg, #8d161b 0%, var(--primary) 46%, #b8302f 100%);
-}
-.channel-hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image:
-    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.055) 0 1px, transparent 1px 13px);
-  pointer-events: none;
-}
-.channel-hero-inner {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 30px 18px 26px;
-}
-.channel-hero-text { max-width: 780px; }
-.channel-kicker {
-  margin: 0 0 6px;
-  font-size: 0.74em;
-  letter-spacing: 0.26em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.72);
-}
-.channel-title {
-  font-size: calc(1.96em * var(--font-scale));
-  font-weight: 700;
-  letter-spacing: 0.06em;
-}
-.channel-title::after {
-  content: "";
-  display: block;
-  width: 46px; height: 3px;
-  margin-top: 12px;
-  background: rgba(255, 255, 255, 0.85);
-}
-.channel-intro {
-  margin: 12px 0 0;
-  font-size: 0.94em;
-  line-height: 1.75;
-  color: rgba(255, 255, 255, 0.86);
-}
-.channel-hero-stat {
-  flex: none;
-  text-align: right;
-  padding-bottom: 4px;
-}
-.channel-hero-stat strong {
-  display: block;
-  font-size: calc(2.1em * var(--font-scale));
-  font-weight: 700;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-.channel-hero-stat span {
-  display: block;
-  margin-top: 6px;
-  font-size: 0.8em;
-  letter-spacing: 0.16em;
-  color: rgba(255, 255, 255, 0.78);
-}
-
 /* ---------- 内页两栏布局 ---------- */
 .inner-layout {
   display: grid;
@@ -180,12 +109,50 @@
 }
 .channel-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateX(2px); }
 .channel-btn.is-active {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  border-color: var(--primary-dark);
-  color: #fff;
+  background: var(--primary-light);
+  border-color: rgba(165, 29, 34, 0.32);
+  color: var(--primary);
   font-weight: 600;
+  box-shadow: none;
 }
-.channel-btn.is-active::before { background: #fff; box-shadow: inset 0 0 0 4px var(--primary), inset 0 0 0 5px rgba(255, 255, 255, 0.5); }
+.channel-btn.is-active::before { background: var(--primary); }
+
+/* ---------- 一页式栏目（政协概况）：栏目简介块 ---------- */
+.about-body { padding: 16px 20px 18px; }
+.about-text {
+  font-size: 0.96em;
+  line-height: 1.95;
+  color: #33363c;
+  text-indent: 2em;
+}
+.about-more {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 0.92em;
+  font-weight: 600;
+  color: var(--primary);
+}
+.about-more:hover { text-decoration: underline; }
+
+/* ---------- 县（区）政协：各县区站点入口 ---------- */
+.county-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 18px;
+  background: #fbfcfd;
+  border-bottom: 1px solid var(--line);
+}
+.county-link {
+  padding: 5px 12px;
+  font-size: 0.9em;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+a.county-link:hover { border-color: var(--primary); color: var(--primary); }
+.county-link.is-plain { color: var(--muted); }
 
 /* ---------- 稿件列表（无卡片、无缩略图） ---------- */
 .article-rows { padding: 6px 20px 14px; }
@@ -276,15 +243,6 @@
   border-radius: 2px;
 }
 .side-head h3 { flex: 1 1 auto; font-size: 1em; }
-/* 实底标题条：用于栏目页与详情页侧栏，贴近政务站面板样式 */
-.side-card--solid .side-head {
-  padding: 12px 16px;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  border-bottom: 0;
-  color: #fff;
-}
-.side-card--solid .side-head::before { background: rgba(255, 255, 255, 0.85); }
-.side-card--solid .side-list li { border-bottom-color: #f2f3f5; }
 .side-body { padding: 6px 16px 14px; }
 .side-list li { padding: 9px 0; border-bottom: 1px dashed var(--line); }
 .side-list li:last-child { border-bottom: 0; }
@@ -476,12 +434,8 @@ img.img-failed { visibility: hidden; }
   .inner-side > * { flex: 1 1 320px; }
   .channel-buttons { flex-direction: row; flex-wrap: wrap; }
   .channel-btn { flex: 1 1 auto; }
-  .channel-hero-inner { flex-direction: column; align-items: flex-start; gap: 16px; }
-  .channel-hero-stat { text-align: left; }
 }
 @media (max-width: 640px) {
-  .channel-title { font-size: calc(1.6em * var(--font-scale)); }
-  .channel-intro { font-size: 0.9em; }
   .article-panel { padding: 22px 18px 20px; }
   .article-title { font-size: calc(1.42em * var(--font-scale)); }
   .article-body { font-size: calc(1.0em * var(--font-scale)); line-height: 1.9; }

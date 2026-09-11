@@ -64,26 +64,6 @@
     </nav>
   </header>
 
-  <!-- 滚动要闻 + 搜索 -->
-  <div class="run-bar">
-    <div class="container run-bar-inner">
-      <div class="run-marquee" aria-label="滚动公告">
-        <span class="run-label" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9"/><path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5"/><circle cx="12" cy="12" r="2"/><path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5"/><path d="M19.1 4.9c3.9 3.9 3.9 10.2 0 14.1"/></svg>
-        </span>
-        <div class="marquee-viewport"><span class="marquee-track" id="marqueeTrack"></span></div>
-      </div>
-      <form class="run-search" action="https://www.gxhczx.gov.cn/search.php" method="get" target="_blank" role="search">
-        <input type="text" name="key" placeholder="搜索站内内容…" aria-label="搜索站内内容">
-        <select name="type" aria-label="搜索范围">
-          <option value="1">标题</option>
-          <option value="2">内容</option>
-        </select>
-        <button type="submit">搜索</button>
-      </form>
-    </div>
-  </div>
-
   <main id="main">
     <!-- 面包屑 -->
     <nav class="crumb-bar" aria-label="当前位置">
@@ -92,30 +72,15 @@
       </div>
     </nav>
 
-    <!-- 栏目页头 -->
-    <header class="channel-hero">
-      <div class="container channel-hero-inner">
-        <div class="channel-hero-text">
-          <p class="channel-kicker" id="channelKicker"></p>
-          <h1 class="channel-title" id="channelTitle">栏目</h1>
-          <p class="channel-intro" id="channelIntro"></p>
-        </div>
-        <div class="channel-hero-stat">
-          <strong id="channelTotal">--</strong>
-          <span>条信息</span>
-        </div>
-      </div>
-    </header>
-
     <div class="container inner-layout inner-layout--left" id="innerLayout">
       <!-- 左侧栏：栏目按钮 + 最新新闻 + 图片新闻（单栏目页不显示） -->
       <aside class="inner-side" id="innerSide">
         <nav class="channel-buttons" id="channelButtons" aria-label="子栏目" hidden></nav>
-        <section class="side-card side-card--solid">
+        <section class="side-card">
           <div class="side-head"><h3>最新新闻</h3></div>
           <div class="side-body"><ul class="side-list side-list--plain" id="latestList"></ul></div>
         </section>
-        <section class="side-card side-card--solid">
+        <section class="side-card">
           <div class="side-head"><h3>图片新闻</h3></div>
           <div class="side-thumbs" id="thumbGrid"></div>
         </section>
@@ -123,11 +88,15 @@
 
       <!-- 右侧：稿件列表 -->
       <div class="inner-main">
+        <!-- 一页式栏目（如政协概况）：栏目简介，仅 layout=about 时显示 -->
+        <section class="panel" id="aboutBox" hidden></section>
         <section class="panel" aria-labelledby="listHeading">
           <div class="panel-head">
             <h2 id="listHeading">稿件</h2>
             <span class="panel-count" id="listCount"></span>
           </div>
+          <!-- 县（区）政协：各县区站点入口，仅 layout=county 时显示 -->
+          <nav class="county-links" id="countyLinks" aria-label="县（区）政协站点" hidden></nav>
           <div class="panel-body" id="listWrap">
             <ul class="article-rows" id="newsRows"></ul>
           </div>
@@ -141,7 +110,6 @@
     <div class="container footer-inner" id="footerBody"></div>
   </footer>
 
-  <script>window.INNER_CHANNELS = ["904", "306", "314"];</script>
   <script src="js/shell.js"></script>
   <script src="js/channel.js"></script>
 </body>

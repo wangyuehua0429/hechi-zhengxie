@@ -1,20 +1,36 @@
-/* 内页公共外壳：顶部工具条 / 站头导航 / 滚动要闻 / 页脚 / 无障碍交互
+/* 内页公共外壳：顶部工具条 / 站头导航 / 页脚 / 无障碍交互
  *
  * 供 channel.html、detail.html 等内页复用，站级数据统一取 data/home.json
  * 的 meta、nav、marquee 三节（不新增数据副本，避免与首页漂移）。
+ * 栏目索引取自 data/channel.json：导航与列表里的旧站栏目链接，凡原型已实现
+ * 的栏目一律改跳本地内页（channel.html?id=<栏目>），未实现的仍指向旧站。
  * 首页仍用 js/main.js 渲染自身模块，后续后端模板化时两者合并。
  */
 (function () {
   "use strict";
 
   const DATA_URL = "data/home.json";
+  const CHANNEL_URL = "data/channel.json";
   const site = "https://www.gxhczx.gov.cn";
 
-  // 已在内页原型中实现的栏目：导航与列表优先跳到本地页面
+  // 已在内页原型中实现的栏目：由 data/channel.json 登记，也可用
+  // window.INNER_CHANNELS 追加（页面内联脚本，用于临时预览单个栏目）
   const LOCAL_CHANNELS = {};
+  function registerChannels(channels) {
+    (channels || []).forEach(function (channel) {
+      LOCAL_CHANNELS[String(channel.type)] = "channel.html?id=" + channel.type;
+    });
+  }
   (window.INNER_CHANNELS || []).forEach(function (id) {
     LOCAL_CHANNELS[String(id)] = "channel.html?id=" + id;
   });
+
+  function fetchJSON(url) {
+    return fetch(url).then(function (res) {
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      return res.json();
+    });
+  }
 
   const el = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s)
@@ -30,10 +46,14 @@
     return site + "/" + u;
   }
 
-  // 旧站栏目 ID -> 本地栏目页（仅限原型已覆盖的栏目，其余保持旧站链接）
+  // 旧站栏目链接 -> 本地栏目页（仅限原型已覆盖的栏目，其余保持旧站链接）
   function channelLink(url) {
-    const m = /news_list\.php\?id=(\d+)/.exec(url || "");
-    if (m && LOCAL_CHANNELS[m[1]]) return LOCAL_CHANNELS[m[1]];
+    if (!url) return url;
+    const list = /news_list\.php\?[^"']*?\bid=(\w+)/.exec(url);
+    if (list && LOCAL_CHANNELS[list[1]]) return LOCAL_CHANNELS[list[1]];
+    const about = /news_list_about\.php\?[^"']*?\bid=(\w+)/.exec(url);
+    if (about && LOCAL_CHANNELS[about[1]]) return LOCAL_CHANNELS[about[1]];
+    if (/qy_list\.php/.test(url) && LOCAL_CHANNELS.qy) return LOCAL_CHANNELS.qy;
     return url;
   }
 
@@ -161,21 +181,28 @@
     }, { passive: true });
   }
 
+  window.SITE = window.SITE || {};
+  // 站级数据与栏目索引同时取；channel.js / detail.js 复用 channelsReady，避免重复请求
+  window.SITE.channelsReady = fetchJSON(CHANNEL_URL)
+    .catch(function () { return null; })
+    .then(function (data) {
+      const channels = (data && data.channels) || [];
+      registerChannels(channels);
+      return channels;
+    });
+
   function init() {
     renderDate();
     bindInteractions();
     initMasthead();
-    window.SITE = window.SITE || {};
-    window.SITE.dataReady = fetch(DATA_URL)
+    window.SITE.dataReady = Promise.all([fetchJSON(DATA_URL), window.SITE.channelsReady])
       .then(function (res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
-      })
-      .then(function (data) {
+        const data = res[0];
         renderMarquee(data.meta.marquee);
         renderNav(data.nav);
         renderFooter(data.meta);
         window.SITE.data = data;
+        window.SITE.channels = res[1];
         return data;
       })
       .catch(function (err) {

@@ -1,8 +1,11 @@
 /* 二级栏目页：按 ?id=<旧库栏目ID> 渲染栏目信息、稿件列表、分页与左侧栏
  *
- * 版式：左侧为栏目按钮 + 最新新闻 + 图片新闻，右侧为纯稿件列表（无卡片、无缩略图）；
- * 单栏目（无子栏目）时不显示左侧栏，稿件列表直接铺满。
- * 数据来自 data/channel.json（原型样例，取旧库 rd_news 主站内容），
+ * 三种版式，由数据里的 layout 决定（data/channel.json）：
+ *   list   稿件列表：左侧栏目按钮 + 最新新闻 + 图片新闻，右侧纯稿件列表（无卡片、无缩略图）；
+ *          无子栏目的栏目不显示左侧栏，列表直接铺满。
+ *   about  一页式：在列表上方加一块栏目简介（feature），左侧为固定子导航。
+ *   county 县区：面板上方加县（区）政协站点入口，下方为县区动态列表。
+ * 数据来自 data/channel.json（原型样例，取旧库 rd_news 内容），
  * 后端就绪后由 REST API 平替，渲染逻辑不变。
  */
 (function () {
@@ -19,34 +22,43 @@
   const esc = (s) => String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-  const kicker = (slug) => String(slug || "").replace(/-/g, " ").toUpperCase();
-
   const state = { channel: null, all: [], page: 1 };
 
   function param(name) {
     return new URLSearchParams(window.location.search).get(name);
   }
 
+  // 栏目索引由 shell.js 统一取，避免与导航重复请求
+  function loadChannels() {
+    if (window.SITE && window.SITE.channelsReady) return window.SITE.channelsReady;
+    return fetch(DATA_URL)
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (data) { return (data && data.channels) || []; });
+  }
+
   function renderCrumb(channel) {
     const box = el("crumb");
     if (!box) return;
     const hasInner = channel.inner && channel.inner !== channel.name;
+    // 子栏目挂在所属一级栏目下（columnId），面包屑第二级回一级栏目页
+    const parentId = channel.columnId || channel.type;
     box.innerHTML =
       '<li><a href="' + HOME_URL + '">首页</a></li>' +
       (hasInner
-        ? '<li><a href="channel.html?id=' + esc(channel.type) + '">' + esc(channel.name) + '</a></li>' +
+        ? '<li><a href="channel.html?id=' + encodeURIComponent(parentId) + '">' + esc(channel.name) + '</a></li>' +
           '<li class="is-current" aria-current="page">' + esc(channel.inner) + '</li>'
         : '<li class="is-current" aria-current="page">' + esc(channel.name) + '</li>');
   }
 
-  function renderHero(channel) {
-    el("channelKicker").textContent = kicker(channel.slug);
-    el("channelTitle").textContent = channel.inner || channel.name;
-    el("channelIntro").textContent = channel.intro || "";
-    el("channelTotal").textContent = channel.total;
+  // 栏目页不设页头，栏目名落在面包屑与列表标题上
+  function renderHead(channel) {
+    const name = channel.inner || channel.name;
     const heading = el("listHeading");
-    if (heading) heading.textContent = (channel.inner || channel.name) + "稿件";
-    document.title = (channel.inner || channel.name) + " · 广西河池政协网";
+    if (heading) heading.textContent = name + "稿件";
+    document.title = name + " · 广西河池政协网";
   }
 
   // 左侧栏：栏目按钮（仅多栏目时显示）；单栏目页隐藏整个左栏，列表铺满
@@ -55,16 +67,54 @@
     const siblings = channel.siblings || [];
     if (siblings.length) {
       wrap.innerHTML = siblings.map(function (s) {
-        const active = String(s.type) === String(channel.type);
+        // 一页式栏目的子导航指向详情页，用 active 标记当前项
+        const active = s.active === true || String(s.type) === String(channel.type);
+        const href = s.url || ("channel.html?id=" + encodeURIComponent(s.type));
         return active
           ? '<span class="channel-btn is-active" aria-current="true">' + esc(s.name) + '</span>'
-          : '<a class="channel-btn" href="channel.html?id=' + esc(s.type) + '">' + esc(s.name) + '</a>';
+          : '<a class="channel-btn" href="' + esc(href) + '">' + esc(s.name) + '</a>';
       }).join("");
       wrap.hidden = false;
       return;
     }
     const layout = el("innerLayout");
     if (layout) layout.classList.add("inner-layout--full");
+  }
+
+  // 一页式栏目：列表上方展示栏目简介与「完整简介」入口
+  function renderFeature(channel) {
+    const box = el("aboutBox");
+    if (!box) return;
+    const feature = channel.feature;
+    if (!feature) {
+      box.hidden = true;
+      return;
+    }
+    box.innerHTML =
+      '<div class="panel-head"><h2>' + esc(feature.title) + '</h2></div>' +
+      '<div class="about-body">' +
+      '<p class="about-text">' + esc(feature.summary) + '…</p>' +
+      '<a class="about-more" href="' + esc(feature.url) + '">完整简介 &gt;&gt;</a>' +
+      '</div>';
+    box.hidden = false;
+  }
+
+  // 县（区）政协：面板上方列出各县（区）政协入口，未建站的只显示名称
+  function renderCounties(channel) {
+    const box = el("countyLinks");
+    if (!box) return;
+    const counties = channel.counties || [];
+    if (!counties.length) {
+      box.hidden = true;
+      return;
+    }
+    box.innerHTML = counties.map(function (county) {
+      return county.url
+        ? '<a class="county-link" href="' + esc(county.url) + '" target="_blank" rel="noopener">' +
+          esc(county.name) + '</a>'
+        : '<span class="county-link is-plain">' + esc(county.name) + '</span>';
+    }).join("");
+    box.hidden = false;
   }
 
   function renderList() {
@@ -79,7 +129,7 @@
     wrap.innerHTML = '<ul class="article-rows">' + rows.map(function (item) {
       return '<li><a href="' + esc(item.url) + '" title="' + esc(item.title) + '">' +
         esc(item.title) + '</a>' +
-        '<time datetime="' + esc(item.datetime) + '">' + esc(item.datetime) + '</time></li>';
+        '<time datetime="' + esc(item.datetime) + '">' + esc(item.date) + '</time></li>';
     }).join("") + '</ul>';
     const totalPages = Math.max(1, Math.ceil(state.all.length / PAGE_SIZE));
     el("listCount").textContent = "演示数据 " + state.all.length + " 条 / 全站共 " +
@@ -113,8 +163,14 @@
     const latest = el("latestList");
     if (latest) {
       const pool = [];
+      const seen = {};
       channels.forEach(function (ch) {
-        ch.list.forEach(function (item) { pool.push(item); });
+        ch.list.forEach(function (item) {
+          // 栏目间可能同源（如「政协动态 > 县区政协工作动态」与「县（区）政协」），按稿件去重
+          if (seen[item.id]) return;
+          seen[item.id] = true;
+          pool.push(item);
+        });
       });
       pool.sort(function (a, b) { return String(b.datetime).localeCompare(String(a.datetime)); });
       latest.innerHTML = pool.slice(0, LATEST_SIZE).map(function (item) {
@@ -159,40 +215,36 @@
     });
   }
 
-  function renderEmpty(ids) {
-    el("channelTitle").textContent = "栏目预览";
-    el("channelIntro").textContent =
-      "当前原型已实现以下栏目：" + ids.join("、") + "。请从导航或栏目链接进入。";
-    el("channelTotal").textContent = ids.length;
+  function renderEmpty(id) {
+    const heading = el("listHeading");
+    if (heading) heading.textContent = "未找到该栏目";
+    if (el("listCount")) el("listCount").textContent = "";
+    document.title = "栏目 · 广西河池政协网";
     el("innerSide").hidden = true;
     el("innerLayout").classList.add("inner-layout--full");
-    el("listWrap").innerHTML = '<div class="empty-state">未找到该栏目。<br>' +
-      ids.map(function (id) {
-        return '<a href="channel.html?id=' + esc(id) + '">channel.html?id=' + esc(id) + '</a>';
-      }).join("　") + '</div>';
+    el("listWrap").innerHTML = '<div class="empty-state">未找到栏目 <b>' + esc(id) + '</b>。' +
+      '本原型已实现主导航各栏目，请从上方导航或' +
+      '<a href="' + HOME_URL + '">首页</a>进入。</div>';
     el("pager").innerHTML = "";
   }
 
   function init() {
-    fetch(DATA_URL)
-      .then(function (res) {
-        if (!res.ok) throw new Error("HTTP " + res.status);
-        return res.json();
-      })
-      .then(function (data) {
-        const channels = data.channels || [];
-        const id = param("id") || DEFAULT_ID;
+    const id = param("id") || DEFAULT_ID;
+    loadChannels()
+      .then(function (channels) {
         const channel = channels.filter(function (c) { return String(c.type) === String(id); })[0];
         if (!channel) {
-          renderEmpty(channels.map(function (c) { return c.type; }));
+          renderEmpty(id);
           return;
         }
         state.channel = channel;
         state.all = channel.list.slice();
         state.page = 1;
         renderCrumb(channel);
-        renderHero(channel);
+        renderHead(channel);
         renderButtons(channel);
+        renderFeature(channel);
+        renderCounties(channel);
         renderList();
         renderPager();
         renderSide(channels, channel);

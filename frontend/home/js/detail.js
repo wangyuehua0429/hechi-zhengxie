@@ -36,12 +36,44 @@
     return state.channels.filter(function (c) { return String(c.type) === String(type); })[0] || null;
   }
 
+  // 栏目索引由 shell.js 统一取，避免与导航重复请求
+  function loadChannels() {
+    if (window.SITE && window.SITE.channelsReady) return window.SITE.channelsReady;
+    return fetch(CHANNEL_URL)
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (data) { return (data && data.channels) || []; });
+  }
+
+  // 栏目列表里有、但原型未内置正文的稿件：用列表信息拼出详情页，正文留待内容接口接入
+  function listedItem(id) {
+    let hit = null;
+    state.channels.forEach(function (channel) {
+      if (hit) return;
+      (channel.list || []).forEach(function (item) {
+        if (!hit && String(item.id) === String(id)) hit = { item: item, channel: channel };
+      });
+    });
+    return hit;
+  }
+
   function renderCrumb() {
     const a = state.article, ch = state.channel;
-    el("crumb").innerHTML =
-      '<li><a href="' + HOME_URL + '">首页</a></li>' +
-      (ch ? '<li><a href="channel.html?id=' + esc(ch.type) + '">' + esc(ch.name) + '</a></li>' : "") +
-      '<li class="is-current" aria-current="page">正文</li>';
+    const parts = ['<li><a href="' + HOME_URL + '">首页</a></li>'];
+    if (ch) {
+      // 子栏目挂在所属一级栏目下（columnId），子栏目名与一级栏目名不同时再补一级
+      const parentId = ch.columnId || ch.type;
+      parts.push('<li><a href="channel.html?id=' + encodeURIComponent(parentId) + '">' +
+        esc(ch.name) + '</a></li>');
+      if (ch.inner && ch.inner !== ch.name) {
+        parts.push('<li><a href="channel.html?id=' + encodeURIComponent(ch.type) + '">' +
+          esc(ch.inner) + '</a></li>');
+      }
+    }
+    parts.push('<li class="is-current" aria-current="page">正文</li>');
+    el("crumb").innerHTML = parts.join("");
     document.title = a.title + " · " + (ch ? ch.name + " · " : "") + "广西河池政协网";
   }
 
@@ -163,31 +195,55 @@
     });
   }
 
+  // 栏目列表里有该条、但原型未内置正文：照常渲染标题与元信息，正文位置给出说明
+  function renderListedOnly(hit) {
+    const item = hit.item;
+    state.article = {
+      id: item.id,
+      channelType: hit.channel.type,
+      channelName: hit.channel.name,
+      title: item.title,
+      subtitle: "",
+      date: item.datetime || item.date,
+      source: item.source || "",
+      author: "",
+      editor: "",
+      views: item.views,
+      content: '<div class="empty-state">本篇正文未随原型内置，正式迁移后由内容接口提供。<br>' +
+        '<a href="channel.html?id=' + encodeURIComponent(hit.channel.type) + '">返回' +
+        esc(hit.channel.inner || hit.channel.name) + '</a></div>'
+    };
+    state.channel = hit.channel;
+    renderCrumb();
+    renderArticle();
+    renderRelated();
+    renderPrevNext();
+    renderSide();
+    bindToolbar();
+  }
+
   function renderMissing() {
     el("articleTitle").textContent = "未找到该篇信息";
-    el("articleBody").innerHTML =
-      '<div class="empty-state">当前原型内置的详情样例为：' +
-      state.channels.reduce(function (acc, c) {
-        return acc.concat(c.list.slice(0, 2).map(function (i) {
-          return '<a href="detail.html?id=' + esc(i.id) + '">' + esc(i.id) + '</a>';
-        }));
-      }, []).join("　") + '</div>';
-    el("articleToolbar").hidden = true;
     el("articleMeta").innerHTML = "";
+    el("articleToolbar").hidden = true;
+    el("articleBody").innerHTML =
+      '<div class="empty-state">未找到该篇信息，链接可能已失效。' +
+      '请从<a href="' + HOME_URL + '">首页</a>或上方导航重新进入。</div>';
   }
 
   function init() {
     Promise.all([
       fetch(ARTICLE_URL).then(function (r) { return r.json(); }),
-      fetch(CHANNEL_URL).then(function (r) { return r.json(); })
+      loadChannels()
     ]).then(function (res) {
       const articles = res[0].articles || [];
-      state.channels = res[1].channels || [];
+      state.channels = res[1] || [];
       const id = param("id") || DEFAULT_ID;
       const article = articles.filter(function (a) { return String(a.id) === String(id); })[0];
       if (!article) {
-        state.article = { id: id, title: "", content: "" };
-        renderMissing();
+        const hit = listedItem(id);
+        if (hit) renderListedOnly(hit);
+        else renderMissing();
         return;
       }
       state.article = article;
