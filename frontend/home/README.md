@@ -78,6 +78,25 @@ frontend/home/
 - 主导航由 JS 异步渲染，加载期间原会撑开下方主体、推迟站头展开动画；现按渲染后的两行宫格高度在 `.nav-wrap` 预留 90px 占位（移动端折叠态归零），`js/header-fold.js` 不再等 `site:rendered` 与 1.5 秒兜底，展开动画立即开始。
 - 随批重压了一批缩略图（如 `images/channel/43878.jpg` 由 2.17 MB 压到 789 KB、`images/channel/61458.jpg` 由 601 KB 压到 52 KB）。当前 `images/channel/` 138 张合计 9.1 MB（单张 5.0 KB—789 KB），`images/remote/` 44 张合计 5.4 MB（单张 2.8 KB—666 KB），`frontend/home/images/` 整体 17 MB。
 
+## 手动刷新回顶（2026-09-11 晚，`366d7a4`／`c9096ee` 之后的修正）
+
+需求：手动刷新（F5 / ⌘R）后回到页面顶部；浏览器前进/后退保持默认恢复；栏目页之间“点击栏目”的位置保持由 `js/channel.js` 单独负责。
+
+**为什么“设一次 `history.scrollRestoration = "manual"`”不够**：是否恢复滚动位置由**上一份文档**决定——本页开始加载时这个决定已经做完了；而且本页开始加载后，浏览器还会在首次排版、以及内容陆续撑高的过程中反复把旧位置恢复回来。实测（Chrome 152 无头、1440 视口，本机 `python3 -m http.server`）：
+
+| 做法 | 刷新前 1200px | 刷新前 3000px |
+| --- | --- | --- |
+| 什么都不做 | 停在 1200 | 停在 3000 |
+| 刷新时设一次 `scrollRestoration = "manual"` 并回顶（放 `<head>` 内联与放 body 末尾结果相同） | 停在 1200 ❌ | 回到 0 ✅ |
+| 改设 `scrollRestoration = "manual"` 且不区分导航类型（长期生效） | 回到 0 ✅ | 回到 0 ✅ |
+| 本页现在的做法：刷新后 1.2 秒内持续压回顶部 | 回到 0 ✅ | 回到 0 ✅ |
+
+第三种“一直关掉恢复”的做法会把前进/后退一起关掉（实测从栏目页点浏览器返回：原本停在首页 1200px，改后直接跳回顶部），与需求冲突，故不采用。
+
+**现在 `js/site-links.js` 里的做法**：仅当本次导航类型是 `reload` 时介入，在 `DOMContentLoaded`、`load` 与随后 1.2 秒的每帧里把页面压回顶部；用户一旦自己滚动或按键（`wheel`／`touchstart`／`keydown`／`mousedown`）立即放手。前进/后退不是 `reload`，完全不介入。`index.html`／`channel.html`／`detail.html` 三页共用这一份逻辑。
+
+**这条修正由新加的回归检查发现**：`node tests/check-pages.mjs` 首次运行即报首页刷新仍停在原位（其余 18 个用例当时全绿），详见 [../../tests/README.md](../../tests/README.md)。
+
 ## 回归与修复（2026-09-11，`b95ccf8` 已修复）
 
 **现象**：提交 `85918c2` 上线后，`channel.html`（含 `?id=904`、`?id=202`、`?id=314`、无参数默认态）只剩“数据加载失败，请通过本地静态服务器访问本页。”，列表与分页均不渲染；`detail.html` 正文、侧栏、附件区正常，但 `document.title` 的栏目名变成 `undefined`（`标题 · undefined · 广西河池政协网`）。

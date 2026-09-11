@@ -14,20 +14,29 @@
   var site = "https://www.gxhczx.gov.cn";
 
   // 全站规则：手动刷新（F5 / ⌘R）后回到页面顶部。
-  // 浏览器默认会在 reload 时恢复上次的滚动位置；这里按需求关闭该恢复。
-  // 前进/后退（back_forward）保持默认恢复；栏目页之间"点击栏目"的位置保持
-  // 由 channel.js 单独处理，与本逻辑互不影响。本文件三个页面都会加载。
+  // 为什么不是"设一次 scrollRestoration 就完事"：是否恢复滚动位置由"上一份文档"
+  // 决定（本页加载时已经晚了），而本页开始加载后，浏览器又会在首次排版、以及内容
+  // 陆续撑高的过程中多次把旧位置恢复回来。实测只关恢复或只在 load 前回顶，滚动位置
+  // 较浅时（如 1200px）刷新后仍停在原位。故改为刷新后在短时间内持续压回顶部，
+  // 一旦用户自己滚动或按键就放手；前进/后退不是 reload，本逻辑完全不介入。
   (function pinTopOnReload() {
     try {
       var entries = performance.getEntriesByType && performance.getEntriesByType("navigation");
       var type = entries && entries[0] && entries[0].type;
       if (type !== "reload") return;
-      if ("scrollRestoration" in history) history.scrollRestoration = "manual";
-      var root = document.documentElement;
-      var prev = root.style.scrollBehavior;
-      root.style.scrollBehavior = "auto";
-      window.scrollTo(0, 0);
-      root.style.scrollBehavior = prev;
+      var stop = false;
+      ["wheel", "touchstart", "keydown", "mousedown"].forEach(function (name) {
+        addEventListener(name, function () { stop = true; }, { passive: true, once: true });
+      });
+      var pin = function () { if (!stop) window.scrollTo(0, 0); };
+      pin();
+      document.addEventListener("DOMContentLoaded", pin);
+      addEventListener("load", pin);
+      var t0 = Date.now();
+      (function tick() {
+        pin();
+        if (!stop && Date.now() - t0 < 1200) requestAnimationFrame(tick);
+      })();
     } catch (e) { /* 拿不到导航类型时保持浏览器默认行为 */ }
   })();
 
