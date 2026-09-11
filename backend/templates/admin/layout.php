@@ -78,6 +78,9 @@ $pageLabel = trim(explode('·', $title)[0]);
 if ($section !== null && ($pageLabel === $section['label'] || $pageLabel === '' || $section['label'] === '概览')) {
     $pageLabel = '';
 }
+// 面包屑第一层：首页管理下的页面（导航栏目／头条轮换／其他栏目／站内横幅／全部栏目）
+// 从「首页管理」起，其余页面仍从「概览」起。
+$rootCrumb = isset($section['parent']) ? $section['parent'] : ['label' => '概览', 'url' => '/admin'];
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -136,15 +139,11 @@ if ($section !== null && ($pageLabel === $section['label'] || $pageLabel === '' 
         <?php if ($section === null || $current === 'dashboard'): ?>
           <span class="crumb-current">概览</span>
         <?php else: ?>
-          <a href="/admin">概览</a>
+          <a href="<?= hechi_e($rootCrumb['url']) ?>"><?= hechi_e($rootCrumb['label']) ?></a>
           <span class="crumb-sep" aria-hidden="true">/</span>
           <?php if ($pageLabel === ''): ?>
             <span class="crumb-current"><?= hechi_e($section['label']) ?></span>
           <?php else: ?>
-            <?php if (isset($section['parent'])): ?>
-              <a href="<?= hechi_e($section['parent']['url']) ?>"><?= hechi_e($section['parent']['label']) ?></a>
-              <span class="crumb-sep" aria-hidden="true">/</span>
-            <?php endif; ?>
             <a href="<?= hechi_e($section['url']) ?>"><?= hechi_e($section['label']) ?></a>
             <span class="crumb-sep" aria-hidden="true">/</span>
             <span class="crumb-current"><?= hechi_e($pageLabel) ?></span>

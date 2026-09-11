@@ -907,7 +907,12 @@ async function main() {
       navPage.text.includes('href="/admin/banners"'));
     check("当前页在树里高亮，面包屑带上「首页管理」这一层",
       /href="\/admin\/nav" class="active" aria-current="page"/.test(navPage.text) &&
-      /概览[\s\S]{0,200}?首页管理[\s\S]{0,200}?导航栏目/.test(navPage.text));
+      /<nav class="breadcrumb"[\s\S]*?<a href="\/admin\/nav">首页管理<\/a>[\s\S]*?<span class="crumb-current">导航栏目<\/span>[\s\S]*?<\/nav>/
+        .test(navPage.text));
+    const listCrumb = ((await client.get("/admin/articles")).text.match(/<nav class="breadcrumb"[\s\S]*?<\/nav>/) || [""])[0];
+    check("首页管理以外的页面，面包屑仍从「概览」起",
+      /<a href="\/admin">概览<\/a>/.test(listCrumb) && listCrumb.includes("稿件管理"),
+      listCrumb.replace(/\s+/g, " ").slice(0, 120));
     const logsActive = (await client.get("/admin/logs")).text;
     check("操作日志页在侧栏高亮自己",
       /href="\/admin\/logs" class="active" aria-current="page"/.test(logsActive));
