@@ -559,6 +559,76 @@ async function main() {
       "id=" + editorCreatedId);
     check("降级后的稿件前台读不到",
       editorCreatedId !== "" && (await client.get("/api/v1/article/" + editorCreatedId, { json: true })).status === 404);
+    check("栏目编辑访问用户管理被判 403", (await editorClient.get("/admin/users")).status === 403);
+
+    // ---- 用户与角色管理（管理员）
+    const usersPage = await client.get("/admin/users");
+    check("用户列表可访问并列出账号与角色",
+      usersPage.status === 200 && usersPage.text.includes("用户管理") &&
+      usersPage.text.includes(USER) && usersPage.text.includes("栏目编辑"));
+
+    const rolesPage = await client.get("/admin/roles");
+    const roleIds = [...rolesPage.text.matchAll(/\/admin\/role\/(\d+)"/g)].map((m) => m[1]);
+    check("角色列表列出四个内置角色", rolesPage.status === 200 && roleIds.length >= 4, "ids=" + roleIds.join(","));
+    const reviewerRoleId = roleIds[1] || "2";
+
+    const userNewForm = await client.get("/admin/user/new");
+    check("新建账号页可打开并列出角色勾选项",
+      userNewForm.status === 200 && userNewForm.text.includes("新建账号") && userNewForm.text.includes("roles[]"));
+    const createdUser = await client.post("/admin/user/create", {
+      _token: csrfToken(userNewForm.text),
+      username: "checkreviewer",
+      password: "check-review-2026",
+      real_name: "审核账号",
+      dept: "办公室",
+      mobile: "13800000000",
+      email: "reviewer@example.com",
+      remark: "检查脚本创建",
+      status: "enabled",
+      "roles[]": reviewerRoleId
+    });
+    const createdUserId = (/(\/admin\/user\/(\d+))$/.exec(createdUser.headers.get("location") || "") || [])[2] || "";
+    check("新建账号成功并跳到编辑页", createdUser.status === 302 && createdUserId !== "", "id=" + createdUserId);
+    const createdUserPage = await client.get("/admin/user/" + createdUserId);
+    check("新账号带上了所选角色与部门",
+      createdUserPage.text.includes("审核") && createdUserPage.text.includes("办公室"));
+
+    const reviewerClient = makeClient(base);
+    const reviewerLoginPage = await reviewerClient.get("/admin/login");
+    const reviewerOk = await reviewerClient.post("/admin/login", {
+      _token: csrfToken(reviewerLoginPage.text),
+      username: "checkreviewer",
+      password: "check-review-2026"
+    });
+    check("新建的审核账号可登录", reviewerOk.status === 302);
+    const reviewerDash = await reviewerClient.get("/admin");
+    check("审核账号顶栏显示角色名", reviewerDash.text.includes("审核"));
+    check("审核账号访问用户管理被判 403", (await reviewerClient.get("/admin/users")).status === 403);
+    check("无 article.edit 的账号看不到「新建稿件」按钮",
+      !(await reviewerClient.get("/admin/articles")).text.includes('href="/admin/article/new'));
+
+    const roleEdit = await client.get("/admin/role/" + reviewerRoleId);
+    check("角色编辑页列出权限码与栏目范围",
+      roleEdit.status === 200 && roleEdit.text.includes("article.review") && roleEdit.text.includes("栏目范围"));
+    const savedRole = await client.post("/admin/role/" + reviewerRoleId, {
+      _token: csrfToken(roleEdit.text),
+      name: "审核",
+      description: "待审稿件的通过或退回",
+      remark: "责任人：内容把关",
+      "perms[]": "article.review",
+      "channels[]": "904"
+    });
+    check("保存角色后跳回角色页", savedRole.status === 302);
+    check("角色列表显示该角色已限定 1 个栏目",
+      (await client.get("/admin/roles")).text.includes("1 个栏目"));
+    const reviewerScoped = await reviewerClient.get("/admin/articles?channel=314");
+    check("数据范围生效：限定栏目的账号查不到范围外稿件",
+      reviewerScoped.text.includes("共 0 篇"),
+      (reviewerScoped.text.match(/共 \d+ 篇/) || [])[0] || "无统计");
+
+    const logsPage = await client.get("/admin/logs");
+    check("操作日志页可访问并记录稿库流转与账号改动",
+      logsPage.status === 200 && logsPage.text.includes("提交审核") && logsPage.text.includes("新建账号"));
 
     // ---- 栏目管理
     const channels = await client.get("/admin/channels");

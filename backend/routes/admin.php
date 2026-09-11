@@ -12,7 +12,10 @@ use HechiZx\Admin\Auth;
 use HechiZx\Admin\AuthController;
 use HechiZx\Admin\ChannelController;
 use HechiZx\Admin\DashboardController;
+use HechiZx\Admin\LogController;
 use HechiZx\Admin\PublishController;
+use HechiZx\Admin\RoleController;
+use HechiZx\Admin\UserController;
 use HechiZx\Admin\View;
 use HechiZx\Http\Router;
 use HechiZx\Repository\ArticleRepository;
@@ -57,6 +60,9 @@ return static function (Router $router, Db $db, Config $config): void {
         (string) $config->get('paths.uploads')
     );
     $channelController = new ChannelController($auth, $view, $db, $siteId, $channels);
+    $userController = new UserController($auth, $view, $db, $siteId);
+    $roleController = new RoleController($auth, $view, $db, $siteId, $channels);
+    $logController = new LogController($auth, $view, $db, $siteId);
     $publishController = new PublishController(
         $auth,
         $view,
@@ -88,6 +94,18 @@ return static function (Router $router, Db $db, Config $config): void {
     $router->get('/admin/channels', [$channelController, 'index']);
     $router->get('/admin/channel/{type}', [$channelController, 'edit']);
     $router->post('/admin/channel/{type}', [$channelController, 'update']);
+
+    $router->get('/admin/users', [$userController, 'index']);
+    $router->get('/admin/user/new', [$userController, 'createForm']);
+    $router->post('/admin/user/create', [$userController, 'store']);
+    $router->get('/admin/user/{user_id}', [$userController, 'edit']);
+    $router->post('/admin/user/{user_id}', [$userController, 'update']);
+
+    $router->get('/admin/roles', [$roleController, 'index']);
+    $router->get('/admin/role/{role_id}', [$roleController, 'edit']);
+    $router->post('/admin/role/{role_id}', [$roleController, 'update']);
+
+    $router->get('/admin/logs', [$logController, 'index']);
 
     $router->post('/admin/publish', [$publishController, 'run']);
 };

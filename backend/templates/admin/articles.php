@@ -54,7 +54,9 @@ $newUrl = '/admin/article/new' . ($filters['channel'] !== '' ? '?channel=' . hec
 ?>
 <div class="page-head">
   <h1>稿件管理</h1>
-  <a class="btn-primary" href="<?= $newUrl ?>">新建稿件</a>
+  <?php if (in_array('article.edit', $userPerms ?? [], true)): ?>
+    <a class="btn-primary" href="<?= $newUrl ?>">新建稿件</a>
+  <?php endif; ?>
 </div>
 
 <nav class="vault-nav" aria-label="稿库">
