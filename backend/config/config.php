@@ -15,6 +15,9 @@ return [
         'name'  => '河池政协网 CMS',
         'env'   => getenv('APP_ENV') ?: 'local',
         'debug' => filter_var(getenv('APP_DEBUG') ?: '1', FILTER_VALIDATE_BOOL),
+        // PHP 默认时区：不设会走 php.ini 的 UTC，与库里按本地时间写入的
+        // 时间戳差 8 小时（后台「上次发布」显示 10:23 而实际是 18:23 就是这个原因）
+        'timezone' => getenv('APP_TIMEZONE') ?: 'Asia/Shanghai',
     ],
 
     // 多站点预留：本期只启用主站，子站按 site_id 区分

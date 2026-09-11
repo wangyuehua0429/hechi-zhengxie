@@ -49,7 +49,19 @@ final class Db
                 (string) ($config['database'] ?? ''),
                 (string) ($config['charset'] ?? 'utf8mb4')
             );
-            return new PDO($dsn, (string) ($config['username'] ?? ''), (string) ($config['password'] ?? ''), $options);
+            $pdo = new PDO($dsn, (string) ($config['username'] ?? ''), (string) ($config['password'] ?? ''), $options);
+
+            // 会话时区跟应用时区对齐，否则 CURRENT_TIMESTAMP 的默认值与 PHP 写入的时间会差几个小时。
+            // 这条在 MySQL 上生效即可，失败也不阻断连接（例如账号无权设置会话变量）。
+            try {
+                $timezone = (string) ($config['timezone'] ?? 'Asia/Shanghai');
+                $offset = (new \DateTimeImmutable('now', new \DateTimeZone($timezone)))->format('P');
+                $pdo->exec("SET time_zone = '" . $offset . "'");
+            } catch (\Throwable $e) {
+                // 忽略：连接已经建立，时区由部署时的 MySQL 配置兜底
+            }
+
+            return $pdo;
         }
 
         throw new \RuntimeException('不支持的数据库驱动：' . $driver);

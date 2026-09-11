@@ -180,6 +180,12 @@ async function main() {
   check("命令行能列出后台账号", lists.status === 0 && lists.stdout.includes(USER));
   check("账号列表显示所属角色", lists.status === 0 && lists.stdout.includes("editor"));
 
+  // ---- 时区：php.ini 默认是 UTC，应用必须自己设成 Asia/Shanghai，
+  //      否则后台「上次发布」显示 10:23 而实际是 18:23
+  const timezone = runPhp(php, "-r", env, ["require 'backend/src/bootstrap.php'; echo date_default_timezone_get();"]);
+  check("应用时区按配置生效（不是 php.ini 的 UTC）",
+    timezone.stdout.trim() === "Asia/Shanghai", timezone.stdout.trim());
+
   const server = spawn(php, ["-S", "127.0.0.1:" + opts.port, "-t", "backend/public", "backend/public/router.php"], {
     cwd: REPO,
     env: { ...process.env, ...env },
@@ -561,6 +567,18 @@ async function main() {
       editorCreatedId !== "" && (await client.get("/api/v1/article/" + editorCreatedId, { json: true })).status === 404);
     check("栏目编辑访问用户管理被判 403", (await editorClient.get("/admin/users")).status === 403);
 
+    // ---- 写库的时间戳必须是本地时间：这条脚本写的稿件刚更新过，跟当前本地时间比
+    const lastUpdatedAt = runPhp(php, "-r", env, [
+      "echo (new PDO('sqlite:'.getenv('DB_DATABASE')))->query('SELECT updated_at FROM cms_article ORDER BY article_id DESC LIMIT 1')->fetchColumn();"
+    ]).stdout.trim();
+    const localNow = runPhp(php, "-r", env, [
+      "require 'backend/src/bootstrap.php'; echo date('Y-m-d H:i:s');"
+    ]).stdout.trim();
+    const stampMs = (text) => new Date(text.replace(" ", "T") + "+08:00").getTime();
+    check("稿件时间戳写的是本地时间（与当前相差 2 分钟内）",
+      lastUpdatedAt !== "" && localNow !== "" && Math.abs(stampMs(localNow) - stampMs(lastUpdatedAt)) < 120000,
+      "库=" + lastUpdatedAt + " 本地=" + localNow);
+
     // ---- 用户与角色管理（管理员）
     const usersPage = await client.get("/admin/users");
     check("用户列表可访问并列出账号与角色",
@@ -662,6 +680,19 @@ async function main() {
 
     const dashboardAfter = await client.get("/admin");
     check("发布后概览提示发布结果", dashboardAfter.text.includes("发布完成"));
+
+    // ---- 「上次发布」以操作日志为准，且时间用本地时区
+    const publishLogTime = runPhp(php, "-r", env, [
+      "echo (new PDO('sqlite:'.getenv('DB_DATABASE')))->query(\"SELECT created_at FROM sys_operation_log WHERE action='publish.all' ORDER BY log_id DESC LIMIT 1\")->fetchColumn();"
+    ]).stdout.trim();
+    const shownPublishTime = (/上次发布：([0-9-]{10} [0-9:]{8})/.exec(dashboardAfter.text) || [])[1] || "";
+    check("概览「上次发布」与操作日志时间一致",
+      shownPublishTime !== "" && shownPublishTime === publishLogTime,
+      "面板=" + shownPublishTime + " 日志=" + publishLogTime);
+    check("发布记录带发布人与产物数量",
+      /上次发布：[0-9-]{10} [0-9:]{8}（[^）]+）/.test(dashboardAfter.text) && dashboardAfter.text.includes("个页面"));
+    check("发布说明改成面对使用者的表述",
+      dashboardAfter.text.includes("平时发稿不用点这里") && !dashboardAfter.text.includes("输出到 <code>"));
 
     check("发布产物落盘（首页 / 栏目数据 / 详情静态页 / sitemap）",
       existsSync(path.join(publishDir, "index.html")) &&

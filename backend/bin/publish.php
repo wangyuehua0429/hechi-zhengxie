@@ -33,9 +33,12 @@ if (!is_file($template)) {
     exit(1);
 }
 
+$db = new Db((array) $config->get('db'));
+$siteId = (int) $config->get('site.site_id', 1);
+
 $publisher = new Publisher(
-    new Db((array) $config->get('db')),
-    (int) $config->get('site.site_id', 1),
+    $db,
+    $siteId,
     $out,
     $template,
     (string) $config->get('site.name'),
@@ -51,6 +54,21 @@ if (!isset($options['html-only'])) {
 if (!isset($options['data-only'])) {
     $result += $publisher->publishHtml();
 }
+
+// 记一条发布日志：后台「上次发布」以它为准（命令行没有登录用户，user_id 记 0）
+$db->execute(
+    'INSERT INTO sys_operation_log (user_id, action, target_type, target_id, detail_json, ip, user_agent)
+     VALUES (:uid, :action, :type, :tid, :detail, :ip, :ua)',
+    [
+        'uid'    => 0,
+        'action' => 'publish.all',
+        'type'   => 'site',
+        'tid'    => (string) $siteId,
+        'detail' => json_encode($result, JSON_UNESCAPED_UNICODE),
+        'ip'     => '',
+        'ua'     => 'cli',
+    ]
+);
 
 fwrite(STDOUT, '输出目录：' . $publisher->outDir() . "\n");
 foreach ($result as $name => $count) {

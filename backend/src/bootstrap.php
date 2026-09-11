@@ -40,3 +40,9 @@ function hechi_e(mixed $value): string
 {
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
+
+/*
+ * 统一时区：CLI 脚本与 Web 入口都从这里走，避免 date() 用 UTC、
+ * 而数据库的 datetime('now','localtime') 用本地时间，两边差 8 小时。
+ */
+date_default_timezone_set((string) hechi_config('app.timezone', 'Asia/Shanghai'));

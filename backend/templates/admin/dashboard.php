@@ -8,7 +8,7 @@
  * @var list<array<string, mixed>> $recent
  * @var int $total
  * @var string $publishDir
- * @var string|null $publishedAt
+ * @var array{at:string,by:string,pages:int,channels:int,articles:int}|null $lastPublish
  * @var int $logCount
  * @var string $csrf
  */
@@ -33,12 +33,14 @@ $places = ArticleWorkflow::places();
 </div>
 
 <section class="card">
-  <h2>发布</h2>
+  <h2>发布全站</h2>
   <p class="muted">
-    发布 = 把库里的内容重新生成静态页与数据快照，输出到 <code><?= hechi_e($publishDir) ?></code>。<br>
-    前台页面走内容接口：稿件保存为<strong>「已发布」</strong>后前台立即可见，不必等这步发布；<br>
-    这步发布只影响静态化产物（详情静态页、sitemap、数据快照）。<br>
-    上次发布：<?= $publishedAt ? hechi_e($publishedAt) : '尚未发布过' ?>　操作日志：<?= $logCount ?> 条
+    把后台的内容重新生成一遍静态文件——文章详情页、站点地图与一份数据快照，生成后可以直接对外提供，
+    不再走实时查询。
+  </p>
+  <p class="muted">
+    <strong>平时发稿不用点这里。</strong>稿件状态是「已发布」，前台立刻就看到了，走的是实时内容接口；
+    这一步只影响上面的静态文件，改过栏目名称或顺序、想刷一遍详情页与站点地图时再点一次。
   </p>
   <?php if (in_array('publish.run', $userPerms ?? [], true)): ?>
     <form method="post" action="/admin/publish"><?= $csrf ?>
@@ -47,6 +49,20 @@ $places = ArticleWorkflow::places();
   <?php else: ?>
     <p class="muted">当前账号没有「生成静态页与数据快照」权限，发布按钮不可用。</p>
   <?php endif; ?>
+  <p class="muted publish-meta">
+    <?php if ($lastPublish): ?>
+      上次发布：<?= hechi_e($lastPublish['at']) ?>（<?= hechi_e($lastPublish['by']) ?><?php
+        if (($lastPublish['pages'] ?? 0) > 0) {
+            echo '，生成 ' . (int) $lastPublish['pages'] . ' 个页面、' . (int) $lastPublish['channels'] . ' 个栏目、' . (int) $lastPublish['articles'] . ' 篇稿件';
+        }
+      ?>）
+      · <a href="/admin/logs">查看发布记录</a>
+    <?php else: ?>
+      还没有发布过。首次发布前前台不受影响，仍在走实时内容接口。
+    <?php endif; ?>
+    <br>
+    文件生成位置：<code><?= hechi_e($publishDir) ?></code>
+  </p>
 </section>
 
 <section class="card">
@@ -65,5 +81,8 @@ $places = ArticleWorkflow::places();
       <?php endforeach; ?>
     </tbody>
   </table>
-  <p class="muted"><a href="/admin/articles">查看全部稿件 →</a></p>
+  <p class="muted">
+    <a href="/admin/articles">查看全部稿件 →</a>　
+    操作日志累计 <?= (int) $logCount ?> 条 · <a href="/admin/logs">查看日志</a>
+  </p>
 </section>
