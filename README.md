@@ -11,6 +11,7 @@
 - **数据来源**：当前用 `frontend/home/data/` 下的静态快照（`home.json`／`channel.json`／`article.json`／`channel-index.json`）复用现网内容；后端就绪后以 REST API 平替该数据源，页面结构与渲染逻辑不变（详见 [frontend/home/README.md](frontend/home/README.md)）。
 - **后端与编校微服务**：属目标架构，仍为零行代码；仓库已按架构预留 `backend/`、`api/`、`services/proofreader/`、`database/`、`tools/migrate/`、`tests/` 等目录。
 - **当日回归已修复**：`85918c2` 的精简索引一度让 `channel.html` 数据加载失败、`detail.html` 标题多出 `undefined`，`b95ccf8` 已修复并实测通过；成因与验证见 [frontend/home/README.md](frontend/home/README.md) 的“回归与修复”一节。
+- **前端回归检查**：`tests/check-pages.mjs` 起本地静态服务、用无头浏览器跑 19 个用例（首页／栏目页七种版式／详情页／分页／刷新回顶），断言无 `undefined`、无“数据加载失败”、无破图与横向溢出、控制台干净。首跑即发现“首页手动刷新未回顶”这一遗留缺陷，已一并修正（详见 [tests/README.md](tests/README.md)）。
 
 ## 本地预览
 
@@ -22,6 +23,12 @@ cd frontend/home && python3 -m http.server 8899
 ```
 
 > 直接双击 `index.html` 会因浏览器拦截本地 `fetch` JSON 而无法加载数据，需经静态服务器访问。
+
+提交前跑一遍页面回归检查（自起静态服务，无需先开预览）：
+
+```bash
+node tests/check-pages.mjs
+```
 
 ## 目标架构（规划，源自《河池政协网开发思路与技术栈方案》）
 
