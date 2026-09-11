@@ -94,23 +94,16 @@
           </div>
 
           <div class="article-body" id="articleBody"></div>
+          <section class="article-gallery" id="articleGallery" aria-label="正文图片" hidden></section>
+          <section class="article-attach" id="articleAttach" aria-label="附件下载" hidden></section>
           <p class="article-sign" id="articleSign" hidden></p>
         </article>
-
-        <section class="panel">
-          <div class="panel-head"><h2>相关阅读</h2></div>
-          <ul class="related-list" id="relatedList"></ul>
-        </section>
-
-        <nav class="panel article-nav" aria-label="上一篇下一篇">
-          <ul id="articleNavList"></ul>
-        </nav>
       </div>
 
       <aside class="inner-side is-sticky">
         <section class="side-card">
-          <div class="side-head"><h3 id="sideChannelName">栏目最新</h3></div>
-          <div class="side-body"><ul class="side-list" id="channelLatest"></ul></div>
+          <div class="side-head"><h3>最新新闻</h3></div>
+          <div class="side-body"><ul class="side-list side-list--plain" id="latestList"></ul></div>
         </section>
         <section class="side-card">
           <div class="side-head"><h3>图片新闻</h3></div>
@@ -124,6 +117,7 @@
     <div class="container footer-inner" id="footerBody"></div>
   </footer>
 
+  <script src="js/site-links.js"></script>
   <script src="js/shell.js"></script>
   <script src="js/detail.js"></script>
 </body>

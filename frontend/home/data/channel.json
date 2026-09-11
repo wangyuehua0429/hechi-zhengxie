@@ -4,16 +4,22 @@
       "type": "202",
       "columnId": "202",
       "slug": "zhengxie-gaikuang",
-      "name": "政协概况",
-      "inner": "政协概况",
-      "intro": "中国人民政治协商会议河池市委员会的性质定位、章程依据、机构设置与领导成员。",
-      "layout": "about",
+      "name": "政协领导",
+      "inner": "政协领导",
+      "intro": "中国人民政治协商会议河池市委员会主席、副主席、秘书长名单及简介。",
+      "layout": "leaders",
       "siblings": [
+        {
+          "type": "202",
+          "name": "政协领导",
+          "url": "detail.html?id=202",
+          "active": true
+        },
         {
           "type": "151",
           "name": "政协简介",
           "url": "detail.html?id=151",
-          "active": true
+          "active": false
         },
         {
           "type": "39588",
@@ -49,37 +55,16 @@
       "total": 10,
       "list": [
         {
-          "id": 39579,
-          "title": "韦懿格",
-          "url": "detail.html?id=39579",
+          "id": 39587,
+          "title": "黄 恩",
+          "url": "detail.html?id=39587",
           "date": "2026-03-02",
-          "datetime": "2026-03-02 17:28:04",
+          "datetime": "2026-03-02 12:24:24",
           "source": "政协河池市委员会",
-          "views": 172535,
-          "img": "images/channel/39579.jpg",
-          "hasBody": true
-        },
-        {
-          "id": 39583,
-          "title": "黄大东",
-          "url": "detail.html?id=39583",
-          "date": "2026-03-02",
-          "datetime": "2026-03-02 17:27:57",
-          "source": "政协河池市委员会",
-          "views": 171508,
-          "img": "images/channel/39583.jpg",
-          "hasBody": true
-        },
-        {
-          "id": 39584,
-          "title": "兰吉阳",
-          "url": "detail.html?id=39584",
-          "date": "2026-03-02",
-          "datetime": "2026-03-02 17:27:47",
-          "source": "政协河池市委员会",
-          "views": 172384,
-          "img": "images/channel/39584.jpg",
-          "hasBody": true
+          "views": 179654,
+          "img": "images/channel/art39587-1.jpg",
+          "hasBody": true,
+          "role": "主席"
         },
         {
           "id": 39585,
@@ -89,63 +74,33 @@
           "datetime": "2026-03-02 17:27:40",
           "source": "政协河池市委员会",
           "views": 173906,
-          "img": "images/channel/39585.jpg",
-          "hasBody": true
+          "img": "images/channel/art39585-1.jpg",
+          "hasBody": true,
+          "role": "副主席"
         },
         {
-          "id": 61542,
-          "title": "黄正华",
-          "url": "detail.html?id=61542",
+          "id": 39584,
+          "title": "兰吉阳",
+          "url": "detail.html?id=39584",
           "date": "2026-03-02",
-          "datetime": "2026-03-02 17:10:21",
+          "datetime": "2026-03-02 17:27:47",
           "source": "政协河池市委员会",
-          "views": 7887,
-          "img": "images/channel/61542.jpg",
-          "hasBody": true
+          "views": 172384,
+          "img": "images/channel/art39584-1.jpg",
+          "hasBody": true,
+          "role": "副主席"
         },
         {
-          "id": 39580,
-          "title": "潘秋琳",
-          "url": "detail.html?id=39580",
+          "id": 39583,
+          "title": "黄大东",
+          "url": "detail.html?id=39583",
           "date": "2026-03-02",
-          "datetime": "2026-03-02 12:39:33",
+          "datetime": "2026-03-02 17:27:57",
           "source": "政协河池市委员会",
-          "views": 184891,
-          "img": "images/channel/39580.jpg",
-          "hasBody": true
-        },
-        {
-          "id": 39582,
-          "title": "蓝启章",
-          "url": "detail.html?id=39582",
-          "date": "2026-03-02",
-          "datetime": "2026-03-02 12:37:42",
-          "source": "政协河池市委员会",
-          "views": 176296,
-          "img": "images/channel/39582.jpg",
-          "hasBody": true
-        },
-        {
-          "id": 39578,
-          "title": "黄正华",
-          "url": "detail.html?id=39578",
-          "date": "2026-03-02",
-          "datetime": "2026-03-02 12:27:03",
-          "source": "政协河池市委员会",
-          "views": 181738,
-          "img": "images/channel/39578.jpg",
-          "hasBody": true
-        },
-        {
-          "id": 39587,
-          "title": "黄 恩",
-          "url": "detail.html?id=39587",
-          "date": "2026-03-02",
-          "datetime": "2026-03-02 12:24:24",
-          "source": "政协河池市委员会",
-          "views": 179654,
-          "img": "images/channel/39587.jpg",
-          "hasBody": true
+          "views": 171508,
+          "img": "images/channel/art39583-1.jpg",
+          "hasBody": true,
+          "role": "副主席"
         },
         {
           "id": 44459,
@@ -155,15 +110,71 @@
           "datetime": "2023-02-13 10:47:56",
           "source": "政协河池市委员会",
           "views": 134663,
-          "img": "images/channel/44459.jpg",
-          "hasBody": true
+          "img": "images/channel/art44459-1.jpg",
+          "hasBody": true,
+          "role": "副主席"
+        },
+        {
+          "id": 39582,
+          "title": "蓝启章",
+          "url": "detail.html?id=39582",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 12:37:42",
+          "source": "政协河池市委员会",
+          "views": 176296,
+          "img": "images/channel/art39582-1.jpg",
+          "hasBody": true,
+          "role": "副主席"
+        },
+        {
+          "id": 39580,
+          "title": "潘秋琳",
+          "url": "detail.html?id=39580",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 12:39:33",
+          "source": "政协河池市委员会",
+          "views": 184891,
+          "img": "images/channel/art39580-1.jpg",
+          "hasBody": true,
+          "role": "副主席"
+        },
+        {
+          "id": 39579,
+          "title": "韦懿格",
+          "url": "detail.html?id=39579",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 17:28:04",
+          "source": "政协河池市委员会",
+          "views": 172535,
+          "img": "images/channel/art39579-1.jpg",
+          "hasBody": true,
+          "role": "副主席"
+        },
+        {
+          "id": 61542,
+          "title": "黄正华",
+          "url": "detail.html?id=61542",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 17:10:21",
+          "source": "政协河池市委员会",
+          "views": 7887,
+          "img": "images/channel/art61542-1.jpg",
+          "hasBody": true,
+          "role": "副主席"
+        },
+        {
+          "id": 39578,
+          "title": "黄正华",
+          "url": "detail.html?id=39578",
+          "date": "2026-03-02",
+          "datetime": "2026-03-02 12:27:03",
+          "source": "政协河池市委员会",
+          "views": 181738,
+          "img": "images/channel/art39578-1.jpg",
+          "hasBody": true,
+          "role": "秘书长"
         }
-      ],
-      "feature": {
-        "title": "中国人民政治协商会议简介",
-        "summary": "中国人民政治协商会议（简称人民政协）是中国人民爱国统一战线的组织，是中国共产党领导的多党合作和政治协商的重要机构，是中国政治生活中发扬社会主义民主的一种重要形式。 人民政协成立于1949年9月。政协第一届全体会议代行国家最高权力机关的职权，宣告了中华人民共和国的成立；通过了具有临时宪法性质的《中国人民政治协商会议共同纲领》，以及《中华人民共和国中央人民政府组织法》、《中国人民政治协商会议组织法》；选举产生了中央人民政府和政协第一届全国委员会。这次会议还决定了中华人民共和国的国",
-        "url": "detail.html?id=151"
-      }
+      ]
     },
     {
       "type": "902",
@@ -4644,7 +4655,7 @@
       "name": "图片新闻",
       "inner": "图片新闻",
       "intro": "以图片记录政协履职与全市发展现场，直观呈现重要时刻。",
-      "layout": "list",
+      "layout": "gallery",
       "siblings": [],
       "total": 349,
       "list": [
@@ -4913,6 +4924,1081 @@
           "hasBody": true
         }
       ]
+    },
+    {
+      "type": "306",
+      "columnId": "306",
+      "slug": "shizheng-yaowen",
+      "name": "时政要闻",
+      "inner": "时政要闻",
+      "intro": "转载上级主流媒体的时政要闻，供委员与机关干部学习参考。",
+      "layout": "list",
+      "siblings": [],
+      "total": 1696,
+      "list": [
+        {
+          "id": 62243,
+          "title": "广西领导干部“时代前沿知识”系列讲座第135讲举行",
+          "url": "detail.html?id=62243",
+          "date": "2026-04-27",
+          "datetime": "2026-04-27 11:36:06",
+          "source": "广西日报 河池日报",
+          "views": 106,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62242,
+          "title": "朱会东到金城江龙江河谷灌区项目点调研",
+          "url": "detail.html?id=62242",
+          "date": "2026-04-27",
+          "datetime": "2026-04-27 11:31:02",
+          "source": "河池日报",
+          "views": 109,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62241,
+          "title": "汪东明到宜州开展历史矛盾纠纷化解工作",
+          "url": "detail.html?id=62241",
+          "date": "2026-04-27",
+          "datetime": "2026-04-27 11:27:34",
+          "source": "河池日报",
+          "views": 115,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62240,
+          "title": "市政府与桐昆控股集团举行座谈会",
+          "url": "detail.html?id=62240",
+          "date": "2026-04-27",
+          "datetime": "2026-04-27 11:23:03",
+          "source": "河池日报",
+          "views": 118,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62211,
+          "title": "朱会东到南丹县调研",
+          "url": "detail.html?id=62211",
+          "date": "2026-04-24",
+          "datetime": "2026-04-24 15:53:53",
+          "source": "河池融媒客户端",
+          "views": 163,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62210,
+          "title": "汪东明会见中国物流集团有限公司党委常委、副总经理杜波一行",
+          "url": "detail.html?id=62210",
+          "date": "2026-04-24",
+          "datetime": "2026-04-24 15:48:42",
+          "source": "河池日报",
+          "views": 158,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62182,
+          "title": "自治区党委理论学习中心组（扩大）专题辅导报告会举行",
+          "url": "detail.html?id=62182",
+          "date": "2026-04-23",
+          "datetime": "2026-04-23 11:28:48",
+          "source": "广西日报 河池日报",
+          "views": 69,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62164,
+          "title": "秦春成到宜州督导调研城乡污水治理工作",
+          "url": "detail.html?id=62164",
+          "date": "2026-04-22",
+          "datetime": "2026-04-22 15:35:32",
+          "source": "河池日报",
+          "views": 222,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62151,
+          "title": "壮大产业龙头 厚植民生福祉 全力推动东巴凤区域一体化提质发展",
+          "url": "detail.html?id=62151",
+          "date": "2026-04-21",
+          "datetime": "2026-04-21 16:33:21",
+          "source": "河池日报",
+          "views": 199,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62150,
+          "title": "2026年“广西三月三·河池嘉年华”系列活动拉开帷幕",
+          "url": "detail.html?id=62150",
+          "date": "2026-04-21",
+          "datetime": "2026-04-21 16:28:09",
+          "source": "河池日报",
+          "views": 190,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62149,
+          "title": "汪东明到巴马蹲点调研巡视反馈问题整改工作",
+          "url": "detail.html?id=62149",
+          "date": "2026-04-21",
+          "datetime": "2026-04-21 16:23:19",
+          "source": "河池日报",
+          "views": 175,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62146,
+          "title": "中央层面整治形式主义为基层减负专项工作机制办公室 中央纪委办公厅公开通报4起整治形式主义为基层减负典型问题",
+          "url": "detail.html?id=62146",
+          "date": "2026-04-21",
+          "datetime": "2026-04-21 16:07:20",
+          "source": "新华社",
+          "views": 164,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62144,
+          "title": "我市组织收看广西勤廉榜样先进事迹主题情景报告会实况录像",
+          "url": "detail.html?id=62144",
+          "date": "2026-04-21",
+          "datetime": "2026-04-21 16:00:17",
+          "source": "河池日报",
+          "views": 159,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62127,
+          "title": "自治区党委树立和践行正确政绩观学习教育第三督导组进驻河池",
+          "url": "detail.html?id=62127",
+          "date": "2026-04-16",
+          "datetime": "2026-04-16 15:24:03",
+          "source": "河池日报",
+          "views": 1916,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62126,
+          "title": "统筹建好“两个生态” 推动“十五五”开好局起好步",
+          "url": "detail.html?id=62126",
+          "date": "2026-04-16",
+          "datetime": "2026-04-16 15:20:43",
+          "source": "河池日报",
+          "views": 1659,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62125,
+          "title": "河池市2026年全民国家安全教育日主题活动举行",
+          "url": "detail.html?id=62125",
+          "date": "2026-04-16",
+          "datetime": "2026-04-16 15:14:27",
+          "source": "河池日报",
+          "views": 1873,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62124,
+          "title": "汪东明率队赴深圳大学考察交流 加快科研成果转化 助推南丹试验区建设",
+          "url": "detail.html?id=62124",
+          "date": "2026-04-16",
+          "datetime": "2026-04-16 15:09:16",
+          "source": "河池日报",
+          "views": 2671,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62097,
+          "title": "秦春成主持召开市委常委会会议 凝聚推动河池高质量发展强大合力",
+          "url": "detail.html?id=62097",
+          "date": "2026-04-14",
+          "datetime": "2026-04-14 11:57:41",
+          "source": "河池日报",
+          "views": 2976,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62078,
+          "title": "秦春成到天峨开展历史矛盾纠纷化解并督导调研水库移民后期扶持工作",
+          "url": "detail.html?id=62078",
+          "date": "2026-04-10",
+          "datetime": "2026-04-10 11:32:28",
+          "source": "河池日报",
+          "views": 3702,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62077,
+          "title": "汪东明主持召开市政府常务会议",
+          "url": "detail.html?id=62077",
+          "date": "2026-04-10",
+          "datetime": "2026-04-10 11:28:14",
+          "source": "河池日报",
+          "views": 3369,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62035,
+          "title": "河池以化解历史矛盾践行正确政绩观——把历史旧账变成幸福清单",
+          "url": "detail.html?id=62035",
+          "date": "2026-04-08",
+          "datetime": "2026-04-08 15:45:16",
+          "source": "河池日报",
+          "views": 3878,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 62023,
+          "title": "河池市高标准农田建设和农村水利项目突出问题专项巡察工作动员部署会召开",
+          "url": "detail.html?id=62023",
+          "date": "2026-04-07",
+          "datetime": "2026-04-07 15:21:07",
+          "source": "河池日报",
+          "views": 3349,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61997,
+          "title": "秦春成到环江开展历史矛盾纠纷化解工作",
+          "url": "detail.html?id=61997",
+          "date": "2026-04-03",
+          "datetime": "2026-04-03 16:04:13",
+          "source": "河池日报",
+          "views": 4419,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61996,
+          "title": "汪东明以普通党员身份参加市政府办公室第一党支部组织生活会",
+          "url": "detail.html?id=61996",
+          "date": "2026-04-03",
+          "datetime": "2026-04-03 16:00:26",
+          "source": "河池日报",
+          "views": 5818,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "302",
+      "columnId": "302",
+      "slug": "gonggao-tongzhi",
+      "name": "公告通知",
+      "inner": "公告通知",
+      "intro": "发布市政协及机关需要社会周知的公告、通知与名单。",
+      "layout": "list",
+      "siblings": [],
+      "total": 40,
+      "list": [
+        {
+          "id": 61941,
+          "title": "河池市政协组织和政协委员参与“化解历史矛盾维护群众利益”工作倡议书",
+          "url": "detail.html?id=61941",
+          "date": "2026-03-31",
+          "datetime": "2026-03-31 16:08:00",
+          "source": "河池市政协委员联络工作办公室",
+          "views": 4493,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61490,
+          "title": "中国人民政治协商会议第五届河池市委员会第六次会议政治决议",
+          "url": "detail.html?id=61490",
+          "date": "2026-02-28",
+          "datetime": "2026-02-28 15:06:36",
+          "source": "政协第五届河池市委员会",
+          "views": 8603,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61485,
+          "title": "中国人民政治协商会议第五届河池市委员会补选主席名单",
+          "url": "detail.html?id=61485",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 19:35:56",
+          "source": "中国人民政治协商会议河池市委员会",
+          "views": 8313,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61486,
+          "title": "中国人民政治协商会议第五届河池市委员会补选副主席名单",
+          "url": "detail.html?id=61486",
+          "date": "2026-02-27",
+          "datetime": "2026-02-27 19:32:25",
+          "source": "中国人民政治协商会议河池市委员会",
+          "views": 8368,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 61387,
+          "title": "政协河池市委员会关于河池市政协五届六次会议召开时间的决定",
+          "url": "detail.html?id=61387",
+          "date": "2026-02-24",
+          "datetime": "2026-02-24 11:57:58",
+          "source": "政协河池市委员会",
+          "views": 8074,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60886,
+          "title": "自治区政协主席会议建议2026年2月1日召开自治区政协十三届四次会议",
+          "url": "detail.html?id=60886",
+          "date": "2026-01-16",
+          "datetime": "2026-01-16 15:59:22",
+          "source": "广西日报",
+          "views": 8222,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60534,
+          "title": "喜报！我市3家职工书屋、4个阅读站点获自治区总工会认定支持",
+          "url": "detail.html?id=60534",
+          "date": "2025-12-24",
+          "datetime": "2025-12-24 11:45:30",
+          "source": "河池工会微信公众号",
+          "views": 8909,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 60384,
+          "title": "2024—2025年度《广西政协报》优秀通讯员名单（共164名）",
+          "url": "detail.html?id=60384",
+          "date": "2025-12-16",
+          "datetime": "2025-12-16 15:28:17",
+          "source": "广西政协报",
+          "views": 9153,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 55961,
+          "title": "中央层面整治形式主义为基层减负专项工作机制办公室 中央纪委办公厅公开通报3起整治形式主义为基层减负典型问题",
+          "url": "detail.html?id=55961",
+          "date": "2025-02-18",
+          "datetime": "2025-02-18 16:47:05",
+          "source": "新华网",
+          "views": 31518,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 55621,
+          "title": "中国人民政治协商会议河池市委员会关于召开中国人民政治协商会议第五届河池市委员会第五次会议的公告",
+          "url": "detail.html?id=55621",
+          "date": "2025-01-23",
+          "datetime": "2025-01-23 16:16:25",
+          "source": "中国人民政治协商会议河池市委员会",
+          "views": 35504,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 55363,
+          "title": "河池市政协五届五次会议将于1月下旬或2月上旬在宜州召开",
+          "url": "detail.html?id=55363",
+          "date": "2025-01-09",
+          "datetime": "2025-01-09 11:42:29",
+          "source": "中国人民政治协商会议河池市委员会",
+          "views": 34304,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 54576,
+          "title": "关于表扬2024年度广西政协报刊宣传工作先进单位、先进个人及2023年度《广西政协报》优秀通讯员的决定",
+          "url": "detail.html?id=54576",
+          "date": "2024-11-12",
+          "datetime": "2024-11-12 16:40:48",
+          "source": "广西政协报",
+          "views": 36968,
+          "img": "images/channel/54576.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 53811,
+          "title": "河池市人民政府关于在全市试鸣防空警报的公告",
+          "url": "detail.html?id=53811",
+          "date": "2024-09-14",
+          "datetime": "2024-09-14 16:25:38",
+          "source": "河池日报",
+          "views": 40227,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 53769,
+          "title": "致全市公务人员无偿献血倡议书",
+          "url": "detail.html?id=53769",
+          "date": "2024-09-10",
+          "datetime": "2024-09-10 19:28:11",
+          "source": "河池市无偿献血管理委员会办公室",
+          "views": 39609,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 50343,
+          "title": "河池市“先进乡镇政协工作联络站”“先进协商议事室”“先进委员工作室（站）”和优秀协商议事室指导员名单公示",
+          "url": "detail.html?id=50343",
+          "date": "2024-01-10",
+          "datetime": "2024-01-10 17:23:01",
+          "source": "市政协办",
+          "views": 73460,
+          "img": "images/channel/50343.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 50295,
+          "title": "政协河池市委员会办公室关于2023年开展法治政府建设情况汇报",
+          "url": "detail.html?id=50295",
+          "date": "2024-01-04",
+          "datetime": "2024-01-04 15:33:29",
+          "source": "市政协办",
+          "views": 74784,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 50157,
+          "title": "河池市政协机关2023年绩效工作成果展示",
+          "url": "detail.html?id=50157",
+          "date": "2023-11-27",
+          "datetime": "2023-11-27 12:03:25",
+          "source": "市政协办",
+          "views": 74159,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 49437,
+          "title": "关于表扬2023年度广西政协报刊宣传工作先进单位、先进个人及2022年度《广西政协报》优秀通讯员的决定",
+          "url": "detail.html?id=49437",
+          "date": "2023-11-08",
+          "datetime": "2023-11-08 15:42:13",
+          "source": "广西政协报",
+          "views": 85954,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 46452,
+          "title": "“产业振兴 委员行动”倡议书",
+          "url": "detail.html?id=46452",
+          "date": "2023-05-30",
+          "datetime": "2023-05-30 16:42:54",
+          "source": "政协广西壮族自治区委员会",
+          "views": 119608,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 44411,
+          "title": "中国人民政治协商会议第五届河池市委员会第三次会议政治决议",
+          "url": "detail.html?id=44411",
+          "date": "2023-02-09",
+          "datetime": "2023-02-09 20:29:28",
+          "source": "政协河池市委员会",
+          "views": 129871,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 44223,
+          "title": "关于召开中国人民政治协商会议第五届河池市委员会第三次会议的公告",
+          "url": "detail.html?id=44223",
+          "date": "2023-02-03",
+          "datetime": "2023-02-03 21:20:48",
+          "source": "中国人民政治协商会议河池市委员会",
+          "views": 130058,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 43144,
+          "title": "请您耐心接听0771-12340电话，并为河池点赞",
+          "url": "detail.html?id=43144",
+          "date": "2022-11-09",
+          "datetime": "2022-11-09 16:16:45",
+          "source": "河池绩效微信公众号",
+          "views": 144818,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 42355,
+          "title": "【我“干”您“评” 助河池扬名】河池“硬核”成绩单，请查收",
+          "url": "detail.html?id=42355",
+          "date": "2022-09-22",
+          "datetime": "2022-09-22 12:23:19",
+          "source": "河池绩效微信公众号",
+          "views": 150852,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 42354,
+          "title": "@所有人，河池呗哝，有封信件请您查收！",
+          "url": "detail.html?id=42354",
+          "date": "2022-09-22",
+          "datetime": "2022-09-22 12:21:22",
+          "source": "河池绩效微信公众号",
+          "views": 150274,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 43878,
+          "title": "安全感满意度调查问卷",
+          "url": "detail.html?id=43878",
+          "date": "2022-08-12",
+          "datetime": "2022-08-12 13:11:45",
+          "source": "河池政法",
+          "views": 132563,
+          "img": "images/channel/43878.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 42136,
+          "title": "关于开展2022年度绩效考评社会评价的公告",
+          "url": "detail.html?id=42136",
+          "date": "2022-08-01",
+          "datetime": "2022-08-01 16:19:08",
+          "source": "河池市绩效考评领导小组办公室",
+          "views": 155354,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 40650,
+          "title": "关于公布不担当不作为问题举报方式的通告",
+          "url": "detail.html?id=40650",
+          "date": "2022-03-22",
+          "datetime": "2022-03-22 15:43:55",
+          "source": "河池纪检监察微信公众号",
+          "views": 177194,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 40271,
+          "title": "中国人民政治协商会议第五届河池市委员会第二次会议政治决议",
+          "url": "detail.html?id=40271",
+          "date": "2022-01-13",
+          "datetime": "2022-01-13 16:44:41",
+          "source": "河池日报",
+          "views": 180656,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 40270,
+          "title": "中国人民政治协商会议第五届河池市委员会第二次会议关于政协第五届河池市委员会常务委员会工作报告的决议",
+          "url": "detail.html?id=40270",
+          "date": "2022-01-13",
+          "datetime": "2022-01-13 16:41:00",
+          "source": "河池日报",
+          "views": 180359,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 40268,
+          "title": "中国人民政治协商会议第五届河池市委员会第二次会议提案审查情况的报告",
+          "url": "detail.html?id=40268",
+          "date": "2022-01-13",
+          "datetime": "2022-01-13 16:40:29",
+          "source": "河池日报",
+          "views": 181013,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 40152,
+          "title": "政协河池市委员会办公室关于做好社会评价工作的补充通知",
+          "url": "detail.html?id=40152",
+          "date": "2021-12-24",
+          "datetime": "2021-12-24 19:12:07",
+          "source": "政协河池市委员会办公室",
+          "views": 180447,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 40095,
+          "title": "河池市政协机关2021年度绩效展示材料",
+          "url": "detail.html?id=40095",
+          "date": "2021-12-15",
+          "datetime": "2021-12-15 13:16:48",
+          "source": "河池市政协研究室",
+          "views": 181877,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 40029,
+          "title": "河池市绩效考评领导小组办公室关于开展自治区绩效考评社会评价年终评议宣传工作的通知",
+          "url": "detail.html?id=40029",
+          "date": "2021-12-07",
+          "datetime": "2021-12-07 17:25:50",
+          "source": "河池市绩效考评领导小组办公室",
+          "views": 182080,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 39599,
+          "title": "中国人民政治协商会议第五届河池市委员会专门委员会主任、副主任任命名单",
+          "url": "detail.html?id=39599",
+          "date": "2021-10-15",
+          "datetime": "2021-10-15 16:47:54",
+          "source": "政协河池市委员会",
+          "views": 187296,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 39598,
+          "title": "中国人民政治协商会议第五届河池市委员会常务委员会 关于设置专门委员会等工作机构的决定",
+          "url": "detail.html?id=39598",
+          "date": "2021-10-15",
+          "datetime": "2021-10-15 16:47:16",
+          "source": "政协河池市委员会",
+          "views": 180863,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 39577,
+          "title": "中国人民政治协商会议河池市第五届委员会第一次会议关于常务委员会工作报告的决议",
+          "url": "detail.html?id=39577",
+          "date": "2021-10-14",
+          "datetime": "2021-10-14 23:31:44",
+          "source": "中国人民政治协商会议河池市委员会",
+          "views": 180862,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 39576,
+          "title": "中国人民政治协商会议第五届河池市委员会第一次会议政治决议",
+          "url": "detail.html?id=39576",
+          "date": "2021-10-14",
+          "datetime": "2021-10-14 23:29:35",
+          "source": "中国人民政治协商会议河池市委员会",
+          "views": 181700,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 39575,
+          "title": "中国人民政治协商会议 第五届河池市委员会第一次会议公告 第2号",
+          "url": "detail.html?id=39575",
+          "date": "2021-10-14",
+          "datetime": "2021-10-14 23:27:41",
+          "source": "中国人民政治协商会议河池市委员会",
+          "views": 181933,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 39499,
+          "title": "中国人民政治协商会议第五届河池市委员会第一次会议公告 第1号",
+          "url": "detail.html?id=39499",
+          "date": "2021-10-11",
+          "datetime": "2021-10-11 20:34:06",
+          "source": "中国人民政治协商会议河池市委员会",
+          "views": 184176,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 39496,
+          "title": "中国人民政治协商会议第五届河池市委员会第一次会议提案审查委员会主任、副主任、委员名单",
+          "url": "detail.html?id=39496",
+          "date": "2021-10-11",
+          "datetime": "2021-10-11 20:30:59",
+          "source": "中国人民政治协商会议河池市委员会",
+          "views": 181775,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "1301",
+      "columnId": "1301",
+      "slug": "wangshang-shuyuan",
+      "name": "网上书院",
+      "inner": "网上书院",
+      "intro": "发布“书香政协”委员读书实践活动推荐书目与学习资料。",
+      "layout": "list",
+      "siblings": [],
+      "total": 6,
+      "list": [
+        {
+          "id": 43087,
+          "title": "河池市政协“书香政协 香飘八桂”委员读书实践活动推荐书目（2022年11-12月）",
+          "url": "detail.html?id=43087",
+          "date": "2022-11-07",
+          "datetime": "2022-11-07 16:12:59",
+          "source": "市政协委员读书实践活动指导组办公室",
+          "views": 159268,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 42226,
+          "title": "河池市政协“书香政协 香飘八桂”委员读书实践活动推荐书目（2022年9-10月）",
+          "url": "detail.html?id=42226",
+          "date": "2022-09-08",
+          "datetime": "2022-09-08 16:07:27",
+          "source": "市政协委员读书实践活动指导组办公室",
+          "views": 168482,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 42132,
+          "title": "自治区政协“书香政协 香飘八桂”委员读书实践活动推荐图书(资料)目录（6-8月）",
+          "url": "detail.html?id=42132",
+          "date": "2022-08-29",
+          "datetime": "2022-08-29 10:21:02",
+          "source": "广西政协微信公众号、“书香政协  香飘八桂”委员读书实践活动指导组",
+          "views": 171926,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 41556,
+          "title": "河池市政协“书香政协 香飘八桂”委员读书实践活动推荐书目（2022年7-8月）",
+          "url": "detail.html?id=41556",
+          "date": "2022-07-06",
+          "datetime": "2022-07-06 17:03:50",
+          "source": "市政协委员读书实践活动指导组办公室",
+          "views": 178970,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 41417,
+          "title": "河池市政协“书香政协 香飘八桂”委员读书实践活动推荐书目（2022年5-6月）",
+          "url": "detail.html?id=41417",
+          "date": "2022-05-28",
+          "datetime": "2022-05-28 19:36:34",
+          "source": "市政协委员读书实践活动指导组办公室",
+          "views": 164192,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 41038,
+          "title": "政协河池市委员会办公室关于印发《河池市政协关于深化开展“书香政协　香飘八桂”委员读书实践活动的实施方案》的通知",
+          "url": "detail.html?id=41038",
+          "date": "2022-05-25",
+          "datetime": "2022-05-25 10:36:01",
+          "source": "市政协办",
+          "views": 172951,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "400",
+      "columnId": "400",
+      "slug": "saochu-heie",
+      "name": "扫黑除恶",
+      "inner": "扫黑除恶",
+      "intro": "发布扫黑除恶专项斗争相关部署、进展与应知应会内容。",
+      "layout": "list",
+      "siblings": [],
+      "total": 4,
+      "list": [
+        {
+          "id": 47447,
+          "title": "河池市扫黑除恶斗争领导小组会议召开",
+          "url": "detail.html?id=47447",
+          "date": "2023-07-22",
+          "datetime": "2023-07-22 09:41:05",
+          "source": "河池日报",
+          "views": 126179,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 47325,
+          "title": "平安河池建设领导小组会议暨市域社会治理现代化试点工作推进会在罗城召开",
+          "url": "detail.html?id=47325",
+          "date": "2023-07-14",
+          "datetime": "2023-07-14 13:35:51",
+          "source": "河池日报",
+          "views": 125589,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 43875,
+          "title": "【扫黑除恶】常态化扫黑除恶斗争应知应会知识",
+          "url": "detail.html?id=43875",
+          "date": "2022-06-14",
+          "datetime": "2022-06-14 11:30:50",
+          "source": "澎湃号",
+          "views": 149623,
+          "img": "",
+          "hasBody": true
+        },
+        {
+          "id": 43876,
+          "title": "中华人民共和国反有组织犯罪法",
+          "url": "detail.html?id=43876",
+          "date": "2022-05-10",
+          "datetime": "2022-05-10 11:38:44",
+          "source": "中国人大网",
+          "views": 149477,
+          "img": "",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "316",
+      "columnId": "316",
+      "slug": "zhengxie-shipin",
+      "name": "政协视频",
+      "inner": "政协视频",
+      "intro": "以视频形式呈现政协重要活动与协商议政现场。",
+      "layout": "video",
+      "siblings": [],
+      "homeSourced": true,
+      "total": 3,
+      "list": [
+        {
+          "id": "316-1",
+          "title": "[视频]王沪宁会见奥地利国民议会议长",
+          "url": "http://www.cppcc.gov.cn/spbd/spgd/202609/t20260901_907018.html",
+          "date": "",
+          "datetime": "",
+          "source": "",
+          "views": "",
+          "img": "images/remote/4e8ac3514d_W020260901396606737879.png",
+          "hasBody": false
+        },
+        {
+          "id": "316-2",
+          "title": "全国政协十四届常委会第十八次会议闭幕 王沪宁主持并讲话",
+          "url": "http://www.cppcc.gov.cn/spbd/spgd/202608/t20260827_906813.html",
+          "date": "",
+          "datetime": "",
+          "source": "",
+          "views": "",
+          "img": "images/remote/4c4920cc16_W020260827629384764296.png",
+          "hasBody": false
+        },
+        {
+          "id": "316-3",
+          "title": "全国政协十四届常委会第十八次会议举行全体会议 围绕“加大保障和改善民生力度，扎实推进全体人民共同富裕”进行大会发言 王沪宁出席",
+          "url": "http://www.cppcc.gov.cn/spbd/spgd/202608/t20260827_906812.html",
+          "date": "",
+          "datetime": "",
+          "source": "",
+          "views": "",
+          "img": "images/remote/9d6fcb115a_W020260827627253375415.png",
+          "hasBody": false
+        }
+      ]
+    },
+    {
+      "type": "topic",
+      "columnId": "topic",
+      "slug": "zhuanti",
+      "name": "专题",
+      "inner": "专题",
+      "intro": "聚合政协重要会议与重大主题的宣传专题。",
+      "layout": "topic",
+      "siblings": [],
+      "homeSourced": true,
+      "total": 4,
+      "list": [
+        {
+          "id": "topic-1",
+          "title": "河池市政协五届六次会议",
+          "url": "http://www.gxhczx.gov.cn/zl20260225/",
+          "date": "",
+          "datetime": "",
+          "source": "",
+          "views": "",
+          "img": "images/topic_zx625.jpg",
+          "hasBody": false
+        },
+        {
+          "id": "topic-2",
+          "title": "河池市政协五届四次会议",
+          "url": "http://www.gxhczx.gov.cn/zl20240131/",
+          "date": "",
+          "datetime": "",
+          "source": "",
+          "views": "",
+          "img": "images/topic_zx431.jpg",
+          "hasBody": false
+        },
+        {
+          "id": "topic-3",
+          "title": "河池市政协五届二次会议",
+          "url": "http://www.gxhczx.gov.cn/zl20220108/",
+          "date": "",
+          "datetime": "",
+          "source": "",
+          "views": "",
+          "img": "images/topic_zx208.jpg",
+          "hasBody": false
+        },
+        {
+          "id": "topic-4",
+          "title": "广西政协相关专题",
+          "url": "http://www.gxzx.gov.cn/index.php?m=content&c=index&a=lists&catid=178",
+          "date": "",
+          "datetime": "",
+          "source": "",
+          "views": "",
+          "img": "images/topic_gx.jpg",
+          "hasBody": false
+        }
+      ]
+    },
+    {
+      "type": "901",
+      "columnId": "901",
+      "slug": "hechi-fengguang",
+      "name": "河池风光",
+      "inner": "河池风光",
+      "intro": "展示河池自然山水与人文景观的图片集。",
+      "layout": "gallery",
+      "siblings": [],
+      "total": 7,
+      "list": [
+        {
+          "id": 60383,
+          "title": "武阳江——绿水盈盈",
+          "url": "detail.html?id=60383",
+          "date": "2025-12-16",
+          "datetime": "2025-12-16 15:22:12",
+          "source": "河池市委宣传部",
+          "views": 10616,
+          "img": "images/channel/60383.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 60382,
+          "title": "红水河——广西母亲河",
+          "url": "detail.html?id=60382",
+          "date": "2025-12-16",
+          "datetime": "2025-12-16 15:20:54",
+          "source": "河池市委宣传部",
+          "views": 11650,
+          "img": "images/channel/60382.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 60381,
+          "title": "会仙山——高峡流云",
+          "url": "detail.html?id=60381",
+          "date": "2025-12-16",
+          "datetime": "2025-12-16 15:18:46",
+          "source": "河池市委宣传部",
+          "views": 10625,
+          "img": "images/channel/60381.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 60380,
+          "title": "小三峡——南国第一峡",
+          "url": "detail.html?id=60380",
+          "date": "2025-12-16",
+          "datetime": "2025-12-16 15:16:18",
+          "source": "河池市委宣传部",
+          "views": 10631,
+          "img": "images/channel/60380.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 60379,
+          "title": "九万大山——水源林区",
+          "url": "detail.html?id=60379",
+          "date": "2025-12-16",
+          "datetime": "2025-12-16 15:14:02",
+          "source": "河池市委宣传部",
+          "views": 11248,
+          "img": "images/channel/60379.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 60377,
+          "title": "牛角寨瀑布—千尺玉帘",
+          "url": "detail.html?id=60377",
+          "date": "2025-12-16",
+          "datetime": "2025-12-16 15:12:04",
+          "source": "《中国国家人文地理·河池》",
+          "views": 10710,
+          "img": "images/channel/60377.jpg",
+          "hasBody": true
+        },
+        {
+          "id": 60378,
+          "title": "剑江——十里画廊",
+          "url": "detail.html?id=60378",
+          "date": "2025-12-16",
+          "datetime": "2025-12-16 15:10:19",
+          "source": "《中国国家人文地理·河池》",
+          "views": 10713,
+          "img": "images/channel/60378.jpg",
+          "hasBody": true
+        }
+      ]
+    },
+    {
+      "type": "interactive",
+      "columnId": "interactive",
+      "slug": "weiyuan-zhitongche",
+      "name": "委员直通车",
+      "inner": "委员直通车",
+      "intro": "委员在线建言与来信回复的互动栏目。",
+      "layout": "interactive",
+      "siblings": [],
+      "homeSourced": true,
+      "total": 0,
+      "list": [],
+      "note": "本栏目用于委员在线建言与来信办理结果公开。旧站无对应页面，旧库 rd_hudong 现存记录均为测试数据（“测试互动”“go home”等），故此处只出栏目模板与入口说明，正式内容与提交链路由后端接入时提供。"
     }
   ]
 }

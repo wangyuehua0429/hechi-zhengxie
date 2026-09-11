@@ -7,7 +7,7 @@
 
 输入：
   --sql   旧库 Navicat 导出文件（rd_news 表）
-  --site  旧站静态目录（内含 html/news-view-<id>.html），用于「政协概况」一页式栏目
+  --site  旧站静态目录（内含 html/news-view-<id>.html），用于「政协领导」等栏目的简介正文
 输出：
   frontend/home/data/channel.json   栏目列表页数据（含栏目信息、列表、分页、侧栏）
   frontend/home/data/article.json   详情页数据（含正文、上下篇、相关阅读）
@@ -47,11 +47,15 @@ COLUMNS = [
     {
         "id": "202",
         "slug": "zhengxie-gaikuang",
-        "name": "政协概况",
-        "intro": "中国人民政治协商会议河池市委员会的性质定位、章程依据、机构设置与领导成员。",
-        "layout": "about",
-        "tabs": [{"type": "202", "name": "政协概况"}],
+        "name": "政协领导",
+        "intro": "中国人民政治协商会议河池市委员会主席、副主席、秘书长名单及简介。",
+        "layout": "leaders",
+        "tabs": [{"type": "202", "name": "政协领导"}],
+        # 政协领导的稿件是领导简介，按职务分组与排序（主席 → 副主席 → 秘书长），
+        # 名单取自 data/home.json 的 leaders，不按发布时间倒序
+        "roster": True,
         "children": [
+            {"id": "202", "name": "政协领导"},
             {"id": "151", "name": "政协简介"},
             {"id": "39588", "name": "五届政协领导简介"},
             {"id": "154", "name": "政协章程"},
@@ -59,7 +63,6 @@ COLUMNS = [
             {"id": "39588", "name": "政协常委"},
             {"id": "2522", "name": "政协委员"},
         ],
-        "feature": {"id": "151", "summary_limit": 240},
     },
     {
         "id": "904",
@@ -215,7 +218,80 @@ COLUMNS = [
         "slug": "tupian-xinwen",
         "name": "图片新闻",
         "intro": "以图片记录政协履职与全市发展现场，直观呈现重要时刻。",
+        "layout": "gallery",
         "tabs": [{"type": "314", "name": "图片新闻"}],
+    },
+    # 以下栏目不在主导航，但首页模块的「更多」与卡片入口需要能打开，
+    # 一并登记为独立栏目页（source=home 表示列表取自首页模块数据）。
+    {
+        "id": "306",
+        "slug": "shizheng-yaowen",
+        "name": "时政要闻",
+        "intro": "转载上级主流媒体的时政要闻，供委员与机关干部学习参考。",
+        "tabs": [{"type": "306", "name": "时政要闻"}],
+    },
+    {
+        "id": "302",
+        "slug": "gonggao-tongzhi",
+        "name": "公告通知",
+        "intro": "发布市政协及机关需要社会周知的公告、通知与名单。",
+        # 公告通知量小（40 条），列表全取；旧库仅 40029 一篇带附件，补入详情演示下载区
+        "list_limit": 40,
+        "extra_samples": [40029],
+        "tabs": [{"type": "302", "name": "公告通知"}],
+    },
+    {
+        "id": "1301",
+        "slug": "wangshang-shuyuan",
+        "name": "网上书院",
+        "intro": "发布“书香政协”委员读书实践活动推荐书目与学习资料。",
+        "tabs": [{"type": "1301", "name": "网上书院"}],
+    },
+    {
+        "id": "400",
+        "slug": "saochu-heie",
+        "name": "扫黑除恶",
+        "intro": "发布扫黑除恶专项斗争相关部署、进展与应知应会内容。",
+        "tabs": [{"type": "400", "name": "扫黑除恶"}],
+    },
+    {
+        "id": "316",
+        "slug": "zhengxie-shipin",
+        "name": "政协视频",
+        "intro": "以视频形式呈现政协重要活动与协商议政现场。",
+        "layout": "video",
+        "source": "home",
+        "module": "videos",
+        "tabs": [],
+    },
+    {
+        "id": "topic",
+        "slug": "zhuanti",
+        "name": "专题",
+        "intro": "聚合政协重要会议与重大主题的宣传专题。",
+        "layout": "topic",
+        "source": "home",
+        "module": "topic",
+        "tabs": [],
+    },
+    {
+        "id": "901",
+        "slug": "hechi-fengguang",
+        "name": "河池风光",
+        "intro": "展示河池自然山水与人文景观的图片集。",
+        "layout": "gallery",
+        "tabs": [{"type": "901", "name": "河池风光"}],
+    },
+    {
+        "id": "interactive",
+        "slug": "weiyuan-zhitongche",
+        "name": "委员直通车",
+        "intro": "委员在线建言与来信回复的互动栏目。",
+        "layout": "interactive",
+        "tabs": [],
+        "note": "本栏目用于委员在线建言与来信办理结果公开。旧站无对应页面，"
+                "旧库 rd_hudong 现存记录均为测试数据（“测试互动”“go home”等），"
+                "故此处只出栏目模板与入口说明，正式内容与提交链路由后端接入时提供。",
     },
 ]
 
@@ -354,6 +430,37 @@ def first_body_image(body):
     return match.group(2) if match else ""
 
 
+def body_images(body):
+    """正文里出现过的图片地址（按出现顺序去重）。"""
+    seen, out = set(), []
+    for match in IMG_SRC.finditer(body or ""):
+        src = match.group(2)
+        if src and src not in seen:
+            seen.add(src)
+            out.append(src)
+    return out
+
+
+# 正文内的附件下载链接（旧站用 kindeditor 的 ke-insertfile 类挂 doc/pdf/xls 等原件）
+ATTACH_LINK = re.compile(r'<a[^>]*\shref=["\']([^"\']+)["\'][^>]*>(.*?)</a>', re.I | re.S)
+ATTACH_EXT = re.compile(r"\.(docx?|xlsx?|pptx?|pdf|zip|rar|7z)(?:[?#]|$)", re.I)
+
+
+def extract_attachments(body):
+    """从正文里抽出附件下载项；无附件返回空列表。"""
+    out = []
+    for match in ATTACH_LINK.finditer(body or ""):
+        url = match.group(1)
+        ext = ATTACH_EXT.search(url)
+        if not ext:
+            continue
+        name = html.unescape(re.sub(r"<[^>]+>", "", match.group(2))).strip()
+        if not name:
+            name = os.path.basename(url.split("?")[0])
+        out.append({"name": name, "url": url, "ext": ext.group(1).lower()})
+    return out
+
+
 def rewrite_body_images(root, body, news_id, downloads):
     """正文图片本地化：<img src> 换成站内相对路径，并登记下载任务。"""
     counter = [0]
@@ -385,8 +492,9 @@ def static_field(text, label):
     return match.group(1).strip() if match else ""
 
 
-def parse_static_article(site_root, news_id, channel_type, channel_name):
-    """解析旧站静态文章页 html/news-view-<id>.html，用于一页式栏目（政协概况）。"""
+def parse_static_article(site_root, news_id, channel_type, channel_name,
+                         root=None, downloads=None):
+    """解析旧站静态文章页 html/news-view-<id>.html，用于一页式与领导型栏目的正文。"""
     if not site_root:
         return None
     path = os.path.join(site_root, "html", "news-view-%s.html" % news_id)
@@ -407,6 +515,8 @@ def parse_static_article(site_root, news_id, channel_type, channel_name):
         body = body[:cut]
     body = re.sub(r"(?:\s*</div>\s*)+$", "", body)
     body = clean_body(body)
+    if root and downloads is not None:
+        body = rewrite_body_images(root, body, news_id, downloads)
     time_text = html.unescape(re.sub(r"<[^>]+>", "", time_match.group(1))) if time_match else ""
     time_text = time_text.replace("\xa0", " ")
     published = static_field(time_text, "时间")
@@ -430,14 +540,16 @@ def parse_static_article(site_root, news_id, channel_type, channel_name):
         "views": "",
         "summary": plain_summary(body),
         "content": body,
+        "attachments": extract_attachments(body),
+        "images": body_images(body),
         "fromStaticPage": True,
     }
 
 
-def channel_entries(rows, root, downloads):
+def channel_entries(rows, root, downloads, limit=LIST_LIMIT):
     """把一个子栏目的稿件转成列表页条目。"""
     entries = []
-    for row in rows[:LIST_LIMIT]:
+    for row in rows[:limit]:
         # 列表缩略图只取旧库 Pic 字段（与旧站一致），不改从正文抓首图，避免无谓的图片下载
         pic = row["Pic"] if (row["Pic"] and "." in row["Pic"]) else ""
         img = ""
@@ -462,6 +574,80 @@ def channel_entries(rows, root, downloads):
     return entries
 
 
+def leader_roster(home):
+    """首页领导名单（主席 → 副主席 → 秘书长）-> [(稿件 ID, 职务)] 顺序。
+
+    用于「政协领导」的列表排序：这些稿件是领导简介，应按职务先后排，
+    不能按发布时间倒序（旧站发布时间是历年陆续补录的，与职务无关）。
+    """
+    lead = (home or {}).get("leaders") or {}
+    roster = []
+
+    def add(node, role):
+        match = re.search(r"[?&]id=(\d+)", (node or {}).get("url") or "")
+        if match:
+            roster.append((match.group(1), role))
+
+    add(lead.get("chairman"), "主席")
+    for person in lead.get("viceChairmen") or []:
+        add(person, "副主席")
+    add(lead.get("secretaryGeneral"), "秘书长")
+    return roster
+
+
+def order_by_roster(items, order):
+    """按名单顺序重排：名单内的按名单先后，名单外的按发布时间倒序附后。"""
+    rank = {str(news_id): index for index, news_id in enumerate(order)}
+    listed = sorted((r for r in items if str(r["ID"]) in rank),
+                    key=lambda r: rank[str(r["ID"])])
+    rest = [r for r in items if str(r["ID"]) not in rank]
+    return listed + rest
+
+
+def home_entries(items, prefix):
+    """首页模块条目 -> 栏目列表条目；地址保持旧站外链，原型不内置这些正文。"""
+    entries = []
+    for index, item in enumerate(items, start=1):
+        date = (item.get("date") or "").strip()
+        entries.append({
+            "id": "%s-%d" % (prefix, index),
+            "title": item.get("title", ""),
+            "url": item.get("url", ""),
+            "date": date[:10],
+            "datetime": date,
+            "source": "",
+            "views": "",
+            "img": item.get("img", ""),
+            "hasBody": False,
+        })
+    return entries
+
+
+def article_sample(row, tab, root, downloads):
+    """旧库一行稿件 -> 详情样例；正文过短时不生成。"""
+    body = clean_body(row["Word"])
+    if not body or len(body) < 120:
+        return None
+    body = rewrite_body_images(root, body, row["ID"], downloads)
+    return {
+        "id": row["ID"],
+        "channelType": tab["type"],
+        "channelName": tab["name"],
+        "title": row["Title"],
+        "subtitle": row["Title1"],
+        "date": fmt_datetime(row["Time"]),
+        "dateText": fmt_date(row["Time"]),
+        "source": clean_source(row["From"]),
+        "author": row["Author"],
+        "editor": row["Edit"],
+        "views": row["Num"],
+        "summary": plain_summary(body),
+        "content": body,
+        "attachments": extract_attachments(row["Word"]),
+        "images": body_images(body),
+    }
+
+
 def build(args):
     rows = load_news(args.sql)
     if not rows:
@@ -474,13 +660,22 @@ def build(args):
         items.sort(key=lambda r: r["Time"], reverse=True)
 
     root = args.root
-    channels, articles, downloads = [], [], []
+    home = {}
+    home_path = os.path.join(root, "frontend/home/data/home.json")
+    if os.path.exists(home_path):
+        with open(home_path, encoding="utf-8") as handle:
+            home = json.load(handle)
+    channels, articles, downloads, roster_channels = [], [], [], []
+    news_by_id = {}
+    for row in published:
+        news_by_id.setdefault(str(row["ID"]), row)
+    roster = leader_roster(home)
 
     for column in COLUMNS:
         layout = column.get("layout", "list")
         tabs = column["tabs"]
         siblings = []
-        if layout == "about":
+        if layout in ("about", "leaders"):
             siblings = [{"type": child["id"], "name": child["name"],
                          "url": "detail.html?id=%s" % child["id"],
                          "active": index == 0}
@@ -490,9 +685,34 @@ def build(args):
                          "url": "channel.html?id=%s" % tab["type"]}
                         for tab in tabs]
 
+        # 首页模块栏目（政协视频 / 专题 / 河池风光等）：列表取自首页数据，不查旧库
+        if not tabs:
+            items = home.get(column.get("module", "")) or []
+            if not isinstance(items, list):
+                items = []
+            channel = {
+                "type": column["id"],
+                "columnId": column["id"],
+                "slug": column["slug"],
+                "name": column["name"],
+                "inner": column["name"],
+                "intro": column["intro"],
+                "layout": layout,
+                "siblings": siblings,
+                "homeSourced": True,
+                "total": len(items),
+                "list": home_entries(items, column["id"]),
+            }
+            if column.get("note"):
+                channel["note"] = column["note"]
+            channels.append(channel)
+            continue
+
         for tab in tabs:
             region = tab.get("region", MAIN_REGION)
             items = by_type_region.get((tab["type"], region), [])
+            if column.get("roster"):
+                items = order_by_roster(items, [news_id for news_id, _ in roster])
             channel = {
                 "type": tab.get("link", tab["type"]),
                 "columnId": column["id"],
@@ -503,12 +723,14 @@ def build(args):
                 "layout": layout,
                 "siblings": siblings,
                 "total": len(items),
-                "list": channel_entries(items, root, downloads),
+                "list": channel_entries(items, root, downloads,
+                                        column.get("list_limit", LIST_LIMIT)),
             }
             if layout == "about" and column.get("feature"):
                 feature = column["feature"]
                 featured = parse_static_article(args.site, feature["id"],
-                                                column["id"], column["name"])
+                                                column["id"], column["name"],
+                                                root, downloads)
                 if featured:
                     channel["feature"] = {
                         "title": featured["title"],
@@ -517,6 +739,8 @@ def build(args):
                     }
             if layout == "county" and column.get("counties"):
                 channel["counties"] = column["counties"]
+            if column.get("roster"):
+                roster_channels.append(channel)
             channels.append(channel)
 
             # 详情样例：每个子栏目取前若干篇带正文的稿件
@@ -524,37 +748,49 @@ def build(args):
             for row in items:
                 if not tab.get("samples", True) or taken >= ARTICLE_PER_CHANNEL:
                     break
-                body = clean_body(row["Word"])
-                if not body or len(body) < 120:
-                    continue
-                body = rewrite_body_images(root, body, row["ID"], downloads)
-                articles.append({
-                    "id": row["ID"],
-                    "channelType": tab["type"],
-                    "channelName": tab["name"],
-                    "title": row["Title"],
-                    "subtitle": row["Title1"],
-                    "date": fmt_datetime(row["Time"]),
-                    "dateText": fmt_date(row["Time"]),
-                    "source": clean_source(row["From"]),
-                    "author": row["Author"],
-                    "editor": row["Edit"],
-                    "views": row["Num"],
-                    "summary": plain_summary(body),
-                    "content": body,
-                })
-                taken += 1
+                sample = article_sample(row, tab, root, downloads)
+                if sample:
+                    articles.append(sample)
+                    taken += 1
 
-        # 一页式栏目的固定子导航：正文取自旧站静态页，保证内页可打开
-        if layout == "about":
-            for child in column["children"]:
+            # 指定补入的详情样例：用于演示低频形态（例如公告通知里的附件下载）
+            for extra_id in column.get("extra_samples", []):
+                if any(str(item["id"]) == str(extra_id) for item in articles):
+                    continue
+                row = news_by_id.get(str(extra_id))
+                if not row:
+                    print("未在旧库找到补入样例 %s" % extra_id)
+                    continue
+                sample = article_sample(row, tab, root, downloads)
+                if sample:
+                    articles.append(sample)
+
+        # 一页式/领导型栏目：固定子导航与领导简介的正文都取自旧站静态页，保证内页可打开
+        if layout in ("about", "leaders"):
+            roster_children = [{"id": news_id, "name": ""}
+                               for news_id, _ in (roster if column.get("roster") else [])]
+            # 子导航里指向本栏目自身的项（如「政协领导」）不是独立文档，不抽正文
+            doc_children = [c for c in column["children"]
+                            if str(c["id"]) != str(column["id"])]
+            for child in doc_children + roster_children:
                 if any(str(item["id"]) == str(child["id"]) for item in articles):
                     continue
                 article = parse_static_article(args.site, child["id"],
-                                               column["id"], column["name"])
+                                               column["id"], column["name"],
+                                               root, downloads)
                 if article:
                     article["title"] = article["title"] or child["name"]
                     articles.append(article)
+
+        # 领导型栏目：列表条目补职务，照片取个人简介正文首图（已本地化）
+        if column.get("roster"):
+            role_of = {news_id: role for news_id, role in roster}
+            for channel in roster_channels:
+                for entry in channel["list"]:
+                    entry["role"] = role_of.get(str(entry["id"]), "")
+                    art = "frontend/home/images/channel/art%s-1.jpg" % entry["id"]
+                    if os.path.exists(os.path.join(root, art)):
+                        entry["img"] = "images/channel/art%s-1.jpg" % entry["id"]
 
     write(os.path.join(root, "frontend/home/data/channel.json"),
           {"channels": channels},

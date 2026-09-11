@@ -2,8 +2,8 @@
  *
  * 供 channel.html、detail.html 等内页复用，站级数据统一取 data/home.json
  * 的 meta、nav、marquee 三节（不新增数据副本，避免与首页漂移）。
- * 栏目索引取自 data/channel.json：导航与列表里的旧站栏目链接，凡原型已实现
- * 的栏目一律改跳本地内页（channel.html?id=<栏目>），未实现的仍指向旧站。
+ * 栏目索引与链接改写统一取自 js/site-links.js：导航里的旧站栏目链接，凡原型
+ * 已实现的栏目一律改跳本地内页（channel.html?id=<栏目>），未实现的仍指向旧站。
  * 首页仍用 js/main.js 渲染自身模块，后续后端模板化时两者合并。
  */
 (function () {
@@ -12,18 +12,6 @@
   const DATA_URL = "data/home.json";
   const CHANNEL_URL = "data/channel.json";
   const site = "https://www.gxhczx.gov.cn";
-
-  // 已在内页原型中实现的栏目：由 data/channel.json 登记，也可用
-  // window.INNER_CHANNELS 追加（页面内联脚本，用于临时预览单个栏目）
-  const LOCAL_CHANNELS = {};
-  function registerChannels(channels) {
-    (channels || []).forEach(function (channel) {
-      LOCAL_CHANNELS[String(channel.type)] = "channel.html?id=" + channel.type;
-    });
-  }
-  (window.INNER_CHANNELS || []).forEach(function (id) {
-    LOCAL_CHANNELS[String(id)] = "channel.html?id=" + id;
-  });
 
   function fetchJSON(url) {
     return fetch(url).then(function (res) {
@@ -48,13 +36,7 @@
 
   // 旧站栏目链接 -> 本地栏目页（仅限原型已覆盖的栏目，其余保持旧站链接）
   function channelLink(url) {
-    if (!url) return url;
-    const list = /news_list\.php\?[^"']*?\bid=(\w+)/.exec(url);
-    if (list && LOCAL_CHANNELS[list[1]]) return LOCAL_CHANNELS[list[1]];
-    const about = /news_list_about\.php\?[^"']*?\bid=(\w+)/.exec(url);
-    if (about && LOCAL_CHANNELS[about[1]]) return LOCAL_CHANNELS[about[1]];
-    if (/qy_list\.php/.test(url) && LOCAL_CHANNELS.qy) return LOCAL_CHANNELS.qy;
-    return url;
+    return window.SITE_LINKS ? window.SITE_LINKS.channel(url) : url;
   }
 
   function ext(u) {
@@ -182,14 +164,74 @@
   }
 
   window.SITE = window.SITE || {};
+
+  /* ---------- 内页侧栏：最新新闻 + 图片新闻 ----------
+   * 全站统一内容，不随当前页面变化：
+   *   最新新闻 —— 各栏目稿件汇总（排除首页聚合栏目与领导简介），按发布时间倒序取前 8 条；
+   *   图片新闻 —— 只取「图片新闻」栏目（type 314）里有图的稿件，按时间倒序取前 4 条，
+   *               不回退到其它栏目的图片，避免把领导照片当成图片新闻。
+   */
+  const SIDE_LATEST_SIZE = 8;
+  const SIDE_THUMB_SIZE = 4;
+  const IMAGE_NEWS_TYPE = "314";
+
+  function timeOf(item) {
+    return String(item.datetime || item.date || "");
+  }
+
+  function byTimeDesc(a, b) {
+    return timeOf(b).localeCompare(timeOf(a));
+  }
+
+  function imageNewsChannel(channels) {
+    const byType = channels.filter(function (c) { return String(c.type) === IMAGE_NEWS_TYPE; })[0];
+    if (byType) return byType;
+    return channels.filter(function (c) {
+      return c.layout === "gallery" && String(c.name || "").indexOf("图片新闻") >= 0;
+    })[0] || null;
+  }
+
+  function renderSidePanels(channels) {
+    const list = channels || [];
+    const latest = el("latestList");
+    if (latest) {
+      const pool = [];
+      const seen = {};
+      list.forEach(function (channel) {
+        // 首页模块聚合栏目（视频/专题/互动）与领导简介不算新闻
+        if (channel.homeSourced || channel.layout === "leaders") return;
+        (channel.list || []).forEach(function (item) {
+          if (seen[item.id]) return;
+          seen[item.id] = true;
+          pool.push(item);
+        });
+      });
+      pool.sort(byTimeDesc);
+      latest.innerHTML = pool.slice(0, SIDE_LATEST_SIZE).map(function (item) {
+        return '<li><a href="' + esc(item.url) + '" title="' + esc(item.title) + '">' +
+          esc(item.title) + '</a></li>';
+      }).join("") || '<li class="empty-state">暂无新闻。</li>';
+    }
+    const thumbs = el("thumbGrid");
+    if (thumbs) {
+      const channel = imageNewsChannel(list);
+      const pool = ((channel && channel.list) || []).filter(function (item) { return !!item.img; });
+      pool.sort(byTimeDesc);
+      thumbs.innerHTML = pool.slice(0, SIDE_THUMB_SIZE).map(function (item) {
+        return '<a href="' + esc(item.url) + '" title="' + esc(item.title) + '">' +
+          '<img src="' + esc(item.img) + '" alt="' + esc(item.title) + '" loading="lazy">' +
+          '<span>' + esc(item.title) + '</span></a>';
+      }).join("") || '<div class="empty-state">暂无图片</div>';
+    }
+  }
+
+  window.SITE.renderSidePanels = renderSidePanels;
+
   // 站级数据与栏目索引同时取；channel.js / detail.js 复用 channelsReady，避免重复请求
-  window.SITE.channelsReady = fetchJSON(CHANNEL_URL)
-    .catch(function () { return null; })
-    .then(function (data) {
-      const channels = (data && data.channels) || [];
-      registerChannels(channels);
-      return channels;
-    });
+  window.SITE.channelsReady = (window.SITE_LINKS
+    ? window.SITE_LINKS.ready
+    : fetchJSON(CHANNEL_URL).then(function (data) { return (data && data.channels) || []; }))
+    .catch(function () { return []; });
 
   function init() {
     renderDate();

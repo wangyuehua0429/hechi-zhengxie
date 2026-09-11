@@ -1,4 +1,4 @@
-/* 信息详情页：按 ?id=<旧库文章ID> 渲染标题、元信息、正文与相关阅读
+/* 信息详情页：按 ?id=<旧库文章ID> 渲染标题、元信息、正文、图集与附件
  *
  * 数据来自 data/article.json 与 data/channel.json（原型样例，取旧库 rd_news），
  * 后端就绪后由 REST API 平替，正文排版样式不变。
@@ -10,9 +10,6 @@
   const CHANNEL_URL = "data/channel.json";
   const HOME_URL = "./index.html";
   const DEFAULT_ID = "62180";
-  const LATEST_SIZE = 5;
-  const RELATED_SIZE = 4;
-  const THUMB_SIZE = 4;
   const BODY_SIZES = [0.92, 1, 1.12, 1.24];
   const BODY_DEFAULT = 1;
 
@@ -51,7 +48,7 @@
   function listedItem(id) {
     let hit = null;
     state.channels.forEach(function (channel) {
-      if (hit) return;
+      if (hit || channel.homeSourced) return;
       (channel.list || []).forEach(function (item) {
         if (!hit && String(item.id) === String(id)) hit = { item: item, channel: channel };
       });
@@ -97,7 +94,12 @@
 
     const body = el("articleBody");
     body.innerHTML = a.content;
+    // 领导简介照片源图尺寸不一（130×162 与 960×1200 混用），统一显示宽度
+    body.classList.toggle("is-leader",
+      !!(state.channel && state.channel.layout === "leaders"));
     applyBodySize();
+    renderGalleryStrip(a);
+    renderAttachments(a);
 
     if (a.editor) {
       const sign = el("articleSign");
@@ -111,60 +113,114 @@
     if (body) body.style.fontSize = (1.06 * state.bodySize) + "em";
   }
 
-  function renderRelated() {
-    const a = state.article;
-    const ch = state.channel;
-    const box = el("relatedList");
+  // 附件下载区：数据里有 attachments 才显示（旧站正文里的 doc/pdf/xls 等原件链接）
+  function renderAttachments(a) {
+    const box = el("articleAttach");
     if (!box) return;
-    const pool = ch ? ch.list.filter(function (i) { return i.id !== a.id; }) : [];
-    const rows = pool.slice(0, RELATED_SIZE);
-    box.innerHTML = rows.length ? rows.map(function (item) {
-      return '<li><a href="' + esc(item.url) + '"><span class="rel-title">' + esc(item.title) +
-        '</span><time datetime="' + esc(item.date) + '">' + esc(item.date) + '</time></a></li>';
-    }).join("") : '<li class="empty-state">暂无相关阅读。</li>';
+    const files = a.attachments || [];
+    if (!files.length) {
+      box.hidden = true;
+      return;
+    }
+    box.innerHTML = '<h3>附件下载</h3><ul>' + files.map(function (file) {
+      return '<li>' +
+        '<span class="attach-ext">' + esc(file.ext || "file") + '</span>' +
+        '<a href="' + esc(file.url) + '" target="_blank" rel="noopener">' + esc(file.name) + '</a>' +
+        '</li>';
+    }).join("") + '</ul>' +
+      '<p class="attach-hint">附件为旧站原件链接，迁移后改由内容接口提供下载地址。</p>';
+    box.hidden = false;
   }
 
-  function renderPrevNext() {
-    const a = state.article;
-    const ch = state.channel;
-    if (!ch) return;
-    const items = ch.list;
-    const idx = items.findIndex(function (i) { return i.id === a.id; });
-    const row = function (item, label) {
-      const body = item
-        ? '<a href="' + esc(item.url) + '" title="' + esc(item.title) + '">' + esc(item.title) + '</a>'
-        : '<span>—</span>';
-      return '<li><span class="nav-label">' + label + '：</span>' + body + '</li>';
-    };
-    // 列表按时间倒序：前一条为更新的一篇，后一条为更早的一篇
-    const prev = idx > 0 ? items[idx - 1] : null;
-    const next = idx >= 0 && idx < items.length - 1 ? items[idx + 1] : null;
-    el("articleNavList").innerHTML = row(prev, "上一篇") + row(next, "下一篇");
+  // 图集型详情：正文含 2 张以上图片时给出缩略图条，点击可放大浏览
+  function renderGalleryStrip(a) {
+    const box = el("articleGallery");
+    if (!box) return;
+    const imgs = a.images || [];
+    if (imgs.length < 2) {
+      box.hidden = true;
+      return;
+    }
+    box.innerHTML = imgs.map(function (src, i) {
+      return '<a href="' + esc(src) + '" data-index="' + i + '" aria-label="查看第 ' + (i + 1) + ' 张图">' +
+        '<img src="' + esc(src) + '" alt="" loading="lazy"></a>';
+    }).join("");
+    box.hidden = false;
+    bindLightbox(box, imgs);
+  }
+
+  let lightboxIndex = 0;
+  function drawLightbox() {
+    const box = document.getElementById("articleLightbox");
+    if (!box) return;
+    const imgs = box._images || [];
+    const img = box.querySelector("img");
+    const counter = box.querySelector(".lightbox-count");
+    if (img) img.src = imgs[lightboxIndex];
+    if (counter) counter.textContent = (lightboxIndex + 1) + " / " + imgs.length;
+  }
+
+  function moveLightbox(step) {
+    const box = document.getElementById("articleLightbox");
+    if (!box) return;
+    const total = (box._images || []).length;
+    if (!total) return;
+    lightboxIndex = (lightboxIndex + step + total) % total;
+    drawLightbox();
+  }
+
+  function closeLightbox() {
+    const box = document.getElementById("articleLightbox");
+    if (!box) return;
+    box.remove();
+    document.removeEventListener("keydown", onLightboxKey);
+  }
+
+  function onLightboxKey(e) {
+    if (e.key === "Escape") closeLightbox();
+    else if (e.key === "ArrowLeft") moveLightbox(-1);
+    else if (e.key === "ArrowRight") moveLightbox(1);
+  }
+
+  function showLightbox(imgs, index) {
+    closeLightbox();
+    lightboxIndex = index;
+    const box = document.createElement("div");
+    box.className = "article-lightbox";
+    box.id = "articleLightbox";
+    box._images = imgs;
+    box.setAttribute("role", "dialog");
+    box.setAttribute("aria-modal", "true");
+    box.setAttribute("aria-label", "图片浏览");
+    box.innerHTML =
+      '<button type="button" class="lightbox-nav prev" aria-label="上一张">‹</button>' +
+      '<figure><img src="' + esc(imgs[index]) + '" alt="">' +
+      '<figcaption class="lightbox-count">' + (index + 1) + " / " + imgs.length + '</figcaption></figure>' +
+      '<button type="button" class="lightbox-nav next" aria-label="下一张">›</button>' +
+      '<button type="button" class="lightbox-close" aria-label="关闭">×</button>';
+    box.addEventListener("click", function (e) {
+      if (e.target.closest(".lightbox-nav.prev")) moveLightbox(-1);
+      else if (e.target.closest(".lightbox-nav.next")) moveLightbox(1);
+      else if (e.target.closest(".lightbox-close") || e.target === box) closeLightbox();
+    });
+    document.body.appendChild(box);
+    document.addEventListener("keydown", onLightboxKey);
+  }
+
+  function bindLightbox(box, imgs) {
+    box.addEventListener("click", function (e) {
+      const a = e.target.closest("a[data-index]");
+      if (!a) return;
+      e.preventDefault();
+      showLightbox(imgs, Number(a.dataset.index) || 0);
+    });
   }
 
   function renderSide() {
-    const a = state.article;
-    const ch = state.channel;
-    if (ch) {
-      el("sideChannelName").textContent = ch.name + " · 最新";
-      el("channelLatest").innerHTML = ch.list
-        .filter(function (i) { return i.id !== a.id; })
-        .slice(0, LATEST_SIZE)
-        .map(function (item) {
-          return '<li><a href="' + esc(item.url) + '"><span>' + esc(item.title) + '</span></a></li>';
-        }).join("");
+    // 侧栏「最新新闻 + 图片新闻」与栏目页统一，逻辑见 js/shell.js
+    if (window.SITE && window.SITE.renderSidePanels) {
+      window.SITE.renderSidePanels(state.channels);
     }
-    const withImg = [];
-    state.channels.forEach(function (c) {
-      c.list.forEach(function (item) {
-        if (item.img && withImg.length < THUMB_SIZE) withImg.push(item);
-      });
-    });
-    el("thumbGrid").innerHTML = withImg.map(function (item) {
-      return '<a href="' + esc(item.url) + '" title="' + esc(item.title) + '">' +
-        '<img src="' + esc(item.img) + '" alt="' + esc(item.title) + '" loading="lazy">' +
-        '<span>' + esc(item.title) + '</span></a>';
-    }).join("") || '<div class="empty-state">暂无图片</div>';
   }
 
   function bindToolbar() {
@@ -209,6 +265,8 @@
       author: "",
       editor: "",
       views: item.views,
+      attachments: [],
+      images: [],
       content: '<div class="empty-state">本篇正文未随原型内置，正式迁移后由内容接口提供。<br>' +
         '<a href="channel.html?id=' + encodeURIComponent(hit.channel.type) + '">返回' +
         esc(hit.channel.inner || hit.channel.name) + '</a></div>'
@@ -216,8 +274,6 @@
     state.channel = hit.channel;
     renderCrumb();
     renderArticle();
-    renderRelated();
-    renderPrevNext();
     renderSide();
     bindToolbar();
   }
@@ -250,8 +306,6 @@
       state.channel = channelOf(article.channelType);
       renderCrumb();
       renderArticle();
-      renderRelated();
-      renderPrevNext();
       renderSide();
       bindToolbar();
     }).catch(function () {

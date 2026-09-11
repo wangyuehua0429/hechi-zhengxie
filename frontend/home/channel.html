@@ -88,11 +88,11 @@
 
       <!-- 右侧：稿件列表 -->
       <div class="inner-main">
-        <!-- 一页式栏目（如政协概况）：栏目简介，仅 layout=about 时显示 -->
+        <!-- 一页式栏目（layout=about）：栏目简介块，其它版式隐藏 -->
         <section class="panel" id="aboutBox" hidden></section>
         <section class="panel" aria-labelledby="listHeading">
           <div class="panel-head">
-            <h2 id="listHeading">稿件</h2>
+            <h2 id="listHeading">栏目</h2>
             <span class="panel-count" id="listCount"></span>
           </div>
           <!-- 县（区）政协：各县区站点入口，仅 layout=county 时显示 -->
@@ -110,6 +110,7 @@
     <div class="container footer-inner" id="footerBody"></div>
   </footer>
 
+  <script src="js/site-links.js"></script>
   <script src="js/shell.js"></script>
   <script src="js/channel.js"></script>
 </body>
