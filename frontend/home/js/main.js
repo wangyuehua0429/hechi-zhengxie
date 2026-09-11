@@ -34,6 +34,13 @@
     return (u && u !== "#") ? " target=\"_blank\" rel=\"noopener\"" : "";
   }
 
+  // 站内链接改写：内页原型已实现的栏目与稿件指向本地内页（js/site-links.js），
+  // 其余地址保持旧站链接，避免首页点开落到空页。图片仍走 abs()。
+  const link = (u) => {
+    const full = abs(u);
+    return (window.SITE_LINKS && window.SITE_LINKS.map) ? window.SITE_LINKS.map(full) : full;
+  };
+
   // 图片加载失败降级（捕获阶段监听 error）
   document.addEventListener("error", function (e) {
     const t = e.target;
@@ -66,13 +73,14 @@
     const home = nav[0];
     const homeEl = el("navHome");
     if (homeEl && home) {
-      homeEl.href = esc(abs(home.url));
+      homeEl.href = "./index.html";
       homeEl.innerHTML =
         '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>' +
         '<span>' + esc(home.title) + '</span>';
     }
     const rowLink = function (n) {
-      return '<a href="' + esc(abs(n.url)) + '"' + ext(n.url) + '>' + esc(n.title) + '</a>';
+      const url = link(n.url);
+      return '<a href="' + esc(url) + '"' + ext(url) + '>' + esc(n.title) + '</a>';
     };
     const rest = nav.slice(1);
     const mid = Math.ceil(rest.length / 2);
@@ -105,17 +113,18 @@
       '<div class="carousel-track" id="carouselTrack">' +
       slides.map(function (s, i) {
         const hasLink = s.url && s.url !== "#";
-        const link = hasLink
-          ? '<a href="' + esc(abs(s.url)) + '" target="_blank" rel="noopener">' + esc(s.title) + '</a>'
+        const target = hasLink ? link(s.url) : "";
+        const titleHtml = hasLink
+          ? '<a href="' + esc(target) + '"' + ext(target) + '>' + esc(s.title) + '</a>'
           : '<span>' + esc(s.title) + '</span>';
         const more = hasLink
-          ? '<a class="carousel-more" href="' + esc(abs(s.url)) + '" target="_blank" rel="noopener">阅读原文</a>'
+          ? '<a class="carousel-more" href="' + esc(target) + '"' + ext(target) + '>阅读原文</a>'
           : '<span class="carousel-more">阅读原文</span>';
         return '<div class="carousel-slide' + (i === 0 ? " active" : "") + '"' +
           (i !== 0 ? ' aria-hidden="true"' : "") + '>' +
           '<div class="carousel-media"><img src="' + esc(abs(s.img)) + '" alt="' + esc(s.title) + '"></div>' +
           '<div class="carousel-text">' +
-            '<h2 class="carousel-title">' + link + '</h2>' +
+            '<h2 class="carousel-title">' + titleHtml + '</h2>' +
             (s.summary ? '<p class="carousel-summary">' +
               '<span class="carousel-summary-text">' + esc(s.summary) + '</span>' +
               '<span class="sr-only">' + esc(s.summary) + '</span></p>' : '') +
@@ -308,7 +317,7 @@
     // 主席（固定展示）
     html += '<div class="leader-chair">' +
       '<img src="' + esc(abs(leaders.chairman.img)) + '" alt="主席 ' + esc(leaders.chairman.name) + '">' +
-      '<div><a href="' + esc(abs(leaders.chairman.url)) + '"><span class="leader-name">' + esc(leaders.chairman.name) + '</span></a>' +
+      '<div><a href="' + esc(link(leaders.chairman.url)) + '"><span class="leader-name">' + esc(leaders.chairman.name) + '</span></a>' +
       '<span class="leader-role">主&nbsp;席</span></div></div>';
     // 副主席 / 秘书长 可切换标签
     html += '<div class="leader-tabs" role="tablist" aria-label="政协领导">' +
@@ -318,7 +327,7 @@
     // 副主席面板
     html += '<div class="leader-panel active" data-panel="vice" role="tabpanel">';
     const viceItems = leaders.viceChairmen.map(function (v) {
-      return '<a class="leader-vice" href="' + esc(abs(v.url)) + '" title="' + esc(v.name) + '">' +
+      return '<a class="leader-vice" href="' + esc(link(v.url)) + '" title="' + esc(v.name) + '">' +
         '<img src="' + esc(abs(v.img)) + '" alt="' + esc(v.name) + '"><span>' + esc(v.name) + '</span></a>';
     }).join("");
     html += '<div class="leader-vices-marquee"><div class="leader-vices-track">' + viceItems + '</div></div>';
@@ -328,11 +337,11 @@
     html += '<div class="leader-panel" data-panel="sec" role="tabpanel" hidden>' +
       '<div class="leader-sec">' +
       '<img src="' + esc(abs(sg.img)) + '" alt="秘书长 ' + esc(sg.name) + '">' +
-      '<div><a href="' + esc(abs(sg.url)) + '"><span class="leader-name">' + esc(sg.name) + '</span></a>' +
+      '<div><a href="' + esc(link(sg.url)) + '"><span class="leader-name">' + esc(sg.name) + '</span></a>' +
       '</div></div></div>';
     // 三个通栏按钮
     html += '<div class="leader-btns">' + leaders.extraLinks.map(function (l) {
-      return '<a class="leader-btn" href="' + esc(abs(l.url)) + '">' + esc(l.title) + '</a>';
+      return '<a class="leader-btn" href="' + esc(link(l.url)) + '">' + esc(l.title) + '</a>';
     }).join("") + '</div>';
     html += '</div>';
     body.innerHTML = html;
@@ -360,7 +369,8 @@
   function listHtml(items, dated) {
     return items.map(function (it) {
       const time = (dated && it.date) ? '<time datetime="' + esc(it.date.slice(0,10)) + '">' + esc(it.date) + '</time>' : "";
-      return '<li><a href="' + esc(abs(it.url)) + '"' + ext(it.url) + ' title="' + esc(it.title) + '">' +
+      const url = link(it.url);
+      return '<li><a href="' + esc(url) + '"' + ext(url) + ' title="' + esc(it.title) + '">' +
         esc(it.title) + '</a>' + time + '</li>';
     }).join("");
   }
@@ -369,7 +379,8 @@
     const node = el(id);
     if (!node) return;
     node.innerHTML = list.map(function (l) {
-      return '<a href="' + esc(abs(l.url)) + '" target="_blank" rel="noopener">' + esc(l.title) + '</a>';
+      const url = link(l.url);
+      return '<a href="' + esc(url) + '"' + ext(url) + '>' + esc(l.title) + '</a>';
     }).join("");
   }
 
@@ -382,7 +393,7 @@
     const tabs = data.tabs || [];
     function renderList(tab) {
       listEl.innerHTML = listHtml(tab.items || [], dated);
-      if (moreEl) moreEl.href = abs(tab.url);
+      if (moreEl) moreEl.href = link(tab.url);
     }
     function activate(btn, i) {
       btns.forEach(function (b) {
@@ -411,7 +422,8 @@
     if (!grid) return;
     const arrange = (limit ? items.slice(0, limit) : items);
     grid.innerHTML = arrange.map(function (it) {
-      return '<figure class="image-card"><a href="' + esc(abs(it.url)) + '"' + ext(it.url) + '>' +
+      const url = link(it.url);
+      return '<figure class="image-card"><a href="' + esc(url) + '"' + ext(url) + '>' +
         '<img src="' + esc(abs(it.img)) + '" alt="' + esc(it.title) + '" loading="lazy">' +
         '<figcaption>' + esc(it.title) + '</figcaption></a></figure>';
     }).join("");
@@ -421,7 +433,8 @@
     const box = el(containerId);
     if (!box) return;
     const one = items.map(function (it) {
-      return '<a class="image-flow" href="' + esc(abs(it.url)) + '"' + ext(it.url) + ' title="' + esc(it.title) + '">' +
+      const url = link(it.url);
+      return '<a class="image-flow" href="' + esc(url) + '"' + ext(url) + ' title="' + esc(it.title) + '">' +
         '<img src="' + esc(abs(it.img)) + '" alt="' + esc(it.title) + '" loading="lazy">' +
         '<span class="flow-title">' + esc(it.title) + '</span></a>';
     }).join("");
@@ -436,14 +449,16 @@
     let html = '<div class="member-media">';
     html += '<div class="member-featured">';
     if (f) {
-      html += '<a href="' + esc(abs(f.url)) + '"' + ext(f.url) + '>' +
+      const featUrl = link(f.url);
+      html += '<a href="' + esc(featUrl) + '"' + ext(featUrl) + '>' +
         '<img src="' + esc(abs(f.img)) + '" alt="' + esc(f.title) + '">' +
         '<div class="feat-title">' + esc(f.title) + '</div></a>';
     }
     html += '</div>';
     // 小图：默认显示 3 张，点击左右按钮手动滑动（不自动滚动）
     const gal = mw.gallery.map(function (g) {
-      return '<a class="member-gallery-item" href="' + esc(abs(g.url)) + '"' + ext(g.url) + ' title="' + esc(shortTitle(g.title)) + '">' +
+      const url = link(g.url);
+      return '<a class="member-gallery-item" href="' + esc(url) + '"' + ext(url) + ' title="' + esc(shortTitle(g.title)) + '">' +
         '<img src="' + esc(abs(g.img)) + '" alt="' + esc(shortTitle(g.title)) + '" loading="lazy"><span>' + esc(shortTitle(g.title)) + '</span></a>';
     }).join("");
     html += '<div class="member-gallery-ctrl">' +
@@ -558,11 +573,16 @@
     const strip = el("topicStrip");
     if (!strip) return;
     strip.innerHTML = items.map(function (it) {
-      return '<a class="topic-item" href="' + esc(abs(it.url)) + '" target="_blank" rel="noopener">' +
+      const url = link(it.url);
+      return '<a class="topic-item" href="' + esc(url) + '"' + ext(url) + '>' +
         '<img src="' + esc(abs(it.img)) + '" alt="' + esc(it.title) + '" loading="lazy"></a>';
     }).join("");
     const more = el("topicMore");
-    if (more && items[0]) more.href = abs(items[0].url);
+    // 专题「更多」：原型已建专题栏目页时指向本地，否则回落到首个专题
+    const topicChannel = window.SITE_LINKS && window.SITE_LINKS.channels
+      ? window.SITE_LINKS.channels.topic : "";
+    if (more && topicChannel) more.href = topicChannel;
+    else if (more && items[0]) more.href = link(items[0].url);
   }
 
   function renderLinks(links) {
@@ -731,6 +751,10 @@
   async function init() {
     renderDate();
     bindInteractions();
+    // 等站内链接映射就绪，导航与列表才能指向新版内页而不是旧站
+    if (window.SITE_LINKS && window.SITE_LINKS.ready) {
+      try { await window.SITE_LINKS.ready; } catch (e) { /* 映射失败时保持旧站链接 */ }
+    }
     try {
       const res = await fetch(DATA_URL);
       if (!res.ok) throw new Error("HTTP " + res.status);
@@ -772,6 +796,14 @@
       renderTopic(d.topic);
       renderImageMarquee("sceneryGrid", d.scenery);
       renderLinks(d.links);
+      // index.html 里静态写死的旧站「更多」与横幅入口，统一改指新版内页
+      document.querySelectorAll("a.more, a.banner-single").forEach(function (a) {
+        const href = a.getAttribute("href") || "";
+        // 已经是本地内页地址的归一化为相对路径（setMore 赋值后可能带上站点前缀）
+        const local = /(?:^|\/)(channel\.html\?[^"'#]*|detail\.html\?[^"'#]*)/.exec(href);
+        if (local) a.setAttribute("href", local[1]);
+        else if (href) a.setAttribute("href", link(href));
+      });
       renderFooter(d.meta);
       initMarquees();
       initMasthead();
@@ -796,7 +828,8 @@
     if (!list) return;
     list.innerHTML = items && items.length
       ? items.slice(0, 2).map(function (v) {
-          return '<li class="video-item"><a href="' + esc(abs(v.url)) + '"' + ext(v.url) + ' title="' + esc(v.title) + '">' +
+          const url = link(v.url);
+          return '<li class="video-item"><a href="' + esc(url) + '"' + ext(url) + ' title="' + esc(v.title) + '">' +
             '<img class="video-thumb" src="' + esc(abs(v.img)) + '" alt="' + esc(v.title) + '" loading="lazy">' +
             '<span class="video-title">' + esc(v.title) + '</span></a></li>';
         }).join("")
@@ -805,7 +838,7 @@
 
   function setMore(id, url) {
     const a = el(id);
-    if (a) a.href = url;
+    if (a) a.href = link(url);
   }
 
   function showDataError() {

@@ -197,7 +197,8 @@ h1, h2, h3, h4 { margin: 0; line-height: 1.3; }
   flex: 1; display: block; position: relative; background: var(--card);
   border: 1px solid transparent; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-card);
 }
-.banner-strip a img { width: 100%; height: 100%; object-fit: fill; display: block; filter: saturate(0.86); }
+/* 条幅图按容器比例裁切，避免与容器比例不一致时被横向拉伸 */
+.banner-strip a img { width: 100%; height: 100%; object-fit: cover; display: block; filter: saturate(0.86); }
 .banner-single {
   position: relative; display: block; margin: 0 0 var(--card-gap); background: var(--card);
   border: 1px solid transparent; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-card);
