@@ -345,10 +345,11 @@
 
   window.SITE.renderSidePanels = renderSidePanels;
 
-  // 站级数据与栏目索引同时取；channel.js / detail.js 复用 channelsReady，避免重复请求
-  window.SITE.channelsReady = (window.SITE_LINKS
-    ? window.SITE_LINKS.ready
-    : fetchJSON(CHANNEL_URL).then(function (data) { return (data && data.channels) || []; }))
+  // 栏目数据取完整的 data/channel.json：channel.js 要 list 渲染列表、detail.js 要 name 拼标题，
+  // 而 js/site-links.js 那份 4.4 KB 精简索引只有 type 与 ids，是给链接改写用的，不能当栏目数据。
+  // 全站只此一次请求，channel.js / detail.js 复用 channelsReady。
+  window.SITE.channelsReady = fetchJSON(CHANNEL_URL)
+    .then(function (data) { return (data && data.channels) || []; })
     .catch(function () { return []; });
 
   function init() {
