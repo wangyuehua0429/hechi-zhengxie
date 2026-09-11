@@ -108,7 +108,7 @@ node tests/api-check.mjs --keep                           # 保留临时库与�
 用临时 SQLite 库建表、灌数、建一个测试账号，再按真实用户路径把后台走一遍：
 
 ```bash
-node tests/admin-check.mjs          # 52 项检查
+node tests/admin-check.mjs          # 54 项检查
 node tests/admin-check.mjs --keep   # 保留临时库与发布产物
 ```
 

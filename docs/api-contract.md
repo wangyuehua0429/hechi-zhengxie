@@ -24,7 +24,7 @@
 | 错误码 | `bad_request`(400)／`not_found`(404)／`method_not_allowed`(405)／`internal_error`(500) |
 | 跨域 | 本期前后台同源（Nginx 同站点），默认不开 CORS；多端接入时按白名单开 |
 | 版本策略 | 路径带版本（`/api/v1`）；破坏性调整升 `/api/v2`，`v1` 至少保留一个并行周期 |
-| 缓存 | 静态化页面与接口均给 `Cache-Control: public, max-age=300`；后台发布后按 `channel`／`article` 粒度刷新 |
+| 缓存 | 接口默认**不缓存**（`Cache-Control: no-store`，可用 `API_CACHE_MAX_AGE` 调大）。后台改稿、发稿后前台要立刻可见，因此默认不做浏览器缓存；等接入 Redis/CDN 并实现“发布即失效”之后再开缓存 |
 | 鉴权 | 本期对外接口全部公开只读；`/api/v1/admin/*` 用会话（`sys_user` + `sys_role`），不走本版的匿名约定 |
 
 **可见性规则**：对外接口只返回 `status = published` 且 `public_scope = public` 的稿件（草稿、已下线、后台留存内容不出现）。后台按稿件号直读不受此限制，因此“保存为草稿”在后台可见、在前台与接口上都看不到。
