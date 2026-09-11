@@ -25,7 +25,7 @@
   --font-scale: 1;
   --header-h: 64px;
   --mast-ratio: 1920 / 550;         /* 站头横幅宽高比：首页全幅 */
-  --mast-ratio-folded: 1920 / 387;  /* 站头横幅宽高比：栏目页/详情页收缩态（取自设计稿截图，保留横幅上部约七成） */
+  --mast-ratio-folded: 1920 / 183;  /* 站头横幅宽高比：栏目页/详情页收缩态（约全幅三分之一，只留一条窄幅） */
 }
 
 * { box-sizing: border-box; }
@@ -112,8 +112,13 @@ h1, h2, h3, h4 { margin: 0; line-height: 1.3; }
    （见 channel.html / detail.html），首屏即按收缩态渲染；收缩与展开过程由
    js/header-fold.js 用高度过渡补上动画，这里只负责两种终态。 */
 html.mast-folded .masthead-layers { aspect-ratio: var(--mast-ratio-folded); }
-html.mast-folded .masthead-layers .mast-bg { object-position: top; }
+/* 收窄态保留横幅（不整幅隐藏）与站名标志：横幅居中裁切，标志只等比缩小，
+   位置沿用全幅时的左上角，不做居中 */
+html.mast-folded .masthead-layers .mast-logo { width: 20%; }
 .masthead-layers.is-folding { transition: height 0.42s cubic-bezier(0.22, 0.7, 0.24, 1); }
+.masthead-layers.is-folding .mast-logo {
+  transition: width 0.42s cubic-bezier(0.22, 0.7, 0.24, 1);
+}
 .masthead-layers .mast-bg {
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
   opacity: 0; transition: opacity 1s ease;
@@ -681,6 +686,9 @@ body.high-contrast .news-list li:last-child { border-bottom: 1px dashed #000; }
   .county-body { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
+  /* 站头收窄态：窄屏横幅很矮，条带略增高度、标志按比例放大，保证站名仍可读 */
+  :root { --mast-ratio-folded: 1920 / 260; }
+  html.mast-folded .masthead-layers .mast-logo { width: 30%; }
   .grid-3 { grid-template-columns: 1fr; }
   .image-grid, .image-grid-scenery { grid-template-columns: repeat(2, 1fr); }
   .topic-strip { grid-template-columns: repeat(2, 1fr); }
@@ -732,5 +740,6 @@ body.high-contrast .news-list li:last-child { border-bottom: 1px dashed #000; }
   .nav-home, .nav-row a { transition: none; }
   .nav-home.is-tapped, .nav-row a.is-tapped { transform: none; }
   /* 站头收缩：减弱动态时不播高度过渡，直接落到收窄态 */
-  .masthead-layers.is-folding { transition: none; }
+  .masthead-layers.is-folding,
+  .masthead-layers.is-folding .mast-logo { transition: none; }
 }

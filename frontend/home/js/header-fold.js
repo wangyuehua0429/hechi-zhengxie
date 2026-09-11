@@ -18,14 +18,23 @@
 
   const FOLDED = "mast-folded";
   const FOLDING = "is-folding";
-  /* 与 css/style.css 的 --mast-ratio / --mast-ratio-folded 保持一致 */
-  const RATIO_FULL = 550 / 1920;
-  const RATIO_FOLDED = 387 / 1920;
   const DURATION = 420;
 
   const reduceMotion = window.matchMedia
     ? window.matchMedia("(prefers-reduced-motion: reduce)")
     : { matches: false };
+
+  /* 比例取自 css/style.css 的 --mast-ratio / --mast-ratio-folded（“1920 / 183” 形式），
+     窄屏断点会改这两个值，所以每次现取，不在脚本里写死 */
+  function readRatio(name, fallback) {
+    const raw = window.getComputedStyle(html).getPropertyValue(name);
+    const m = /([\d.]+)\s*\/\s*([\d.]+)/.exec(raw);
+    const w = m ? parseFloat(m[1]) : 0;
+    const h = m ? parseFloat(m[2]) : 0;
+    return (w > 0 && h > 0) ? h / w : fallback;
+  }
+  function ratioFull() { return readRatio("--mast-ratio", 550 / 1920); }
+  function ratioFolded() { return readRatio("--mast-ratio-folded", 183 / 1920); }
 
   /* 站头横幅为满幅元素，高度 = 宽度 × 比例；宽度取元素实际渲染宽度 */
   function pxOf(ratio) {
@@ -33,7 +42,7 @@
     return Math.round(w * ratio) + "px";
   }
 
-  let inlineRatio = null;   // 内联高度生效时记录对应比例，窗口变化时重算
+  let inlineState = null;   // 内联高度生效时记录状态（"folded" / "full"），窗口变化时重算
   let running = false;
 
   /* 从当前渲染高度过渡到目标高度；结束（含兜底计时）后回调 */
@@ -77,11 +86,11 @@
     if (/^https?:\/\//i.test(href) || /^\/\//.test(href)) return;   // 旧站外链：不拦
 
     e.preventDefault();
-    inlineRatio = RATIO_FOLDED;
+    inlineState = "folded";
     /* 先按当前渲染高度固定起点，再切收缩态（否则 aspect-ratio 一变，高度会瞬间跳到位） */
     layers.style.height = layers.getBoundingClientRect().height + "px";
     html.classList.add(FOLDED);   // 收缩态同时收起标语，与内页落点一致
-    animate(pxOf(RATIO_FOLDED), function () {
+    animate(pxOf(ratioFolded()), function () {
       window.location.href = link.href;
     });
   });
@@ -91,13 +100,13 @@
     if (reduceMotion.matches) {
       html.classList.remove(FOLDED);   // 减弱动态：直接给全幅，不做展开动画
     } else {
-      inlineRatio = RATIO_FOLDED;
-      layers.style.height = pxOf(RATIO_FOLDED);
+      inlineState = "folded";
+      layers.style.height = pxOf(ratioFolded());
       window.requestAnimationFrame(function () {
-        inlineRatio = RATIO_FULL;
-        animate(pxOf(RATIO_FULL), function () {
+        inlineState = "full";
+        animate(pxOf(ratioFull()), function () {
           html.classList.remove(FOLDED);
-          inlineRatio = null;
+          inlineState = null;
           layers.style.height = "";   // 交回 CSS 的 aspect-ratio
         });
       });
@@ -106,8 +115,8 @@
 
   /* 动画或收缩态下窗口尺寸变化时，按当前比例重算高度 */
   window.addEventListener("resize", function () {
-    if (inlineRatio === null) return;
+    if (inlineState === null) return;
     layers.classList.remove(FOLDING);
-    layers.style.height = pxOf(inlineRatio);
+    layers.style.height = pxOf(inlineState === "folded" ? ratioFolded() : ratioFull());
   });
 })();
