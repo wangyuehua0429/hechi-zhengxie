@@ -11,6 +11,7 @@
  * @var string $csrf
  * @var list<array<string, mixed>>|null $channels
  * @var string|null $defaultChannel
+ * @var list<array{key:string,title:string,channels:list<array<string,mixed>>}>|null $navGroups
  */
 
 declare(strict_types=1);
@@ -21,17 +22,38 @@ $dateValue = $published !== '' ? substr($published, 0, 10) : date('Y-m-d');
 $timeValue = $published !== '' ? substr($published, 11, 5) : date('H:i');
 $statusLabels = ['published' => '已发布', 'draft' => '草稿', 'offline' => '已下线'];
 $action = $isNew ? '/admin/article/create' : '/admin/article/' . (int) $article['article_id'];
+$currentChannelName = '';
+if ($isNew && ($navGroups ?? []) !== []) {
+    foreach ($navGroups as $group) {
+        foreach ($group['channels'] as $item) {
+            if ((string) $item['type_code'] === (string) ($defaultChannel ?? '')) {
+                $currentChannelName = (string) $item['inner_name'];
+            }
+        }
+    }
+}
 ?>
 <h1><?= $isNew ? '新建稿件' : '编辑稿件' ?></h1>
 <p class="muted">
   <?php if ($isNew): ?>
-    保存后会生成稿件号，并自动挂到所选栏目的列表里。
+    先选栏目，再填内容；保存后会生成稿件号，并自动挂到所选栏目的列表里。
   <?php else: ?>
     #<?= (int) $article['article_id'] ?>　栏目：<?= hechi_e($article['channel_inner'] ?? $article['channel_name'] ?? $article['channel_type']) ?>
     （<?= hechi_e((string) $article['channel_type']) ?>）
     <?php if ($saved): ?>　<span class="saved-mark">已保存</span><?php endif; ?>
   <?php endif; ?>
 </p>
+
+<?php if ($isNew): ?>
+  <?php
+  $navUrl = '/admin/article/new';
+  $navActive = (string) ($defaultChannel ?? '');
+  $navQuery = [];
+  $navAllLabel = '未选';
+  include __DIR__ . '/_channel_nav.php';
+  ?>
+  <p class="muted">当前栏目：<strong><?= hechi_e($currentChannelName !== '' ? $currentChannelName : '未选择') ?></strong></p>
+<?php endif; ?>
 
 <form method="post" action="<?= hechi_e($action) ?>" class="edit-form">
   <?= $csrf ?>
@@ -42,15 +64,7 @@ $action = $isNew ? '/admin/article/create' : '/admin/article/' . (int) $article[
 
   <div class="row">
     <?php if ($isNew): ?>
-      <label>所属栏目
-        <select name="channel_type" required>
-          <?php foreach (($channels ?? []) as $ch): ?>
-            <option value="<?= hechi_e($ch['type_code']) ?>"<?= ($defaultChannel ?? '') === (string) $ch['type_code'] ? ' selected' : '' ?>>
-              <?= hechi_e($ch['inner_name'] . '（' . $ch['type_code'] . '）') ?>
-            </option>
-          <?php endforeach; ?>
-        </select>
-      </label>
+      <input type="hidden" name="channel_type" value="<?= hechi_e((string) ($defaultChannel ?? '')) ?>">
     <?php endif; ?>
     <label>引题／副标题
       <input type="text" name="subtitle" value="<?= hechi_e($article['subtitle'] ?? '') ?>">

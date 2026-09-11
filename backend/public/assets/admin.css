@@ -188,6 +188,50 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
 /* 分页 */
 .pager { display: flex; align-items: center; gap: 14px; margin-top: 14px; color: var(--muted); }
 
+/* 栏目导航条：与前台主导航同样的横向排布，43 个栏目分两级展示 */
+.channel-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 4px;
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.channel-group {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 2px 6px 2px 8px;
+  border-left: 1px solid var(--line);
+}
+.channel-group:first-of-type, .channel-nav > .channel-chip:first-child + .channel-group { border-left: 0; }
+.channel-group-title {
+  color: var(--muted);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.channel-chip {
+  display: inline-block;
+  padding: 3px 10px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: var(--ink);
+  white-space: nowrap;
+  font-size: 14px;
+}
+.channel-chip:hover { background: #fdf3f3; color: var(--brand); text-decoration: none; }
+.channel-chip.active {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+  font-weight: 700;
+}
+.channel-group--multi { background: #fafbfc; border-radius: 16px; }
+
 /* 上传与危险操作 */
 .upload-form { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
 .upload-form input[type="file"] { border: 1px dashed #cfd4da; padding: 6px 10px; border-radius: 4px; background: #fafbfc; }

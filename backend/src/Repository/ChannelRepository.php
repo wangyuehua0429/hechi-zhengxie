@@ -234,9 +234,36 @@ final class ChannelRepository
                     (SELECT COUNT(*) FROM cms_article_channel ac WHERE ac.site_id = c.site_id AND ac.channel_type = c.type_code) AS article_count
              FROM sys_channel c
              WHERE c.site_id = :site
-             ORDER BY c.parent_type ASC, c.sort_no ASC, c.channel_id ASC',
+             ORDER BY c.sort_no ASC, c.channel_id ASC',
             ['site' => $this->siteId]
         );
+    }
+
+    /**
+     * 后台栏目导航条用的分组：一级栏目 + 它的子栏目，顺序与前端主导航一致
+     *（sort_no 由 seed 按前端 channel.json 的排列写入）。
+     *
+     * @return list<array{key:string, title:string, channels:list<array<string,mixed>>}>
+     */
+    public function navGroups(): array
+    {
+        $groups = [];
+        foreach ($this->adminAll() as $channel) {
+            $key = (string) ($channel['parent_type'] !== '' ? $channel['parent_type'] : $channel['type_code']);
+            if (!isset($groups[$key])) {
+                $groups[$key] = ['key' => $key, 'title' => '', 'channels' => []];
+            }
+            $groups[$key]['channels'][] = $channel;
+            if ((string) $channel['type_code'] === $key) {
+                $groups[$key]['title'] = (string) $channel['name'];
+            }
+        }
+        foreach ($groups as $key => $group) {
+            if ($group['title'] === '') {
+                $groups[$key]['title'] = (string) $group['channels'][0]['name'];
+            }
+        }
+        return array_values($groups);
     }
 
     /** @return array<string, mixed>|null */

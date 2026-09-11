@@ -94,7 +94,7 @@ upsert($db, 'sys_site', ['code' => (string) $config->get('site.code', 'main')], 
 ]);
 
 // 2) 栏目
-foreach ($channels as $channel) {
+foreach ($channels as $channelIndex => $channel) {
     upsert($db, 'sys_channel', ['site_id' => $siteId, 'type_code' => (string) $channel['type']], [
         'parent_type'   => (string) ($channel['columnId'] ?? ''),
         'slug'          => (string) ($channel['slug'] ?? ''),
@@ -104,6 +104,8 @@ foreach ($channels as $channel) {
         'layout'        => (string) ($channel['layout'] ?? 'list'),
         'total_count'   => (int) ($channel['total'] ?? 0),
         'home_sourced'  => !empty($channel['homeSourced']) ? 1 : 0,
+        // sort_no 就是前端栏目顺序（channel.json 的排列，与主导航一致），后台按它排
+        'sort_no'       => $channelIndex + 1,
         'status'        => 'published',
         'siblings_json' => Json::encode($channel['siblings'] ?? []),
         'counties_json' => isset($channel['counties']) ? Json::encode($channel['counties']) : null,

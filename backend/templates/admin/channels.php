@@ -14,18 +14,21 @@ $layoutLabels = [
 ];
 ?>
 <h1>栏目管理</h1>
-<p class="muted">共 <?= count($channels) ?> 个栏目。版式决定内页形态，改版式不会新建页面，只换渲染方式。</p>
+<p class="muted">
+  共 <?= count($channels) ?> 个栏目，<strong>顺序与前台导航一致</strong>（同一级栏目下的子栏目按前台顺序排列）。
+  版式决定内页形态，改版式不会新建页面，只换渲染方式。
+</p>
 
 <table class="grid">
-  <thead><tr><th>栏目号</th><th>一级栏目</th><th>子栏目</th><th>版式</th><th>排序</th><th>稿件数</th><th>状态</th><th></th></tr></thead>
+  <thead><tr><th>序</th><th>栏目号</th><th>一级栏目</th><th>子栏目</th><th>版式</th><th>稿件数</th><th>状态</th><th></th></tr></thead>
   <tbody>
     <?php foreach ($channels as $ch): ?>
       <tr>
+        <td class="nowrap"><?= (int) $ch['sort_no'] ?></td>
         <td class="nowrap"><?= hechi_e($ch['type_code']) ?></td>
         <td><?= hechi_e($ch['name']) ?></td>
         <td><?= hechi_e($ch['inner_name']) ?></td>
         <td class="nowrap"><?= hechi_e($layoutLabels[(string) $ch['layout']] ?? $ch['layout']) ?></td>
-        <td class="nowrap"><?= (int) $ch['sort_no'] ?></td>
         <td class="nowrap"><?= (int) $ch['article_count'] ?></td>
         <td class="nowrap"><span class="tag tag-<?= $ch['status'] === 'published' ? 'published' : 'offline' ?>"><?= $ch['status'] === 'published' ? '已上线' : '已下线' ?></span></td>
         <td class="nowrap"><a href="/admin/channel/<?= hechi_e($ch['type_code']) ?>">编辑</a></td>

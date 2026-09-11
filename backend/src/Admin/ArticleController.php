@@ -56,6 +56,7 @@ final class ArticleController extends AdminController
             'page'     => $page,
             'pages'    => max(1, (int) ceil($result['total'] / self::PAGE_SIZE)),
             'channels' => $this->channels->adminAll(),
+            'navGroups' => $this->channels->navGroups(),
         ], '稿件管理');
     }
 
@@ -98,6 +99,7 @@ final class ArticleController extends AdminController
             'canDelete'   => false,
             'saved'       => false,
             'channels'    => $this->channels->adminAll(),
+            'navGroups'   => $this->channels->navGroups(),
             'defaultChannel' => (string) $request->query('channel', '904'),
         ], '新建稿件');
     }

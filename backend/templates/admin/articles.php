@@ -9,6 +9,7 @@
  * @var int $page
  * @var int $pages
  * @var list<array<string, mixed>> $channels
+ * @var list<array{key:string,title:string,channels:list<array<string,mixed>>}> $navGroups
  */
 
 declare(strict_types=1);
@@ -17,6 +18,14 @@ $statusLabels = ['published' => '已发布', 'draft' => '草稿', 'offline' => '
 $query = static function (array $extra) use ($filters): string {
     return '/admin/articles?' . http_build_query(array_merge($filters, $extra));
 };
+// 栏目导航条的上下文（模板片段 backend/templates/admin/_channel_nav.php 用）
+$navUrl = '/admin/articles';
+$navActive = $filters['channel'];
+$navQuery = array_filter([
+    'status'  => $filters['status'],
+    'keyword' => $filters['keyword'],
+], static fn (string $value): bool => $value !== '');
+$navAllLabel = '全部栏目';
 ?>
 <div class="page-head">
   <h1>稿件管理</h1>
@@ -24,16 +33,7 @@ $query = static function (array $extra) use ($filters): string {
 </div>
 
 <form class="filters" method="get" action="/admin/articles">
-  <label>栏目
-    <select name="channel">
-      <option value="">全部栏目</option>
-      <?php foreach ($channels as $ch): ?>
-        <option value="<?= hechi_e($ch['type_code']) ?>"<?= $filters['channel'] === (string) $ch['type_code'] ? ' selected' : '' ?>>
-          <?= hechi_e($ch['inner_name'] . '（' . $ch['type_code'] . '）') ?>
-        </option>
-      <?php endforeach; ?>
-    </select>
-  </label>
+  <input type="hidden" name="channel" value="<?= hechi_e($filters['channel']) ?>">
   <label>状态
     <select name="status">
       <option value="">全部状态</option>
@@ -47,6 +47,8 @@ $query = static function (array $extra) use ($filters): string {
   </label>
   <button type="submit" class="btn">筛选</button>
 </form>
+
+<?php include __DIR__ . '/_channel_nav.php'; ?>
 
 <p class="muted">共 <?= (int) $total ?> 篇，第 <?= (int) $page ?>/<?= (int) $pages ?> 页</p>
 
