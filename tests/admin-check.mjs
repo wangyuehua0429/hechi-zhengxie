@@ -379,6 +379,12 @@ async function main() {
       check("取消置顶后编辑页复选框回到未勾选",
         unTopSaved.status === 302 &&
         !/name="is_top" value="1" checked/.test((await client.get("/admin/article/" + topTargetId)).text));
+      const listAfterUnTop = (await client.get("/api/v1/channels/904?listSize=5", { json: true })).body?.channel?.list || [];
+      const posBefore = listBeforeTop.findIndex((i) => String(i.id) === topTargetId);
+      const posAfter = listAfterUnTop.findIndex((i) => String(i.id) === topTargetId);
+      check("取消置顶后按发布时间落回原位，不会顶到最前",
+        posAfter === posBefore && posAfter !== 0,
+        "置顶前第 " + (posBefore + 1) + " 位 → 取消后第 " + (posAfter + 1) + " 位");
     }
 
     // ---- 新建稿件 → 附件 → 插图 → 删除

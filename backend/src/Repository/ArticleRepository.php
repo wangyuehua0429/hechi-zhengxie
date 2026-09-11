@@ -265,7 +265,25 @@ final class ArticleRepository
             );
             $sortNo = $min === null ? 1 : min(0, (int) $min - 1);
         } else {
-            $sortNo = 0;
+            // 取消置顶：按发布时间落回它该在的位置。
+            // 不能简单写 0——0 是「新稿排最前」的取值，会把一篇旧稿顶到栏目第一位。
+            $published = (string) $this->db->scalar(
+                'SELECT COALESCE(published_at, "") FROM cms_article WHERE site_id = :site AND article_id = :id',
+                ['site' => $this->siteId, 'id' => $articleId]
+            );
+            $newer = (int) $this->db->scalar(
+                'SELECT COUNT(*) FROM cms_article_channel ac
+                 JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
+                 WHERE ac.site_id = :site AND ac.channel_type = :channel AND ac.is_top = 0
+                   AND ac.article_id <> :id AND a.published_at > :published',
+                [
+                    'site'      => $this->siteId,
+                    'channel'   => $channelType,
+                    'id'        => $articleId,
+                    'published' => $published,
+                ]
+            );
+            $sortNo = $newer + 1;
         }
         $this->db->execute(
             'UPDATE cms_article_channel SET is_top = :top, sort_no = :sort
