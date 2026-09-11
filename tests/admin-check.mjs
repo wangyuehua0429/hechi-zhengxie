@@ -89,12 +89,21 @@ function makeClient(base) {
   const jar = createJar();
   return {
     jar,
-    async request(method, url, { form = null, json = false } = {}) {
+    async request(method, url, { form = null, json = false, multipart = null } = {}) {
       const headers = {};
       const cookie = jar.header();
       if (cookie) headers.Cookie = cookie;
       let body;
-      if (form) {
+      if (multipart) {
+        const fd = new FormData();
+        for (const [key, value] of Object.entries(multipart.fields || {})) {
+          fd.append(key, value);
+        }
+        for (const file of multipart.files || []) {
+          fd.append(file.field, new Blob([file.content], { type: file.type || "application/octet-stream" }), file.filename);
+        }
+        body = fd;
+      } else if (form) {
         body = new URLSearchParams(form).toString();
         headers["Content-Type"] = "application/x-www-form-urlencoded";
       }
@@ -115,6 +124,9 @@ function makeClient(base) {
     },
     post(url, form, opts) {
       return this.request("POST", url, { form, ...opts });
+    },
+    upload(url, fields, files) {
+      return this.request("POST", url, { multipart: { fields, files } });
     }
   };
 }
@@ -212,17 +224,16 @@ async function main() {
 
     // ---- 稿件编辑
     const edit = await client.get("/admin/article/" + SAMPLE_ID);
-    const editToken = csrfToken(edit.text);
-    check("稿件编辑页可打开", edit.status === 200 && edit.text.includes("编辑稿件") && editToken !== "");
+    check("稿件编辑页可打开", edit.status === 200 && edit.text.includes("编辑稿件") && csrfToken(edit.text) !== "");
     const originalTitle = (/name="title" value="([^"]*)"/.exec(edit.text) || [])[1] || "";
     const originalSummary = (/name="summary" rows="3">([\s\S]*?)<\/textarea>/.exec(edit.text) || [])[1] || "";
-    check("编辑页带出原标题", originalTitle !== "", originalTitle);
+    const originalContent = (/name="content_html" rows="18" class="mono">([\s\S]*?)<\/textarea>/.exec(edit.text) || [])[1] || "";
+    check("编辑页带出原标题与正文", originalTitle !== "" && originalContent.length > 100,
+      originalTitle + " / 正文 " + originalContent.length + " 字符");
 
-    const tokens = await client.get("/admin/article/" + SAMPLE_ID);
-    const saveToken = csrfToken(tokens.text);
     const newTitle = originalTitle + "（后台检查）";
     const saved = await client.post("/admin/article/" + SAMPLE_ID, {
-      _token: saveToken,
+      _token: csrfToken(edit.text),
       title: newTitle,
       subtitle: "",
       source: "广西政协报",
@@ -236,18 +247,20 @@ async function main() {
     });
     check("保存稿件后跳回编辑页", saved.status === 302 && (saved.headers.get("location") || "").includes("/admin/article/" + SAMPLE_ID));
 
-    const apiAfterSave = await client.get("/api/v1/article/" + SAMPLE_ID, { json: true });
-    check("保存结果已进数据库（接口能读到新标题与新正文）",
-      apiAfterSave.body?.article?.title === newTitle && apiAfterSave.body.article.content.includes("后台检查写入的正文"),
-      JSON.stringify(apiAfterSave.body?.article?.title));
+    const draftPublic = await client.get("/api/v1/article/" + SAMPLE_ID, { json: true });
+    check("草稿不对外可见（公开接口 404）",
+      draftPublic.status === 404 && draftPublic.body?.error?.code === "not_found",
+      "状态 " + draftPublic.status);
+
+    const draftInAdmin = await client.get("/admin/articles?keyword=" + encodeURIComponent("后台检查"));
+    check("草稿在后台列表里仍可检索到", draftInAdmin.status === 200 && draftInAdmin.text.includes("后台检查"));
 
     const badSave = await client.post("/admin/article/" + SAMPLE_ID, { _token: "invalid", title: "x" });
     check("令牌错误的保存被拒绝（400）", badSave.status === 400 && badSave.text.includes("提交被拒绝"), "状态 " + badSave.status);
 
-    const emptyTitle = await client.get("/admin/article/" + SAMPLE_ID);
-    const restoreToken = csrfToken(emptyTitle.text);
+    const restorePage = await client.get("/admin/article/" + SAMPLE_ID);
     const restored = await client.post("/admin/article/" + SAMPLE_ID, {
-      _token: restoreToken,
+      _token: csrfToken(restorePage.text),
       title: originalTitle,
       subtitle: "",
       source: "广西政协报",
@@ -257,9 +270,84 @@ async function main() {
       published_time: "11:17",
       status: "published",
       summary: originalSummary,
-      content_html: (await client.get("/api/v1/article/" + SAMPLE_ID, { json: true })).body?.article?.content || ""
+      content_html: originalContent
     });
     check("恢复原稿成功", restored.status === 302);
+    const publishedPublic = await client.get("/api/v1/article/" + SAMPLE_ID, { json: true });
+    check("恢复为已发布后公开接口又能读到",
+      publishedPublic.status === 200 && publishedPublic.body?.article?.title === originalTitle);
+
+    // ---- 新建稿件 → 附件 → 插图 → 删除
+    const newForm = await client.get("/admin/article/new");
+    check("新建稿件表单可打开且带栏目下拉", newForm.status === 200 && newForm.text.includes("新建稿件") && newForm.text.includes("channel_type"));
+
+    const created = await client.post("/admin/article/create", {
+      _token: csrfToken(newForm.text),
+      channel_type: "904",
+      title: "后台检查用临时稿件",
+      subtitle: "",
+      source: "检查脚本",
+      author: "",
+      editor: "",
+      published_date: "2026-09-11",
+      published_time: "09:30",
+      status: "published",
+      summary: "自动化检查创建，用完即删。",
+      content_html: "<p>这是检查脚本写入的正文。</p>"
+    });
+    const createdId = (/(\/admin\/article\/(\d+))$/.exec(created.headers.get("location") || "") || [])[2] || "";
+    check("新建稿件成功并跳到编辑页", created.status === 302 && createdId !== "", "id=" + createdId);
+
+    if (createdId) {
+      const createdPublic = await client.get("/api/v1/article/" + createdId, { json: true });
+      check("新建的已发布稿件立刻能被公开接口读到",
+        createdPublic.status === 200 && createdPublic.body?.article?.title === "后台检查用临时稿件");
+
+      const createdEdit = await client.get("/admin/article/" + createdId);
+      const uploadToken = csrfToken(createdEdit.text);
+      const uploaded = await client.upload(
+        "/admin/article/" + createdId + "/attachment",
+        { _token: uploadToken },
+        [{ field: "file", filename: "检查附件.txt", type: "text/plain", content: "后台附件上传检查" }]
+      );
+      check("上传附件后跳回编辑页", uploaded.status === 302);
+
+      const editAfterUpload = await client.get("/admin/article/" + createdId);
+      check("编辑页列出刚上传的附件", editAfterUpload.text.includes("检查附件.txt"));
+      const fileUrl = (/href="(\/uploads\/[^"]+\.txt)"/.exec(editAfterUpload.text) || [])[1] || "";
+      check("上传的文件可直接访问", fileUrl !== "" && (await client.get(fileUrl)).status === 200, fileUrl);
+
+      const imageUploaded = await client.upload(
+        "/admin/article/" + createdId + "/image",
+        { _token: csrfToken(editAfterUpload.text) },
+        [{
+          field: "image",
+          filename: "check.png",
+          type: "image/png",
+          content: Buffer.from(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+            "base64"
+          )
+        }]
+      );
+      check("上传正文图片后跳回编辑页", imageUploaded.status === 302);
+      const afterImage = await client.get("/api/v1/article/" + createdId, { json: true });
+      check("正文里出现刚插入的图片，且登记为图集图片",
+        (afterImage.body?.article?.content || "").includes("<img") && (afterImage.body?.article?.images || []).length === 1,
+        "images=" + JSON.stringify(afterImage.body?.article?.images || []));
+
+      const deletePage = await client.get("/admin/article/" + createdId + "/delete");
+      check("删除确认页可打开", deletePage.status === 200 && deletePage.text.includes("确认删除"));
+      const deleted = await client.post("/admin/article/" + createdId + "/delete", {
+        _token: csrfToken(deletePage.text),
+        confirm: "delete"
+      });
+      check("删除后回到稿件列表", deleted.status === 302 && (deleted.headers.get("location") || "") === "/admin/articles");
+      check("删除后公开接口读不到", (await client.get("/api/v1/article/" + createdId, { json: true })).status === 404);
+      if (fileUrl !== "") {
+        check("删除稿件后上传的文件也清掉了", (await client.get(fileUrl)).status !== 200, fileUrl);
+      }
+    }
 
     // ---- 栏目管理
     const channels = await client.get("/admin/channels");

@@ -8,6 +8,7 @@
  *
  * 用法：
  *   node tests/check-pages.mjs                     # 自起静态服务器（默认 8973 端口）
+ *   node tests/check-pages.mjs --via-api           # 起 PHP 服务（站点+接口同源，需要 php），验证前端走接口
  *   node tests/check-pages.mjs --only 详情         # 只跑名字含“详情”的用例
  *   node tests/check-pages.mjs --url http://127.0.0.1:8899   # 检查已在跑的站点，不另起服务
  *   node tests/check-pages.mjs --headed            # 显示浏览器窗口，便于肉眼对照
@@ -20,8 +21,9 @@
  * 静态服务用 python3 -m http.server，与仓库 README 的本地预览方式一致。
  */
 
-import { spawn, execSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { spawn, spawnSync, execSync } from "node:child_process";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
@@ -203,7 +205,7 @@ const CASES = [
     viewport: DESKTOP,
     ready: "#articleBody > *",
     look: {
-      textIncludes: ["正文未随原型内置"],
+      textIncludes: ["该篇暂无正文"],
       textExcludes: ["数据加载失败", "未找到该篇信息", "信息加载中"]
     }
   },
@@ -212,6 +214,19 @@ const CASES = [
     page: "detail.html?id=999999",
     viewport: DESKTOP,
     ready: "#articleBody .empty-state",
+    allowApi404: true,
+    look: {
+      textIncludes: ["未找到该篇信息"],
+      textExcludes: ["数据加载失败"]
+    }
+  },
+  {
+    name: "详情页·草稿不对外可见（接口模式）",
+    page: "detail.html?id=62245",
+    viewport: DESKTOP,
+    ready: "#articleBody .empty-state",
+    onlyApi: true,
+    allowApi404: true,
     look: {
       textIncludes: ["未找到该篇信息"],
       textExcludes: ["数据加载失败"]
@@ -253,7 +268,7 @@ const CASES = [
 // ---------------------------------------------------------------- 参数与环境
 
 function parseArgs(argv) {
-  const opts = { url: "", port: 8973, only: "", headed: false, timeout: 20000, keep: false, browser: "" };
+  const opts = { url: "", port: 8973, only: "", headed: false, timeout: 20000, keep: false, browser: "", viaApi: false };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === "--url") opts.url = String(argv[++i] || "").replace(/\/+$/, "");
@@ -262,10 +277,65 @@ function parseArgs(argv) {
     else if (a === "--timeout") opts.timeout = Number(argv[++i]) || opts.timeout;
     else if (a === "--headed") opts.headed = true;
     else if (a === "--keep") opts.keep = true;
+    else if (a === "--via-api") opts.viaApi = true;
     else if (a === "--browser") opts.browser = String(argv[++i] || "");
     else if (a === "--help" || a === "-h") opts.help = true;
   }
   return opts;
+}
+
+function resolvePhp() {
+  for (const bin of ["php", "/opt/homebrew/bin/php", "/usr/local/bin/php", "/usr/bin/php"]) {
+    const probe = spawnSync(bin, ["-v"], { encoding: "utf8" });
+    if (!probe.error && probe.status === 0) return bin;
+  }
+  return null;
+}
+
+/**
+ * 接口模式：临时 SQLite 库 + PHP 内置服务器，一个进程同时提供站点静态文件与 /api/v1。
+ * 顺便把一篇已发布稿件改成草稿，用来验证"草稿不对外可见"。
+ */
+async function startPhpServer(port) {
+  const php = resolvePhp();
+  if (!php) {
+    throw new Error("未找到 php：请先 brew install php，或用 --url 指向已启动的服务");
+  }
+  const tmpRoot = mkdtempSync(path.join(tmpdir(), "hechi-pages-api-"));
+  const env = {
+    DB_DRIVER: "sqlite",
+    DB_DATABASE: path.join(tmpRoot, "pages.sqlite"),
+    APP_ENV: "local",
+    APP_DEBUG: "1",
+    PUBLISH_OUT: path.join(tmpRoot, "publish")
+  };
+  const migrate = spawnSync(php, ["backend/bin/migrate.php"], { cwd: REPO, env: { ...process.env, ...env }, encoding: "utf8" });
+  const seed = spawnSync(php, ["backend/bin/seed.php"], { cwd: REPO, env: { ...process.env, ...env }, encoding: "utf8" });
+  if (migrate.status !== 0 || seed.status !== 0) {
+    throw new Error("准备临时库失败：" + (migrate.stderr || seed.stderr || "").trim().split("\n")[0]);
+  }
+  spawnSync(php, [
+    "-r",
+    "require 'backend/src/bootstrap.php'; $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+      + " $db->execute(\"UPDATE cms_article SET status = 'draft' WHERE article_id = 62245\");"
+  ], { cwd: REPO, env: { ...process.env, ...env }, encoding: "utf8" });
+
+  const child = spawn(php, ["-S", "127.0.0.1:" + port, "-t", "backend/public", "backend/public/router.php"], {
+    cwd: REPO,
+    env: { ...process.env, ...env },
+    stdio: ["ignore", "ignore", "pipe"]
+  });
+  const base = "http://127.0.0.1:" + port;
+  const deadline = Date.now() + 15000;
+  while (Date.now() < deadline) {
+    try {
+      const res = await fetch(base + "/api/v1/health");
+      if (res.ok) return { child, base, tmpRoot };
+    } catch (e) { /* 还没起来 */ }
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  child.kill("SIGTERM");
+  throw new Error("PHP 服务 15 秒内未就绪：" + base);
 }
 
 // 自带 Chromium 与系统 Chrome 双通道：带版本号的自带浏览器可能尚未下载，
@@ -428,6 +498,13 @@ async function runCase(browser, base, c, opts) {
     await page.waitForTimeout(250);
     if (c.kind !== "reload-top") await scrollThrough(page);
 
+    // 接口模式：确认页面取数真的走了 /api/v1，而不是悄悄回退到静态快照
+    if (opts.viaApi) {
+      const mode = await page.evaluate(() => (window.SITE_DATA ? window.SITE_DATA.mode() : "无 SITE_DATA"));
+      if (mode !== "api") failures.push("数据源不是接口（实际 " + mode + "）");
+      else notes.push("数据源 api");
+    }
+
     const info = await inspect(page);
 
     // 1) 文本层：回归的两个典型症状
@@ -447,10 +524,21 @@ async function runCase(browser, base, c, opts) {
     notes.push("图片 " + (info.imgTotal - info.imgBroken.length) + "/" + info.imgTotal + " 张已加载" +
       (info.imgPending ? "（" + info.imgPending + " 张懒加载未触发）" : ""));
 
-    // 4) 控制台与请求
+    // 4) 控制台与请求。两类 404 属预期，不计失败：
+    //    · 静态托管（GitHub Pages 等）下 /api/v1/health 必然 404，前端据此回退静态快照；
+    //    · 用例声明 allowApi404 时，接口对"这篇不存在/未发布"返回 404，前端就是要显示"未找到"。
+    const allowProbe404 = !opts.viaApi;
+    const consoleErrorsReal = (c.allowApi404 || allowProbe404)
+      ? consoleErrors.filter((t) => !/status of 404/.test(t))
+      : consoleErrors;
+    const httpErrorsReal = httpErrors.filter((t) => {
+      if (/\/api\/v1\/health/.test(t) && allowProbe404) return false;
+      if (c.allowApi404 && /\/api\/v1\/article\//.test(t)) return false;
+      return true;
+    });
     if (pageErrors.length) failures.push("JS 异常 " + pageErrors.length + " 条：" + pageErrors.slice(0, 2).join(" | "));
-    if (consoleErrors.length) failures.push("控制台报错 " + consoleErrors.length + " 条：" + consoleErrors.slice(0, 2).join(" | "));
-    if (httpErrors.length) failures.push("请求失败 " + httpErrors.length + " 条：" + httpErrors.slice(0, 3).join(" | "));
+    if (consoleErrorsReal.length) failures.push("控制台报错 " + consoleErrorsReal.length + " 条：" + consoleErrorsReal.slice(0, 2).join(" | "));
+    if (httpErrorsReal.length) failures.push("请求失败 " + httpErrorsReal.length + " 条：" + httpErrorsReal.slice(0, 3).join(" | "));
     if (consoleWarnings.length) notes.push("控制台警告 " + consoleWarnings.length + " 条");
 
     // 5) 版式用例：关键容器数量、必须可见的区块、必须出现的文案
@@ -521,6 +609,7 @@ async function main() {
   const cases = opts.only
     ? CASES.filter((c) => c.name.indexOf(opts.only) !== -1)
     : CASES;
+  const selected = cases.filter((c) => (opts.viaApi ? true : !c.onlyApi));
   if (!cases.length) {
     console.log("没有匹配 --only " + opts.only + " 的用例");
     return 1;
@@ -529,7 +618,13 @@ async function main() {
   const { chromium } = loadPlaywright();
   let server = null;
   let base = opts.url;
-  if (!base) {
+  let phpServer = null;
+  if (opts.viaApi && !base) {
+    phpServer = await startPhpServer(opts.port);
+    server = { child: phpServer.child };
+    base = phpServer.base;
+    console.log("站点与接口（同源）：" + base + " → frontend/home + /api/v1");
+  } else if (!base) {
     server = await startStaticServer(SITE_DIR, opts.port);
     base = server.base;
     console.log("静态服务器：" + base + " → " + path.relative(REPO, SITE_DIR));
@@ -542,7 +637,7 @@ async function main() {
   const started = Date.now();
   const results = [];
   try {
-    for (const c of cases) {
+    for (const c of selected) {
       const r = await runCase(browser, base, c, opts);
       results.push(r);
       const tag = r.failures.length ? "FAIL" : "PASS";
@@ -552,6 +647,7 @@ async function main() {
   } finally {
     await browser.close().catch(() => {});
     if (server && !opts.keep) server.child.kill("SIGTERM");
+    if (phpServer && !opts.keep) rmSync(phpServer.tmpRoot, { recursive: true, force: true });
   }
 
   const failed = results.filter((r) => r.failures.length);
