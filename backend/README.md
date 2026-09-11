@@ -50,6 +50,14 @@ php backend/bin/seed.php
 php -S 127.0.0.1:8080 -t backend/public backend/public/router.php
 ```
 
+> **已有的库升级到 003（首页四大类）**：不要重跑 `seed.php`（会把栏目与稿件重新按快照覆盖），用这条：
+>
+> ```bash
+> php backend/bin/seed.php --home-only
+> ```
+>
+> 它只做两件事：跑 `003_home_sections` 迁移、回填首页模块/头条轮换/横幅的初始配置。没跑之前站点不会报错——首页退回改版前的快照显示，后台“头条轮换 / 其他栏目 / 站内横幅”三页会给出“先执行迁移”的提示页，导航栏目页不受影响。
+
 自检：
 
 ```bash

@@ -38,6 +38,9 @@ final class SectionController extends AdminController
         if ($redirect = $this->requireLogin()) {
             return $redirect;
         }
+        if ($notReady = $this->requireHomeTables($this->home)) {
+            return $notReady;
+        }
         if ($denied = $this->requirePermission(Permissions::HOME_MANAGE)) {
             return $denied;
         }
@@ -71,6 +74,9 @@ final class SectionController extends AdminController
     {
         if ($redirect = $this->requireLogin()) {
             return $redirect;
+        }
+        if ($notReady = $this->requireHomeTables($this->home)) {
+            return $notReady;
         }
         if ($denied = $this->guard($request)) {
             return $denied;

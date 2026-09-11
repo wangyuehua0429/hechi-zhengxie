@@ -6,6 +6,7 @@
  * 幂等：可反复执行，按主键覆盖。
  *
  *   php backend/bin/seed.php
+ *   php backend/bin/seed.php --home-only     只跑迁移 + 回填首页四大类配置（不动稿件与栏目）
  *   php backend/bin/seed.php --snapshots=/path/to/frontend/home/data
  */
 
@@ -16,10 +17,12 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 use HechiZx\Support\Db;
 use HechiZx\Support\Json;
 
-$options = getopt('', ['snapshots::', 'help']);
+$options = getopt('', ['snapshots::', 'home-only', 'help']);
 
 if (isset($options['help'])) {
-    fwrite(STDOUT, "用法：php backend/bin/seed.php [--snapshots=<目录>]\n");
+    fwrite(STDOUT, "用法：php backend/bin/seed.php [--snapshots=<目录>] [--home-only]\n"
+        . "  --home-only  只执行数据库迁移并回填首页四大类（模块 / 头条轮换 / 横幅）的初始配置，\n"
+        . "               不重灌栏目与稿件；老库升级到 003 后用这条。\n");
     exit(0);
 }
 
@@ -29,6 +32,25 @@ $siteId = (int) $config->get('site.site_id', 1);
 $now = date('Y-m-d H:i:s');
 
 $db = new Db((array) $config->get('db'));
+
+// --home-only：老库升级用。先补迁移，再只回填首页四大类的初始配置，不碰稿件与栏目。
+if (isset($options['home-only'])) {
+    $migrator = new HechiZx\Support\Migrator($db, (string) $config->get('paths.migrations') . '/' . $db->driver());
+    $applied = $migrator->run();
+    fwrite(STDOUT, $applied === []
+        ? "数据库结构已是最新，无需迁移。\n"
+        : '本次执行迁移：' . implode('、', $applied) . "\n");
+
+    $home = [];
+    $homeFile = $snapshotDir . '/home.json';
+    if (is_file($homeFile)) {
+        $decoded = json_decode((string) file_get_contents($homeFile), true);
+        $home = is_array($decoded) ? $decoded : [];
+    }
+    fwrite(STDOUT, seedHomeConfig($db, $siteId, $home, $now));
+    fwrite(STDOUT, "提示：首页模块的绑定关系来自 " . $homeFile . "，可在后台「其他栏目」页随时调整。\n");
+    exit(0);
+}
 
 /**
  * 按主键判断插入或更新：SQLite 与 MySQL 的 upsert 语法不同，这里走可移植写法。

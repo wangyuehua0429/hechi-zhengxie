@@ -8,6 +8,7 @@ use HechiZx\Http\HtmlResponse;
 use HechiZx\Http\RedirectResponse;
 use HechiZx\Http\Request;
 use HechiZx\Content\ArticleWorkflow;
+use HechiZx\Repository\HomeRepository;
 use HechiZx\Support\Db;
 
 /**
@@ -157,5 +158,24 @@ abstract class AdminController
         @chmod($dir . '/' . $name, 0644);
 
         return '/uploads/home/' . $name;
+    }
+
+    /**
+     * 首页三大类（头条轮换／其他栏目／站内横幅）依赖 003 迁移的三张表。
+     * 没迁移时给一页说明，而不是抛 PDO 异常。
+     */
+    protected function requireHomeTables(HomeRepository $home): ?HtmlResponse
+    {
+        if ($home->homeTablesReady()) {
+            return null;
+        }
+        return $this->view->page('admin/message', [
+            'current' => '',
+            'heading' => '首页四大类还没完成数据库升级',
+            'message' => '当前库缺少 cms_home_section / cms_home_slide / cms_home_banner 三张表，'
+                . '首页暂时按改版前的快照显示。请在服务器上执行「php backend/bin/seed.php --home-only」'
+                . '（它会先跑迁移，再回填首页模块、头条与横幅的初始配置），然后刷新本页。',
+            'backUrl' => '/admin',
+        ], '需要先执行迁移');
     }
 }

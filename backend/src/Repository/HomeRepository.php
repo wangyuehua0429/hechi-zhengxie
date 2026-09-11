@@ -32,6 +32,9 @@ final class HomeRepository
     /** 委员之窗的图片滚动条固定取前几张带图稿件（与前端既有版式一致） */
     private const MEMBER_GALLERY_SIZE = 4;
 
+    /** 003 迁移是否已应用（没应用时首页退回纯快照，绝不因为缺表把整站打挂） */
+    private ?bool $homeTablesReady = null;
+
     public function __construct(private Db $db, private int $siteId)
     {
     }
@@ -63,11 +66,29 @@ final class HomeRepository
                 $blocks['slides'] = $slides;
             }
         }
-        if ($keys === null || in_array('banners', $keys, true)) {
+        // 没跑 003 迁移时不返回 banners 键，前端保持 index.html 里写死的兜底内容
+        if (($keys === null || in_array('banners', $keys, true)) && $this->homeTablesReady()) {
             $blocks['banners'] = $this->homeBanners();
         }
 
         return $blocks;
+    }
+
+    /**
+     * 003 迁移是否已应用：首页三大类依赖 cms_home_section / cms_home_slide / cms_home_banner。
+     * 未应用时首页退回快照（表现与改版前一致），后台四类页给出「先执行迁移」的提示。
+     */
+    public function homeTablesReady(): bool
+    {
+        if ($this->homeTablesReady === null) {
+            try {
+                $this->db->scalar('SELECT 1 FROM cms_home_section LIMIT 1');
+                $this->homeTablesReady = true;
+            } catch (\PDOException $e) {
+                $this->homeTablesReady = false;
+            }
+        }
+        return $this->homeTablesReady;
     }
 
     /**
@@ -77,6 +98,9 @@ final class HomeRepository
      */
     public function sectionRows(): array
     {
+        if (!$this->homeTablesReady()) {
+            return [];
+        }
         return $this->db->select(
             'SELECT * FROM cms_home_section WHERE site_id = :site ORDER BY sort_no ASC, section_key ASC',
             ['site' => $this->siteId]
@@ -99,6 +123,9 @@ final class HomeRepository
      */
     public function slideRows(bool $publishedOnly = false): array
     {
+        if (!$this->homeTablesReady()) {
+            return [];
+        }
         $sql = 'SELECT * FROM cms_home_slide WHERE site_id = :site';
         if ($publishedOnly) {
             $sql .= " AND status = 'published'";
@@ -110,6 +137,9 @@ final class HomeRepository
     /** @return array<string, mixed>|null */
     public function slideFind(int $id): ?array
     {
+        if (!$this->homeTablesReady()) {
+            return null;
+        }
         return $this->db->selectOne(
             'SELECT * FROM cms_home_slide WHERE site_id = :site AND slide_id = :id',
             ['site' => $this->siteId, 'id' => $id]
@@ -123,6 +153,9 @@ final class HomeRepository
      */
     public function homeBanners(): array
     {
+        if (!$this->homeTablesReady()) {
+            return [];
+        }
         $rows = $this->db->select(
             "SELECT slot_key, title, image_url, link_url FROM cms_home_banner
              WHERE site_id = :site AND status = 'published'
@@ -148,6 +181,9 @@ final class HomeRepository
      */
     public function bannerRows(): array
     {
+        if (!$this->homeTablesReady()) {
+            return [];
+        }
         return $this->db->select(
             'SELECT * FROM cms_home_banner WHERE site_id = :site ORDER BY sort_no ASC, banner_id ASC',
             ['site' => $this->siteId]
