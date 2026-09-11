@@ -82,6 +82,20 @@
         '<div class="nav-row">' + rest.slice(0, mid).map(rowLink).join("") + '</div>' +
         '<div class="nav-row">' + rest.slice(mid).map(rowLink).join("") + '</div>';
     }
+    // 导航点击反馈：宫格与栏目轻微放大（键盘回车同样触发 click，效果一致）
+    const wrapEl = rowsEl && rowsEl.closest ? rowsEl.closest(".nav-wrap") : null;
+    if (wrapEl && !wrapEl.dataset.tapBound) {
+      wrapEl.dataset.tapBound = "1";
+      wrapEl.addEventListener("click", function (e) {
+        const link = e.target && e.target.closest ? e.target.closest("a") : null;
+        if (!link || !wrapEl.contains(link)) return;
+        link.classList.add("is-tapped");
+        window.clearTimeout(link._tapTimer);
+        link._tapTimer = window.setTimeout(function () {
+          link.classList.remove("is-tapped");
+        }, 200);
+      });
+    }
   }
 
   function renderCarousel(slides) {
@@ -102,7 +116,9 @@
           '<div class="carousel-media"><img src="' + esc(abs(s.img)) + '" alt="' + esc(s.title) + '"></div>' +
           '<div class="carousel-text">' +
             '<h2 class="carousel-title">' + link + '</h2>' +
-            (s.summary ? '<p class="carousel-summary">' + esc(s.summary) + '</p>' : '') +
+            (s.summary ? '<p class="carousel-summary">' +
+              '<span class="carousel-summary-text">' + esc(s.summary) + '</span>' +
+              '<span class="sr-only">' + esc(s.summary) + '</span></p>' : '') +
             more +
           '</div>' +
           '</div>';
@@ -132,9 +148,11 @@
     requestAnimationFrame(applySummaryClamps);
   }
 
-  // 摘要行数随标题折行联动：标题 1 行 → 摘要 9 行，标题 ≥2 行 → 摘要 8 行；
-  // 末行省略号由 CSS 的 -webkit-line-clamp 自动给出。移动端（≤640px）清空 inline，
-  // 交由 CSS 媒体查询设定的 2 行生效，避免桌面端写入的 8/9 覆盖移动端基线。
+  // 摘要行数随标题折行联动：标题 1 行 → 摘要 11 行，标题 ≥2 行 → 摘要 10 行，
+  // 并受轮换图文字区可用高度限制（窄屏自动减行，避免“阅读原文”被裁掉）。
+  // 超出部分不走 -webkit-line-clamp 的原生省略，而是在末行中部用三个点省略号收尾，
+  // 省略号前保留约 60% 行宽，便于一眼看出文字未写完。移动端（≤640px）恢复全文，
+  // 交由 CSS 媒体查询设定的 2 行生效。
   function applySummaryClamps() {
     const slides = document.querySelectorAll(".carousel-slide");
     if (!slides.length) return;
@@ -143,17 +161,64 @@
       const title = slide.querySelector(".carousel-title a, .carousel-title span");
       const summary = slide.querySelector(".carousel-summary");
       if (!title || !summary) return;
-      if (mobile) { summary.style.webkitLineClamp = ""; return; }
+      const body = summary.querySelector(".carousel-summary-text");
+      if (!body) return;
+      if (body.dataset.full === undefined) body.dataset.full = body.textContent;
+      const full = body.dataset.full;
+      if (mobile) {
+        body.textContent = full;
+        summary.style.webkitLineClamp = "";
+        return;
+      }
       const tcs = getComputedStyle(title);
       let lh = parseFloat(tcs.lineHeight);
       if (!isFinite(lh) || lh <= 0) lh = parseFloat(tcs.fontSize) * 1.4;
       const lines = Math.max(1, Math.round(title.offsetHeight / lh));
-      // 规则：标题 1 行摘要 9 行、标题 2 行摘要 8 行；末行省略由 -webkit-line-clamp 给出
-      const clamp = lines >= 2 ? 8 : 9;
+      // 期望行数基础上，再按文字区剩余高度收敛，避免摘要把“阅读原文”挤出卡片
+      const col = slide.querySelector(".carousel-text");
+      const more = slide.querySelector(".carousel-more");
+      const ccs = getComputedStyle(col);
+      const gap = parseFloat(ccs.rowGap || ccs.gap) || 0;
+      const avail = col.clientHeight - parseFloat(ccs.paddingTop) - parseFloat(ccs.paddingBottom) -
+        title.offsetHeight - (more ? more.offsetHeight : 0) - gap * 2;
+      const want = lines >= 2 ? 10 : 11;
+      const clamp = Math.max(2, Math.min(want, Math.floor(avail / lh)));
+      // 先按全文测量，再按末行中部截断
+      body.textContent = full;
+      summary.style.webkitLineClamp = "none";
+      body.textContent = truncateSummaryText(body.firstChild, full, clamp);
       summary.style.webkitLineClamp = clamp;
-      // 锁定行高，避免 flex 把摘要压到不足 clamp 行导致省略号失效
       summary.style.flexShrink = "0";
     });
+  }
+
+  // 前 n 个字符占几行
+  function textLines(node, n) {
+    const r = document.createRange();
+    r.setStart(node, 0);
+    r.setEnd(node, n);
+    return r.getClientRects().length;
+  }
+
+  // 二分：找出能放进指定行数的最大字符数
+  function charsFitting(node, total, lines) {
+    let lo = 1, hi = total, best = 0;
+    while (lo <= hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      if (textLines(node, mid) <= lines) { best = mid; lo = mid + 1; } else { hi = mid - 1; }
+    }
+    return best;
+  }
+
+  // 超出 maxLines 行时：保留前 maxLines-1 行整行 + 末行约 60% 字符，末尾补三个点省略号
+  function truncateSummaryText(node, full, maxLines) {
+    if (!node || node.nodeType !== 3 || maxLines < 2) return full;
+    if (textLines(node, full.length) <= maxLines) return full;
+    const lastFull = charsFitting(node, full.length, maxLines);
+    const prevFull = charsFitting(node, full.length, maxLines - 1);
+    const lastLine = Math.max(1, lastFull - prevFull);
+    const cut = prevFull + Math.max(1, Math.round(lastLine * 0.6));
+    return full.slice(0, cut).replace(/\s+$/, "") + "…";
   }
 
   function showSlide(i) {
@@ -537,6 +602,7 @@
     box.innerHTML =
       '<p class="footer-org">' + esc(meta.owner) + '</p>' +
       '<p>版权所有：' + esc(meta.owner) + '</p>' +
+      '<p>开发维护：河池市融媒体中心&nbsp;&nbsp;河池市数媒创新科技发展有限公司</p>' +
       '<p class="footer-copy"><a href="http://' + esc(meta.domain) + '" target="_blank" rel="noopener">' + esc(meta.copyright) + '</a></p>' +
       '<p class="footer-contact">投稿邮箱：<a href="mailto:' + esc(meta.contactEmail) + '">' + esc(meta.contactEmail) + '</a>' +
       '<span class="footer-sep"></span>联系电话：' + esc(meta.contactPhone) + '</p>' +
