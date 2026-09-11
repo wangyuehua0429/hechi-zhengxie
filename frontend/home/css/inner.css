@@ -453,14 +453,6 @@ a.county-link:hover { border-color: var(--primary); color: var(--primary); }
   color: var(--text);
 }
 .leader-name:hover { color: var(--primary); }
-.leader-more {
-  display: inline-block;
-  margin-top: 3px;
-  font-size: 0.86em;
-  color: var(--primary);
-}
-.leader-more:hover { text-decoration: underline; }
-
 /* ---------- 图集型栏目：图片卡片网格 ---------- */
 .gallery-grid {
   display: grid;

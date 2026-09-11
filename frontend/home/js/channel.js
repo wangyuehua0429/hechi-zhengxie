@@ -189,7 +189,6 @@
               : '<span class="leader-noimg" aria-hidden="true">' + name + '</span>') +
             '</a>' +
             '<a class="leader-name" href="' + esc(item.url) + '">' + name + '</a>' +
-            '<a class="leader-more" href="' + esc(item.url) + '">简介 &gt;&gt;</a>' +
             '</li>';
         }).join("") + '</ul></section>';
     }).join("");
