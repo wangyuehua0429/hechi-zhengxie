@@ -112,6 +112,7 @@ code { background: #f2f3f5; padding: 1px 5px; border-radius: 3px; font-size: 13p
 }
 .stat-num { display: block; font-size: 24px; font-weight: 700; color: var(--brand); }
 .stat-label { display: block; color: var(--muted); font-size: 13px; }
+a.stat:hover { text-decoration: none; border-color: #c8ced6; }
 
 /* 表格 */
 .grid {
@@ -144,6 +145,59 @@ code { background: #f2f3f5; padding: 1px 5px; border-radius: 3px; font-size: 13p
 .tag-published { background: #eef8f1; color: #1d6b38; }
 .tag-draft { background: #fff6e6; color: #9a6a12; }
 .tag-offline { background: #f2f3f5; color: #6b7280; }
+.tag-pending { background: #eef3fb; color: #2a5b9e; }
+.tag-rejected { background: #fdeeec; color: #a5301f; }
+.tag-withdrawn { background: #f2f3f5; color: #6b7280; }
+.tag-deleted { background: #f7eef0; color: #8a4a55; }
+
+/* 稿库导航条（稿件列表顶部）：与栏目导航条同风格，带实时计数 */
+.vault-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.vault-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  color: var(--ink);
+  white-space: nowrap;
+  font-size: 14px;
+}
+.vault-chip:hover { background: #fdf3f3; color: var(--brand); text-decoration: none; }
+.vault-chip.active { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 700; }
+.vault-num {
+  display: inline-block;
+  min-width: 20px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #eef1f4;
+  color: #55606b;
+  font-size: 12px;
+  text-align: center;
+}
+.vault-chip.active .vault-num { background: rgba(255, 255, 255, .25); color: #fff; }
+
+/* 行内动作与流转区 */
+.row-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.row-actions form { margin: 0; }
+.link-danger { color: var(--err); }
+.flow-bar { padding: 12px 18px; }
+.flow-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.flow-form { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 10px 0 6px; }
+.flow-note { display: inline-flex; align-items: center; gap: 8px; }
+.flow-note input { min-width: 220px; }
+.flow-note-text { margin: 6px 0 0; color: #a5301f; font-size: 14px; }
+.who-role { margin-left: 6px; color: var(--muted); font-size: 13px; }
 
 /* 表单 */
 .filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 14px; }

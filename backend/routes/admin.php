@@ -28,8 +28,10 @@ return static function (Router $router, Db $db, Config $config): void {
     $auth->startSession();
 
     $view = new View((string) $config->get('paths.templates'), [
-        'siteName' => (string) $config->get('site.name'),
-        'user'     => $auth->user(),
+        'siteName'  => (string) $config->get('site.name'),
+        'user'      => $auth->user(),
+        'userRoleNames' => array_map(static fn (array $role): string => (string) $role['name'], $auth->roles()),
+        'userPerms'     => $auth->permissions(),
     ]);
 
     $channels = new ChannelRepository($db, $siteId, new HomeRepository($db, $siteId));
@@ -78,6 +80,7 @@ return static function (Router $router, Db $db, Config $config): void {
     $router->post('/admin/article/{id}', [$articleController, 'update']);
     $router->get('/admin/article/{id}/delete', [$articleController, 'deleteConfirm']);
     $router->post('/admin/article/{id}/delete', [$articleController, 'delete']);
+    $router->post('/admin/article/{id}/flow', [$articleController, 'flow']);
     $router->post('/admin/article/{id}/attachment', [$articleController, 'uploadAttachment']);
     $router->post('/admin/article/{id}/attachment/{aid}/delete', [$articleController, 'deleteAttachment']);
     $router->post('/admin/article/{id}/image', [$articleController, 'uploadImage']);

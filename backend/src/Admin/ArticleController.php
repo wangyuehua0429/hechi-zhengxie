@@ -7,16 +7,17 @@ namespace HechiZx\Admin;
 use HechiZx\Http\HtmlResponse;
 use HechiZx\Http\RedirectResponse;
 use HechiZx\Http\Request;
+use HechiZx\Content\ArticleWorkflow;
+use HechiZx\Content\Permissions;
 use HechiZx\Repository\ArticleRepository;
 use HechiZx\Repository\ChannelRepository;
 use HechiZx\Support\Db;
 
 /**
- * 稿件管理：列表（筛选 + 分页）、编辑、保存、三态切换。
+ * 稿件管理：列表（稿库 + 栏目 + 关键词）、编辑、保存、稿库流转。
  */
 final class ArticleController extends AdminController
 {
-    private const STATUSES = ['draft', 'published', 'offline'];
     private const PAGE_SIZE = 20;
     private const MAX_UPLOAD_BYTES = 33554432;   // 32 MB，与 deploy/php/php.ini 的 upload_max_filesize 对齐
     private const FILE_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', 'txt'];
@@ -45,18 +46,27 @@ final class ArticleController extends AdminController
             'status'  => (string) $request->query('status', ''),
             'keyword' => (string) $request->query('keyword', ''),
         ];
+        $scope = $this->auth->channelScope();
         $page = $request->int('page', 1, 1);
-        $result = $this->articles->adminPaginate($filters, $page, self::PAGE_SIZE);
+        $result = $this->articles->adminPaginate($filters, $page, self::PAGE_SIZE, $scope);
+        $items = $result['items'];
+        foreach ($items as $index => $item) {
+            $items[$index]['flow_actions'] = $this->allowedActions((string) $item['status']);
+            $items[$index]['flow_state'] = ArticleWorkflow::label((string) $item['status']);
+        }
 
         return $this->view->page('admin/articles', [
             'current'  => 'articles',
             'filters'  => $filters,
-            'items'    => $result['items'],
+            'items'    => $items,
             'total'    => $result['total'],
             'page'     => $page,
             'pages'    => max(1, (int) ceil($result['total'] / self::PAGE_SIZE)),
             'channels' => $this->channels->adminAll(),
             'navGroups' => $this->channels->navGroups(),
+            'statusCounts' => $this->articles->statusCounts($filters['channel'] !== '' ? $filters['channel'] : null, $scope),
+            'places'   => ArticleWorkflow::places(),
+            'transitions' => ArticleWorkflow::transitions(),
         ], '稿件管理');
     }
 
@@ -83,6 +93,9 @@ final class ArticleController extends AdminController
             'article' => $article,
             'attachments' => $this->articles->attachments((int) $args['id']),
             'canDelete' => true,
+            'canEdit' => $this->can(Permissions::ARTICLE_EDIT) && $this->auth->canChannel((string) $article['channel_type']),
+            'actions' => $this->allowedActions((string) $article['status']),
+            'transitions' => ArticleWorkflow::transitions(),
             'saved'   => $request->query('saved') === '1',
         ], '编辑稿件 · ' . $article['title']);
     }
@@ -92,14 +105,25 @@ final class ArticleController extends AdminController
         if ($redirect = $this->requireLogin()) {
             return $redirect;
         }
+        if ($denied = $this->requirePermission(Permissions::ARTICLE_EDIT)) {
+            return $denied;
+        }
+        $scope = $this->auth->channelScope();
+        $navGroups = $this->channels->navGroups();
+        if ($scope !== null) {
+            $navGroups = $this->filterNavGroups($navGroups, $scope);
+        }
         return $this->view->page('admin/article_edit', [
             'current'     => 'articles',
             'article'     => null,
             'attachments' => [],
             'canDelete'   => false,
+            'canEdit'     => true,
+            'actions'     => [],
+            'transitions' => ArticleWorkflow::transitions(),
             'saved'       => false,
             'channels'    => $this->channels->adminAll(),
-            'navGroups'   => $this->channels->navGroups(),
+            'navGroups'   => $navGroups,
             'defaultChannel' => (string) $request->query('channel', '904'),
             // 新建默认「已发布」：编辑写完点保存就是要发出去，草稿/下线仍可手选
             'defaultStatus'  => 'published',
@@ -114,6 +138,9 @@ final class ArticleController extends AdminController
         if ($denied = $this->guard($request)) {
             return $denied;
         }
+        if ($denied = $this->requirePermission(Permissions::ARTICLE_EDIT)) {
+            return $denied;
+        }
 
         $title = $request->post('title');
         $channelType = $request->post('channel_type');
@@ -121,8 +148,18 @@ final class ArticleController extends AdminController
             Flash::set('error', '标题与所属栏目都不能为空。');
             return new RedirectResponse('/admin/article/new');
         }
+        if (!$this->auth->canChannel($channelType)) {
+            Flash::set('error', '当前账号没有这个栏目的操作权限（栏目号 ' . $channelType . '）。');
+            return new RedirectResponse('/admin/article/new');
+        }
 
-        $status = $this->normalizeStatus($request->post('status'));
+        $status = $request->post('status') === ArticleWorkflow::DRAFT ? ArticleWorkflow::DRAFT : ArticleWorkflow::PUBLISHED;
+        $downgraded = false;
+        if ($status === ArticleWorkflow::PUBLISHED && !$this->can(Permissions::ARTICLE_PUBLISH)) {
+            $status = ArticleWorkflow::DRAFT;
+            $downgraded = true;
+        }
+        $userId = (int) ($this->user()['user_id'] ?? 0);
         $id = $this->articles->create([
             'channel_type' => $channelType,
             'title'        => $title,
@@ -135,10 +172,12 @@ final class ArticleController extends AdminController
             'published_at' => $this->composeDatetime($request->post('published_date'), $request->post('published_time')),
             'status'       => $status,
             'is_top'       => $request->post('is_top') === '1' ? 1 : 0,
+            'created_by'   => $userId,
         ]);
 
         $this->log('article.create', 'article', (string) $id, ['title' => $title, 'status' => $status, 'channel' => $channelType]);
-        Flash::set('ok', '已新建稿件 #' . $id . '（' . $this->statusLabel($status) . '），可继续编辑或上传附件。');
+        Flash::set('ok', '已新建稿件 #' . $id . '（' . $this->statusLabel($status) . '）'
+            . ($downgraded ? '；当前账号没有发布权限，已存为草稿。' : '，可继续编辑或上传附件。'));
         return new RedirectResponse('/admin/article/' . $id);
     }
 
@@ -150,16 +189,23 @@ final class ArticleController extends AdminController
         if ($redirect = $this->requireLogin()) {
             return $redirect;
         }
+        if ($denied = $this->requirePermission(Permissions::ARTICLE_DELETE)) {
+            return $denied;
+        }
         $article = $this->articles->adminFind($args['id']);
         if ($article === null) {
             Flash::set('error', '稿件不存在。');
             return new RedirectResponse('/admin/articles');
         }
+        $current = ArticleWorkflow::normalize((string) $article['status']);
         return $this->view->page('admin/article_delete', [
             'current'     => 'articles',
             'article'     => $article,
             'attachments' => $this->articles->attachments((int) $args['id']),
-        ], '删除稿件 · ' . $article['title']);
+            'blockedReason' => $current === ArticleWorkflow::PUBLISHED
+                ? '这篇稿件还在「已发布」，请先撤回再移入回收站。'
+                : '',
+        ], '移入回收站 · ' . $article['title']);
     }
 
     /**
@@ -171,6 +217,9 @@ final class ArticleController extends AdminController
             return $redirect;
         }
         if ($denied = $this->guard($request)) {
+            return $denied;
+        }
+        if ($denied = $this->requirePermission(Permissions::ARTICLE_DELETE)) {
             return $denied;
         }
 
@@ -185,12 +234,158 @@ final class ArticleController extends AdminController
             return new RedirectResponse('/admin/article/' . $id . '/delete');
         }
 
-        $this->articles->delete((string) $id);
-        $this->removeUploadDir($id);
-        $this->log('article.delete', 'article', (string) $id, ['title' => (string) $article['title']]);
+        $userId = (int) ($this->user()['user_id'] ?? 0);
+        $result = $this->applyFlow($article, 'delete', '', $userId);
+        if (!$result['ok']) {
+            Flash::set('error', $result['message']);
+            return new RedirectResponse('/admin/article/' . $id . '/delete');
+        }
 
-        Flash::set('ok', '已删除稿件 #' . $id . '：' . $article['title']);
-        return new RedirectResponse('/admin/articles');
+        Flash::set('ok', $result['message'] . '，可在回收站恢复。');
+        return new RedirectResponse('/admin/articles?status=deleted');
+    }
+
+    /**
+     * 稿库流转唯一入口：提交／通过／退回／撤回／重新发布／移入回收站／恢复。
+     *
+     * @param array<string, string> $args
+     */
+    public function flow(Request $request, array $args): HtmlResponse|RedirectResponse
+    {
+        if ($redirect = $this->requireLogin()) {
+            return $redirect;
+        }
+        if ($denied = $this->guard($request)) {
+            return $denied;
+        }
+
+        $id = (int) $args['id'];
+        $article = $this->articles->adminFind((string) $id);
+        if ($article === null) {
+            Flash::set('error', '稿件不存在。');
+            return new RedirectResponse('/admin/articles');
+        }
+
+        $action = $request->post('action');
+        $userId = (int) ($this->user()['user_id'] ?? 0);
+        $result = $this->applyFlow($article, $action, $request->post('note'), $userId);
+        if (!$result['ok']) {
+            Flash::set('error', $result['message']);
+            return new RedirectResponse('/admin/article/' . $id);
+        }
+
+        Flash::set('ok', $result['message']);
+        if ($action === 'delete') {
+            return new RedirectResponse('/admin/articles?status=deleted');
+        }
+        return new RedirectResponse('/admin/article/' . $id . '?saved=1');
+    }
+
+    /**
+     * 状态流转的统一实现：状态机判可达 → 数据范围判栏目 → 权限位判动作 → 写字段与日志。
+     *
+     * @param array<string, mixed> $article
+     * @return array{ok: bool, message: string}
+     */
+    private function applyFlow(array $article, string $action, string $note, int $userId): array
+    {
+        $rule = ArticleWorkflow::transition($action);
+        if ($rule === null) {
+            return ['ok' => false, 'message' => '未知的操作：' . $action];
+        }
+
+        $current = ArticleWorkflow::normalize((string) $article['status']);
+        if (!in_array($current, $rule['from'], true)) {
+            if ($action === 'delete' && $current === ArticleWorkflow::PUBLISHED) {
+                return ['ok' => false, 'message' => '已发布的稿件要先撤回，再移入回收站。'];
+            }
+            return ['ok' => false, 'message' => '当前状态（' . ArticleWorkflow::label($current) . '）不能执行「' . $rule['label'] . '」。'];
+        }
+        if (!$this->auth->canChannel((string) $article['channel_type'])) {
+            return ['ok' => false, 'message' => '当前账号不在该稿件所属栏目的数据范围内。'];
+        }
+
+        $allowed = $this->can((string) $rule['perm']);
+        if (!$allowed && $rule['altPerm'] !== '') {
+            $allowed = $this->can((string) $rule['altPerm']);
+        }
+        if (!$allowed) {
+            return ['ok' => false, 'message' => '当前账号没有「' . $rule['label'] . '」权限（需要 ' . $rule['perm'] . '）。'];
+        }
+
+        $note = trim($note);
+        if ($rule['needNote'] && $note === '') {
+            return ['ok' => false, 'message' => '请填写' . $rule['noteLabel'] . '。'];
+        }
+        if (in_array($action, ['submit', 'approve'], true)) {
+            if (trim((string) $article['title']) === '') {
+                return ['ok' => false, 'message' => '标题为空，不能提交或发布。'];
+            }
+            if (trim((string) ($article['content_html'] ?? '')) === '') {
+                return ['ok' => false, 'message' => '正文为空，请先补正文再提交或发布。'];
+            }
+        }
+
+        $target = ArticleWorkflow::target($action, (string) $article['status'], (string) ($article['status_before_delete'] ?? ''));
+        if ($target === null) {
+            return ['ok' => false, 'message' => '状态流转失败，请刷新页面后重试。'];
+        }
+
+        $now = $this->db->now();
+        $fields = ['status' => $target, 'updated_by' => $userId];
+        switch ($action) {
+            case 'submit':
+                $fields['submitted_at'] = $now;
+                break;
+            case 'approve':
+                $fields['reviewer_id'] = $userId;
+                $fields['reviewed_at'] = $now;
+                $fields['review_note'] = '';
+                if (trim((string) ($article['published_at'] ?? '')) === '') {
+                    $fields['published_at'] = $now;
+                }
+                break;
+            case 'reject':
+                $fields['reviewer_id'] = $userId;
+                $fields['reviewed_at'] = $now;
+                $fields['review_note'] = $note;
+                break;
+            case 'withdraw':
+                $fields['withdrawn_at'] = $now;
+                $fields['withdraw_reason'] = $note;
+                break;
+            case 'republish':
+                $fields['withdrawn_at'] = null;
+                $fields['withdraw_reason'] = '';
+                if (trim((string) ($article['published_at'] ?? '')) === '') {
+                    $fields['published_at'] = $now;
+                }
+                break;
+            case 'delete':
+                $fields['deleted_at'] = $now;
+                $fields['deleted_by'] = $userId;
+                $fields['status_before_delete'] = $current;
+                break;
+            case 'restore':
+                $fields['deleted_at'] = null;
+                $fields['deleted_by'] = 0;
+                $fields['status_before_delete'] = '';
+                break;
+        }
+
+        $this->articles->adminUpdate((string) (int) $article['article_id'], $fields);
+        $this->log('article.' . $action, 'article', (string) (int) $article['article_id'], [
+            'title' => (string) $article['title'],
+            'from'  => $current,
+            'to'    => $target,
+            'note'  => $note,
+        ]);
+
+        return [
+            'ok' => true,
+            'message' => '已' . $rule['label'] . '：' . (string) $article['title']
+                . '（' . ArticleWorkflow::label($target) . '）',
+        ];
     }
 
     /**
@@ -405,6 +600,9 @@ final class ArticleController extends AdminController
         if ($denied = $this->guard($request)) {
             return $denied;
         }
+        if ($denied = $this->requirePermission(Permissions::ARTICLE_EDIT)) {
+            return $denied;
+        }
 
         $id = $args['id'];
         $article = $this->articles->adminFind($id);
@@ -416,6 +614,18 @@ final class ArticleController extends AdminController
                 'backUrl' => '/admin/articles',
             ], '未找到稿件');
         }
+        if (!$this->auth->canChannel((string) $article['channel_type'])) {
+            return $this->view->page('admin/message', [
+                'current' => 'articles',
+                'heading' => '没有这个栏目的权限',
+                'message' => '稿件 #' . $id . ' 属于栏目 ' . $article['channel_type'] . '，当前账号不在该栏目的数据范围内。',
+                'backUrl' => '/admin/articles',
+            ], '没有这个栏目的权限', 403);
+        }
+        if (in_array(ArticleWorkflow::normalize((string) $article['status']), [ArticleWorkflow::DELETED], true)) {
+            Flash::set('error', '回收站里的稿件要先恢复才能编辑。');
+            return new RedirectResponse('/admin/article/' . $id);
+        }
 
         $title = $request->post('title');
         if ($title === '') {
@@ -423,10 +633,8 @@ final class ArticleController extends AdminController
             return new RedirectResponse('/admin/article/' . $id);
         }
 
-        $status = $request->post('status');
-        $status = $this->normalizeStatus($status);
-
         $publishedAt = $this->composeDatetime($request->post('published_date'), $request->post('published_time'));
+        $userId = (int) ($this->user()['user_id'] ?? 0);
 
         $fields = [
             'title'        => $title,
@@ -436,8 +644,8 @@ final class ArticleController extends AdminController
             'source'       => $request->post('source'),
             'author'       => $request->post('author'),
             'editor'       => $request->post('editor'),
-            'status'       => $status,
             'is_top'       => $request->post('is_top') === '1' ? 1 : 0,
+            'updated_by'   => $userId,
         ];
         if ($publishedAt !== null) {
             $fields['published_at'] = $publishedAt;
@@ -447,10 +655,10 @@ final class ArticleController extends AdminController
         $this->articles->syncBodyAssets((int) $id, $fields['content_html']);
         $this->log('article.update', 'article', $id, [
             'title'  => $title,
-            'status' => $status,
+            'status' => ArticleWorkflow::normalize((string) $article['status']),
         ]);
 
-        Flash::set('ok', '已保存：' . $title . '（' . $this->statusLabel($status) . '）');
+        Flash::set('ok', '已保存：' . $title . '（' . ArticleWorkflow::label((string) $article['status']) . '）');
         return new RedirectResponse('/admin/article/' . $id . '?saved=1');
     }
 
@@ -491,11 +699,29 @@ final class ArticleController extends AdminController
 
     private function statusLabel(string $status): string
     {
-        return ['draft' => '草稿', 'published' => '已发布', 'offline' => '已下线'][$status] ?? $status;
+        return ArticleWorkflow::label($status);
     }
 
-    private function normalizeStatus(string $status): string
+    /**
+     * 按数据范围裁剪栏目导航条，避免编辑看到自己管不了的栏目。
+     *
+     * @param list<array{key:string,title:string,channels:list<array<string,mixed>>}> $groups
+     * @param list<string> $scope
+     * @return list<array{key:string,title:string,channels:list<array<string,mixed>>}>
+     */
+    private function filterNavGroups(array $groups, array $scope): array
     {
-        return in_array($status, self::STATUSES, true) ? $status : 'draft';
+        $out = [];
+        foreach ($groups as $group) {
+            $channels = array_values(array_filter(
+                $group['channels'],
+                static fn (array $channel): bool => in_array((string) $channel['type_code'], $scope, true)
+            ));
+            if ($channels !== []) {
+                $group['channels'] = $channels;
+                $out[] = $group;
+            }
+        }
+        return $out;
     }
 }

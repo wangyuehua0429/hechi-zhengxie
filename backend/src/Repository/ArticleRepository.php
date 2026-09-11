@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace HechiZx\Repository;
 
+use HechiZx\Content\ArticleWorkflow;
 use HechiZx\Support\Db;
 
 /**
@@ -146,9 +147,10 @@ final class ArticleRepository
      * 后台列表：可按栏目、状态、关键词筛选，返回原始行（含栏目名）。
      *
      * @param array{channel?:string, status?:string, keyword?:string} $filters
+     * @param list<string>|null $channelScope 数据范围：null 不限栏目，数组为允许的栏目号
      * @return array{items: list<array<string, mixed>>, total: int}
      */
-    public function adminPaginate(array $filters, int $page, int $size): array
+    public function adminPaginate(array $filters, int $page, int $size, ?array $channelScope = null): array
     {
         $where = ['a.site_id = :site'];
         $params = ['site' => $this->siteId];
@@ -157,9 +159,29 @@ final class ArticleRepository
             $where[] = 'a.channel_type = :channel';
             $params['channel'] = (string) $filters['channel'];
         }
-        if (($filters['status'] ?? '') !== '') {
-            $where[] = 'a.status = :status';
-            $params['status'] = (string) $filters['status'];
+
+        if ($channelScope !== null) {
+            if ($channelScope === []) {
+                $where[] = '1 = 0';
+            } else {
+                $placeholders = [];
+                foreach (array_values($channelScope) as $index => $type) {
+                    $key = 'sc' . $index;
+                    $placeholders[] = ':' . $key;
+                    $params[$key] = (string) $type;
+                }
+                $where[] = 'a.channel_type IN (' . implode(', ', $placeholders) . ')';
+            }
+        }
+
+        $status = ArticleWorkflow::normalize((string) ($filters['status'] ?? ''));
+        if ($status !== '') {
+            if ($status === ArticleWorkflow::WITHDRAWN) {
+                $where[] = "(a.status = 'withdrawn' OR a.status = 'offline')";
+            } else {
+                $where[] = 'a.status = :status';
+                $params['status'] = $status;
+            }
         }
         if (($filters['keyword'] ?? '') !== '') {
             $where[] = '(a.title LIKE :kw OR a.summary LIKE :kw)';
@@ -220,17 +242,43 @@ final class ArticleRepository
     }
 
     /**
-     * 按状态统计，后台首页用。
+     * 按稿库状态统计：后台首页用全站口径，稿件列表用「当前栏目 + 数据范围」口径。
+     *
+     * @param list<string>|null $channelScope null 表示不限栏目
      *
      * @return array<string, int>
      */
-    public function statusCounts(): array
+    public function statusCounts(?string $channelType = null, ?array $channelScope = null): array
     {
+        $where = ['site_id = :site'];
+        $params = ['site' => $this->siteId];
+        if ($channelType !== null && $channelType !== '') {
+            $where[] = 'channel_type = :channel';
+            $params['channel'] = $channelType;
+        }
+        if ($channelScope !== null) {
+            if ($channelScope === []) {
+                $where[] = '1 = 0';
+            } else {
+                $placeholders = [];
+                foreach (array_values($channelScope) as $index => $type) {
+                    $key = 'cs' . $index;
+                    $placeholders[] = ':' . $key;
+                    $params[$key] = (string) $type;
+                }
+                $where[] = 'channel_type IN (' . implode(', ', $placeholders) . ')';
+            }
+        }
+
         $rows = $this->db->select(
-            'SELECT status, COUNT(*) AS n FROM cms_article WHERE site_id = :site GROUP BY status',
-            ['site' => $this->siteId]
+            "SELECT CASE WHEN status = 'offline' THEN 'withdrawn' ELSE status END AS status, COUNT(*) AS n
+             FROM cms_article WHERE " . implode(' AND ', $where) . ' GROUP BY 1',
+            $params
         );
-        $counts = ['draft' => 0, 'published' => 0, 'offline' => 0];
+        $counts = [];
+        foreach (ArticleWorkflow::places() as $place) {
+            $counts[$place['status']] = 0;
+        }
         foreach ($rows as $row) {
             $counts[(string) $row['status']] = (int) $row['n'];
         }
@@ -248,10 +296,10 @@ final class ArticleRepository
         $this->db->execute(
             'INSERT INTO cms_article
                (site_id, channel_type, title, subtitle, summary, content_html, source, author, editor,
-                published_at, views, status, public_scope, is_top, has_body, created_at, updated_at)
+                published_at, views, status, public_scope, is_top, has_body, created_by, updated_by, created_at, updated_at)
              VALUES
                (:site, :channel, :title, :subtitle, :summary, :content, :source, :author, :editor,
-                :published_at, :views, :status, :scope, :is_top, :has_body, :t, :t)',
+                :published_at, :views, :status, :scope, :is_top, :has_body, :created_by, :updated_by, :t, :t)',
             [
                 'site'         => $this->siteId,
                 'channel'      => (string) ($fields['channel_type'] ?? ''),
@@ -268,6 +316,8 @@ final class ArticleRepository
                 'scope'        => 'public',
                 'is_top'       => (int) ($fields['is_top'] ?? 0),
                 'has_body'     => trim((string) ($fields['content_html'] ?? '')) === '' ? 0 : 1,
+                'created_by'   => (int) ($fields['created_by'] ?? 0),
+                'updated_by'   => (int) ($fields['created_by'] ?? 0),
                 't'            => $now,
             ]
         );

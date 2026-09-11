@@ -17,12 +17,15 @@
 
 declare(strict_types=1);
 
+use HechiZx\Content\ArticleWorkflow;
+
 $isNew = $article === null;
 $published = (string) ($article['published_at'] ?? '');
 $dateValue = $published !== '' ? substr($published, 0, 10) : date('Y-m-d');
 $timeValue = $published !== '' ? substr($published, 11, 5) : date('H:i');
-$statusLabels = ['published' => '已发布', 'draft' => '草稿', 'offline' => '已下线'];
 $action = $isNew ? '/admin/article/create' : '/admin/article/' . (int) $article['article_id'];
+$actions = $actions ?? [];
+$transitions = $transitions ?? [];
 $currentChannelName = '';
 if ($isNew && ($navGroups ?? []) !== []) {
     foreach ($navGroups as $group) {
@@ -44,6 +47,55 @@ if ($isNew && ($navGroups ?? []) !== []) {
     <?php if ($saved): ?>　<span class="saved-mark">已保存</span><?php endif; ?>
   <?php endif; ?>
 </p>
+
+<?php if (!$isNew): ?>
+  <section class="card flow-bar" id="flow">
+    <div class="flow-head">
+      <span class="tag tag-<?= hechi_e(ArticleWorkflow::normalize((string) $article['status'])) ?>"><?= hechi_e(ArticleWorkflow::label((string) $article['status'])) ?></span>
+      <span class="muted">当前稿库</span>
+      <?php if ((string) ($article['submitted_at'] ?? '') !== ''): ?>
+        <span class="muted">提交：<?= hechi_e(substr((string) $article['submitted_at'], 0, 16)) ?></span>
+      <?php endif; ?>
+      <?php if ((string) ($article['reviewed_at'] ?? '') !== ''): ?>
+        <span class="muted">审核：<?= hechi_e(substr((string) $article['reviewed_at'], 0, 16)) ?></span>
+      <?php endif; ?>
+      <?php if ((string) ($article['withdrawn_at'] ?? '') !== ''): ?>
+        <span class="muted">撤回：<?= hechi_e(substr((string) $article['withdrawn_at'], 0, 16)) ?></span>
+      <?php endif; ?>
+      <?php if ((string) ($article['deleted_at'] ?? '') !== ''): ?>
+        <span class="muted">入回收站：<?= hechi_e(substr((string) $article['deleted_at'], 0, 16)) ?></span>
+      <?php endif; ?>
+    </div>
+    <?php if ((string) ($article['review_note'] ?? '') !== ''): ?>
+      <p class="flow-note-text">退回意见：<?= hechi_e((string) $article['review_note']) ?></p>
+    <?php endif; ?>
+    <?php if ((string) ($article['withdraw_reason'] ?? '') !== ''): ?>
+      <p class="flow-note-text">撤回原因：<?= hechi_e((string) $article['withdraw_reason']) ?></p>
+    <?php endif; ?>
+    <?php if ($actions === []): ?>
+      <p class="muted">当前状态下，这个账号没有可执行的流转动作（可能是权限不足，或稿件已在该流程的终点）。</p>
+    <?php else: ?>
+      <form method="post" action="/admin/article/<?= (int) $article['article_id'] ?>/flow" class="flow-form">
+        <?= $csrf ?>
+        <?php foreach ($actions as $flowAction): ?>
+          <?php $rule = $transitions[$flowAction] ?? null; ?>
+          <?php if ($rule === null): ?><?php continue; ?><?php endif; ?>
+          <?php if (!empty($rule['needNote'])): ?>
+            <span class="flow-note">
+              <input type="text" name="note" maxlength="200" placeholder="<?= hechi_e((string) $rule['noteLabel']) ?>">
+              <button type="submit" name="action" value="<?= hechi_e((string) $flowAction) ?>"
+                      class="btn<?= !empty($rule['danger']) ? ' btn-danger' : '' ?>"><?= hechi_e((string) $rule['label']) ?></button>
+            </span>
+          <?php else: ?>
+            <button type="submit" name="action" value="<?= hechi_e((string) $flowAction) ?>"
+                    class="btn<?= !empty($rule['danger']) ? ' btn-danger' : '' ?>"><?= hechi_e((string) $rule['label']) ?></button>
+          <?php endif; ?>
+        <?php endforeach; ?>
+      </form>
+    <?php endif; ?>
+    <p class="muted">流转动作会立即改变稿件的稿库与前台可见性，并记入操作日志。</p>
+  </section>
+<?php endif; ?>
 
 <?php if ($isNew): ?>
   <?php
@@ -91,18 +143,10 @@ if ($isNew && ($navGroups ?? []) !== []) {
     <label>发布时间（时刻）
       <input type="time" name="published_time" value="<?= hechi_e($timeValue) ?>">
     </label>
-    <label>状态
-      <select name="status">
-        <?php $currentStatus = (string) ($article['status'] ?? ($defaultStatus ?? 'draft')); ?>
-        <?php foreach ($statusLabels as $key => $label): ?>
-          <option value="<?= hechi_e($key) ?>"<?= $currentStatus === $key ? ' selected' : '' ?>><?= hechi_e($label) ?></option>
-        <?php endforeach; ?>
-      </select>
-    </label>
     <label class="check">
       <input type="checkbox" name="is_top" value="1"<?= (int) ($article['is_top'] ?? 0) === 1 ? ' checked' : '' ?>> 置顶
     </label>
-    <label class="hint-line">状态说明：只有「已发布」的内容会出现在前台与接口；草稿、已下线只在后台可见。</label>
+    <label class="hint-line">稿库说明：只有「已发布」的内容会出现在前台与接口；草稿、待审、退回、已撤回、回收站都只在后台可见。稿件状态不在这个表单里改，请用上方的稿库流转按钮。</label>
   </div>
 
   <label class="full">摘要
@@ -114,9 +158,14 @@ if ($isNew && ($navGroups ?? []) !== []) {
   </label>
 
   <div class="actions">
-    <button type="submit" class="btn-primary">保存</button>
+    <?php if ($isNew): ?>
+      <button type="submit" name="status" value="published" class="btn-primary">保存并发布</button>
+      <button type="submit" name="status" value="draft" class="btn">保存为草稿</button>
+    <?php else: ?>
+      <button type="submit" class="btn-primary">保存</button>
+    <?php endif; ?>
     <a class="btn" href="/admin/articles">返回列表</a>
-    <span class="muted">保存只改数据库；要让前台/静态页生效，回概览点「立即发布全站」。</span>
+    <span class="muted">保存只改数据库内容，不改稿库状态；让静态页生效请回概览点「立即发布全站」。</span>
   </div>
 </form>
 
@@ -167,9 +216,9 @@ if ($isNew && ($navGroups ?? []) !== []) {
 
   <?php if ($canDelete): ?>
     <section class="card danger-zone">
-      <h2>删除稿件</h2>
-      <p class="muted">删除会同时清掉这篇的附件与上传文件，不可恢复。只想停掉对外展示，把状态改成「已下线」即可。</p>
-      <a class="btn btn-danger" href="/admin/article/<?= (int) $article['article_id'] ?>/delete">删除这篇稿件…</a>
+      <h2>移入回收站</h2>
+      <p class="muted">移入回收站后前台与接口立即不可见，附件与上传文件保留，之后可以从回收站恢复；已发布的稿件要先撤回。</p>
+      <a class="btn btn-danger" href="/admin/article/<?= (int) $article['article_id'] ?>/delete">移入回收站…</a>
     </section>
   <?php endif; ?>
 <?php endif; ?>

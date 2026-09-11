@@ -19,6 +19,8 @@ const REPO = path.resolve(HERE, "..");
 
 const USER = "checkadmin";
 const PASSWORD = "check-admin-2026";
+const EDITOR_USER = "checkeditor";
+const EDITOR_PASSWORD = "check-editor-2026";
 const SAMPLE_ID = "62180";
 
 let failures = 0;
@@ -164,13 +166,19 @@ async function main() {
   const migrated = runPhp(php, "backend/bin/migrate.php", env);
   const seeded = runPhp(php, "backend/bin/seed.php", env);
   const user = runPhp(php, "backend/bin/user.php", env, ["create", USER, PASSWORD, "检查账号"]);
+  const editorUser = runPhp(php, "backend/bin/user.php", env, ["create", EDITOR_USER, EDITOR_PASSWORD, "编辑账号", "editor"]);
   check("建表 / 灌数 / 建账号三步成功",
-    migrated.status === 0 && seeded.status === 0 && user.status === 0,
-    (migrated.stderr || seeded.stderr || user.stderr || "").trim().split("\n")[0]);
+    migrated.status === 0 && seeded.status === 0 && user.status === 0 && editorUser.status === 0,
+    (migrated.stderr || seeded.stderr || user.stderr || editorUser.stderr || "").trim().split("\n")[0]);
   if (migrated.status !== 0 || seeded.status !== 0 || user.status !== 0) return 1;
+
+  check("账号创建支持指定角色（栏目编辑）",
+    editorUser.status === 0 && editorUser.stdout.includes("editor"),
+    (editorUser.stdout || editorUser.stderr || "").trim());
 
   const lists = runPhp(php, "backend/bin/user.php", env, ["list"]);
   check("命令行能列出后台账号", lists.status === 0 && lists.stdout.includes(USER));
+  check("账号列表显示所属角色", lists.status === 0 && lists.stdout.includes("editor"));
 
   const server = spawn(php, ["-S", "127.0.0.1:" + opts.port, "-t", "backend/public", "backend/public/router.php"], {
     cwd: REPO,
@@ -243,6 +251,20 @@ async function main() {
     const filteredChips = chipLabels((await client.get("/admin/articles?channel=314")).text);
     check("按栏目筛选后仍在导航条上操作", filteredChips.length > 40);
 
+    // ---- 稿库导航条（不是状态下拉）
+    check("稿件列表用稿库导航条而不是状态下拉",
+      list.text.includes('class="vault-nav"') && !/<select name="status"/.test(list.text));
+    check("稿库导航条六个库齐全且带计数",
+      ["全部", "草稿", "待审", "退回", "已发布", "已撤回", "回收站"]
+        .every((label) => new RegExp(">" + label + '<span class="vault-num">').test(list.text)),
+      (list.text.match(/vault-num">\d+/g) || []).slice(0, 7).join(" "));
+    check("概览页统计按稿库口径展示",
+      (() => {
+        const dash = dashboard.text;
+        return dash.includes("草稿") && dash.includes("待审") && dash.includes("已撤回") &&
+          /\/admin\/articles\?status=published/.test(dash);
+      })());
+
     // ---- 稿件编辑
     const edit = await client.get("/admin/article/" + SAMPLE_ID);
     check("稿件编辑页可打开", edit.status === 200 && edit.text.includes("编辑稿件") && csrfToken(edit.text) !== "");
@@ -262,19 +284,41 @@ async function main() {
       editor: "刁海音",
       published_date: "2026-04-23",
       published_time: "11:17",
-      status: "draft",
       summary: originalSummary,
       content_html: "<p>后台检查写入的正文。</p>"
     });
     check("保存稿件后跳回编辑页", saved.status === 302 && (saved.headers.get("location") || "").includes("/admin/article/" + SAMPLE_ID));
 
-    const draftPublic = await client.get("/api/v1/article/" + SAMPLE_ID, { json: true });
-    check("草稿不对外可见（公开接口 404）",
-      draftPublic.status === 404 && draftPublic.body?.error?.code === "not_found",
-      "状态 " + draftPublic.status);
+    // ---- 表单不再改状态：撤回走稿库流转
+    const editedPage = await client.get("/admin/article/" + SAMPLE_ID);
+    check("编辑页用状态徽标 + 流转按钮，不再有状态下拉",
+      editedPage.text.includes("flow-bar") && !/<select name="status"/.test(editedPage.text));
 
-    const draftInAdmin = await client.get("/admin/articles?keyword=" + encodeURIComponent("后台检查"));
-    check("草稿在后台列表里仍可检索到", draftInAdmin.status === 200 && draftInAdmin.text.includes("后台检查"));
+    const withdrawn = await client.post("/admin/article/" + SAMPLE_ID + "/flow", {
+      _token: csrfToken(editedPage.text),
+      action: "withdraw",
+      note: "检查脚本撤回"
+    });
+    check("撤回后跳回编辑页", withdrawn.status === 302 && (withdrawn.headers.get("location") || "").includes("/admin/article/" + SAMPLE_ID));
+
+    const withdrawnPublic = await client.get("/api/v1/article/" + SAMPLE_ID, { json: true });
+    check("已撤回稿件不对外可见（公开接口 404）",
+      withdrawnPublic.status === 404 && withdrawnPublic.body?.error?.code === "not_found",
+      "状态 " + withdrawnPublic.status);
+
+    const withdrawnInAdmin = await client.get("/admin/articles?status=withdrawn&keyword=" + encodeURIComponent("后台检查"));
+    check("已撤回稿件进「已撤回」稿库并可检索",
+      withdrawnInAdmin.status === 200 && withdrawnInAdmin.text.includes("后台检查"));
+    check("稿库只列本库内容：已撤回库里查不到标题相同但未撤回的稿件",
+      (await client.get("/admin/articles?status=draft&keyword=" + encodeURIComponent("后台检查"))).text.includes("没有符合条件"));
+
+    const republished = await client.post("/admin/article/" + SAMPLE_ID + "/flow", {
+      _token: csrfToken((await client.get("/admin/article/" + SAMPLE_ID)).text),
+      action: "republish"
+    });
+    check("从已撤回重新发布", republished.status === 302);
+    check("重新发布后公开接口恢复可见",
+      (await client.get("/api/v1/article/" + SAMPLE_ID, { json: true })).status === 200);
 
     const badSave = await client.post("/admin/article/" + SAMPLE_ID, { _token: "invalid", title: "x" });
     check("令牌错误的保存被拒绝（400）", badSave.status === 400 && badSave.text.includes("提交被拒绝"), "状态 " + badSave.status);
@@ -289,7 +333,6 @@ async function main() {
       editor: "刁海音",
       published_date: "2026-04-23",
       published_time: "11:17",
-      status: "published",
       summary: originalSummary,
       content_html: originalContent
     });
@@ -301,9 +344,9 @@ async function main() {
     // ---- 新建稿件 → 附件 → 插图 → 删除
     const newForm = await client.get("/admin/article/new");
     check("新建稿件表单可打开", newForm.status === 200 && newForm.text.includes("新建稿件"));
-    check("新建稿件的状态默认是「已发布」",
-      /<option value="published"[^>]*selected/.test(newForm.text),
-      (newForm.text.match(/<option value="(\w+)"[^>]*selected/) || [])[1] || "无默认选项");
+    check("新建稿件给「保存并发布」与「保存为草稿」两个按钮",
+      /name="status" value="published"[^>]*>\s*保存并发布/.test(newForm.text) &&
+      /name="status" value="draft"[^>]*>\s*保存为草稿/.test(newForm.text));
     check("新建页的栏目选择是导航条而非下拉",
       newForm.text.includes('class="channel-nav"') && !/<select name="channel_type"/.test(newForm.text));
     const newForm314 = await client.get("/admin/article/new?channel=314");
@@ -373,17 +416,149 @@ async function main() {
         "images=" + JSON.stringify(afterImage.body?.article?.images || []));
 
       const deletePage = await client.get("/admin/article/" + createdId + "/delete");
-      check("删除确认页可打开", deletePage.status === 200 && deletePage.text.includes("确认删除"));
+      check("已发布稿件直接删除会被拦下并提示先撤回",
+        deletePage.status === 200 && deletePage.text.includes("请先撤回"));
+
+      const beforeWithdraw = await client.get("/admin/article/" + createdId);
+      const withdrawForDelete = await client.post("/admin/article/" + createdId + "/flow", {
+        _token: csrfToken(beforeWithdraw.text),
+        action: "withdraw",
+        note: "检查删除流程"
+      });
+      check("撤回后方可删除", withdrawForDelete.status === 302);
+
+      const trashConfirm = await client.get("/admin/article/" + createdId + "/delete");
+      check("回收站确认页可打开", trashConfirm.status === 200 && trashConfirm.text.includes("移入回收站"));
       const deleted = await client.post("/admin/article/" + createdId + "/delete", {
-        _token: csrfToken(deletePage.text),
+        _token: csrfToken(trashConfirm.text),
         confirm: "delete"
       });
-      check("删除后回到稿件列表", deleted.status === 302 && (deleted.headers.get("location") || "") === "/admin/articles");
-      check("删除后公开接口读不到", (await client.get("/api/v1/article/" + createdId, { json: true })).status === 404);
+      check("移入回收站后跳到回收站稿库",
+        deleted.status === 302 && (deleted.headers.get("location") || "") === "/admin/articles?status=deleted");
+      check("回收站稿件前台读不到", (await client.get("/api/v1/article/" + createdId, { json: true })).status === 404);
       if (fileUrl !== "") {
-        check("删除稿件后上传的文件也清掉了", (await client.get(fileUrl)).status !== 200, fileUrl);
+        check("移入回收站保留附件文件（可恢复）", (await client.get(fileUrl)).status === 200, fileUrl);
       }
+
+      const trashList = await client.get("/admin/articles?status=deleted");
+      check("回收站列表能看到刚移入的稿件", trashList.text.includes("后台检查用临时稿件"));
+
+      const trashEdit = await client.get("/admin/article/" + createdId);
+      check("回收站稿件页给出恢复入口", trashEdit.text.includes('value="restore"'));
+      const restoredFromTrash = await client.post("/admin/article/" + createdId + "/flow", {
+        _token: csrfToken(trashEdit.text),
+        action: "restore"
+      });
+      check("从回收站恢复成功", restoredFromTrash.status === 302);
+      const afterRestore = await client.get("/admin/article/" + createdId);
+      check("恢复后回到删除前的稿库（已撤回）",
+        afterRestore.text.includes("已撤回") && afterRestore.text.includes('value="republish"'),
+        (afterRestore.text.match(/tag tag-(\w+)/) || [])[1] || "无状态标签");
     }
+
+    // ---- 栏目管理
+    // ---- 稿库流转全链路
+    const flowForm = await client.get("/admin/article/new");
+    const flowCreated = await client.post("/admin/article/create", {
+      _token: csrfToken(flowForm.text),
+      channel_type: "904",
+      title: "稿库流转检查稿",
+      subtitle: "",
+      source: "检查脚本",
+      author: "",
+      editor: "",
+      published_date: "2026-09-11",
+      published_time: "10:00",
+      status: "draft",
+      summary: "",
+      content_html: "<p>流转检查正文。</p>"
+    });
+    const flowId = (/(\/admin\/article\/(\d+))$/.exec(flowCreated.headers.get("location") || "") || [])[2] || "";
+    check("新建为草稿成功", flowCreated.status === 302 && flowId !== "", "id=" + flowId);
+
+    if (flowId) {
+      const draftEdit = await client.get("/admin/article/" + flowId);
+      check("草稿库稿件给出「提交审核」入口", draftEdit.text.includes('value="submit"'));
+      check("草稿稿件前台读不到", (await client.get("/api/v1/article/" + flowId, { json: true })).status === 404);
+
+      const submitted = await client.post("/admin/article/" + flowId + "/flow", {
+        _token: csrfToken(draftEdit.text),
+        action: "submit"
+      });
+      check("提交审核成功", submitted.status === 302);
+      const pendingEdit = await client.get("/admin/article/" + flowId);
+      check("稿件进入待审库并给出通过／退回入口",
+        pendingEdit.text.includes("待审") && pendingEdit.text.includes('value="reject"') && pendingEdit.text.includes('value="approve"'));
+
+      await client.post("/admin/article/" + flowId + "/flow", {
+        _token: csrfToken(pendingEdit.text),
+        action: "reject",
+        note: ""
+      });
+      const rejectFail = await client.get("/admin/article/" + flowId);
+      check("退回不填意见会被拒绝", rejectFail.text.includes("请填写退回意见"));
+
+      await client.post("/admin/article/" + flowId + "/flow", {
+        _token: csrfToken(rejectFail.text),
+        action: "reject",
+        note: "请补充来源"
+      });
+      const rejectedEdit = await client.get("/admin/article/" + flowId);
+      check("退回后进退回库并留下退回意见",
+        rejectedEdit.text.includes("退回意见") && rejectedEdit.text.includes("请补充来源"));
+
+      await client.post("/admin/article/" + flowId + "/flow", {
+        _token: csrfToken(rejectedEdit.text),
+        action: "submit"
+      });
+      const approveEdit = await client.get("/admin/article/" + flowId);
+      const approved = await client.post("/admin/article/" + flowId + "/flow", {
+        _token: csrfToken(approveEdit.text),
+        action: "approve"
+      });
+      check("审核通过后跳回编辑页", approved.status === 302);
+      check("审核通过后前台可见",
+        (await client.get("/api/v1/article/" + flowId, { json: true })).status === 200);
+    }
+
+    // ---- 权限与数据范围：栏目编辑账号
+    const editorClient = makeClient(base);
+    const editorLoginPage = await editorClient.get("/admin/login");
+    const editorLoggedIn = await editorClient.post("/admin/login", {
+      _token: csrfToken(editorLoginPage.text),
+      username: EDITOR_USER,
+      password: EDITOR_PASSWORD
+    });
+    check("栏目编辑账号可登录后台", editorLoggedIn.status === 302);
+    const editorDash = await editorClient.get("/admin");
+    check("顶栏显示当前账号的角色名", editorDash.text.includes("栏目编辑"));
+    check("栏目编辑的概览不提供一键发布按钮", !editorDash.text.includes('action="/admin/publish"'));
+    check("栏目编辑访问栏目管理被判 403", (await editorClient.get("/admin/channels")).status === 403);
+    check("栏目编辑调一键发布接口也被判 403",
+      (await editorClient.post("/admin/publish", { _token: csrfToken(editorDash.text) })).status === 403);
+
+    const editorNewForm = await editorClient.get("/admin/article/new");
+    const editorCreated = await editorClient.post("/admin/article/create", {
+      _token: csrfToken(editorNewForm.text),
+      channel_type: "904",
+      title: "编辑越权发布检查稿",
+      subtitle: "",
+      source: "",
+      author: "",
+      editor: "",
+      published_date: "2026-09-11",
+      published_time: "10:30",
+      status: "published",
+      summary: "",
+      content_html: "<p>越权检查正文。</p>"
+    });
+    const editorCreatedId = (/(\/admin\/article\/(\d+))$/.exec(editorCreated.headers.get("location") || "") || [])[2] || "";
+    const editorCreatedPage = editorCreatedId ? await editorClient.get("/admin/article/" + editorCreatedId) : null;
+    check("栏目编辑点「保存并发布」会被降级为草稿",
+      editorCreatedPage !== null && editorCreatedPage.text.includes("tag-draft") && editorCreatedPage.text.includes("没有发布权限"),
+      "id=" + editorCreatedId);
+    check("降级后的稿件前台读不到",
+      editorCreatedId !== "" && (await client.get("/api/v1/article/" + editorCreatedId, { json: true })).status === 404);
 
     // ---- 栏目管理
     const channels = await client.get("/admin/channels");

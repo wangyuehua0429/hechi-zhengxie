@@ -6,6 +6,8 @@ namespace HechiZx\Admin;
 
 use HechiZx\Http\RedirectResponse;
 use HechiZx\Http\Request;
+use HechiZx\Http\HtmlResponse;
+use HechiZx\Content\Permissions;
 use HechiZx\Publish\Publisher;
 use HechiZx\Support\Db;
 
@@ -28,10 +30,13 @@ final class PublishController extends AdminController
         parent::__construct($auth, $view, $db, $siteId);
     }
 
-    public function run(Request $request): RedirectResponse
+    public function run(Request $request): HtmlResponse|RedirectResponse
     {
         if ($redirect = $this->requireLogin()) {
             return $redirect;
+        }
+        if ($denied = $this->requirePermission(Permissions::PUBLISH_RUN)) {
+            return $denied;
         }
         if ($denied = $this->guard($request)) {
             // guard 命中说明令牌失效；这里退化成跳首页并提示，避免把 HTML 混进 POST 流程

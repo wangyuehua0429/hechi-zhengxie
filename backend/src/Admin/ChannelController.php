@@ -7,6 +7,7 @@ namespace HechiZx\Admin;
 use HechiZx\Http\HtmlResponse;
 use HechiZx\Http\RedirectResponse;
 use HechiZx\Http\Request;
+use HechiZx\Content\Permissions;
 use HechiZx\Repository\ChannelRepository;
 use HechiZx\Support\Db;
 
@@ -33,6 +34,9 @@ final class ChannelController extends AdminController
         if ($redirect = $this->requireLogin()) {
             return $redirect;
         }
+        if ($denied = $this->requirePermission(Permissions::CHANNEL_MANAGE)) {
+            return $denied;
+        }
 
         return $this->view->page('admin/channels', [
             'current'  => 'channels',
@@ -47,6 +51,9 @@ final class ChannelController extends AdminController
     {
         if ($redirect = $this->requireLogin()) {
             return $redirect;
+        }
+        if ($denied = $this->requirePermission(Permissions::CHANNEL_MANAGE)) {
+            return $denied;
         }
         $channel = $this->channels->adminFind($args['type']);
         if ($channel === null) {
@@ -74,6 +81,9 @@ final class ChannelController extends AdminController
             return $redirect;
         }
         if ($denied = $this->guard($request)) {
+            return $denied;
+        }
+        if ($denied = $this->requirePermission(Permissions::CHANNEL_MANAGE)) {
             return $denied;
         }
 

@@ -15,14 +15,19 @@
 
 declare(strict_types=1);
 
-$statusLabels = ['published' => '已发布', 'draft' => '草稿', 'offline' => '已下线'];
+use HechiZx\Content\ArticleWorkflow;
+
+$places = ArticleWorkflow::places();
 ?>
 <h1>概览</h1>
 
 <div class="stats">
   <div class="stat"><span class="stat-num"><?= (int) $total ?></span><span class="stat-label">稿件总数</span></div>
-  <?php foreach ($statusLabels as $key => $label): ?>
-    <div class="stat"><span class="stat-num"><?= (int) ($statusCount[$key] ?? 0) ?></span><span class="stat-label"><?= hechi_e($label) ?></span></div>
+  <?php foreach ($places as $place): ?>
+    <a class="stat" href="/admin/articles?status=<?= hechi_e((string) $place['status']) ?>">
+      <span class="stat-num"><?= (int) ($statusCount[(string) $place['status']] ?? 0) ?></span>
+      <span class="stat-label"><?= hechi_e((string) $place['label']) ?></span>
+    </a>
   <?php endforeach; ?>
   <div class="stat"><span class="stat-num"><?= $channelCount ?></span><span class="stat-label">栏目数</span></div>
 </div>
@@ -35,9 +40,13 @@ $statusLabels = ['published' => '已发布', 'draft' => '草稿', 'offline' => '
     这步发布只影响静态化产物（详情静态页、sitemap、数据快照）。<br>
     上次发布：<?= $publishedAt ? hechi_e($publishedAt) : '尚未发布过' ?>　操作日志：<?= $logCount ?> 条
   </p>
-  <form method="post" action="/admin/publish"><?= $csrf ?>
-    <button type="submit" class="btn-primary">立即发布全站</button>
-  </form>
+  <?php if (in_array('publish.run', $userPerms ?? [], true)): ?>
+    <form method="post" action="/admin/publish"><?= $csrf ?>
+      <button type="submit" class="btn-primary">立即发布全站</button>
+    </form>
+  <?php else: ?>
+    <p class="muted">当前账号没有「生成静态页与数据快照」权限，发布按钮不可用。</p>
+  <?php endif; ?>
 </section>
 
 <section class="card">
@@ -50,7 +59,7 @@ $statusLabels = ['published' => '已发布', 'draft' => '草稿', 'offline' => '
           <td class="nowrap"><?= hechi_e(substr((string) $item['published_at'], 0, 16)) ?></td>
           <td><?= hechi_e($item['title']) ?></td>
           <td class="nowrap"><?= hechi_e($item['channel_inner'] ?? $item['channel_name'] ?? '') ?></td>
-          <td class="nowrap"><span class="tag tag-<?= hechi_e((string) $item['status']) ?>"><?= hechi_e($statusLabels[(string) $item['status']] ?? $item['status']) ?></span></td>
+          <td class="nowrap"><span class="tag tag-<?= hechi_e(ArticleWorkflow::normalize((string) $item['status'])) ?>"><?= hechi_e(ArticleWorkflow::label((string) $item['status'])) ?></span></td>
           <td class="nowrap"><a href="/admin/article/<?= (int) $item['article_id'] ?>">编辑</a></td>
         </tr>
       <?php endforeach; ?>

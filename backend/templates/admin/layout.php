@@ -10,15 +10,33 @@
  * @var array{type:string,text:string}|null $flash
  * @var string $current
  * @var string $csrf
+ * @var list<string> $userRoleNames
+ * @var list<string> $userPerms
  */
 
 declare(strict_types=1);
 
-$navItems = [
-    'dashboard' => ['label' => '概览', 'url' => '/admin'],
-    'articles'  => ['label' => '稿件管理', 'url' => '/admin/articles'],
-    'channels'  => ['label' => '栏目管理', 'url' => '/admin/channels'],
-];
+$can = static fn (string $perm): bool => in_array($perm, $userPerms ?? [], true);
+$canAny = static function (array $perms) use ($can): bool {
+    foreach ($perms as $perm) {
+        if ($can((string) $perm)) {
+            return true;
+        }
+    }
+    return false;
+};
+
+$navItems = ['dashboard' => ['label' => '概览', 'url' => '/admin']];
+if ($canAny(['article.edit', 'article.submit', 'article.review', 'article.publish', 'article.delete', 'article.restore'])) {
+    $navItems['articles'] = ['label' => '稿件管理', 'url' => '/admin/articles'];
+}
+if ($can('channel.manage')) {
+    $navItems['channels'] = ['label' => '栏目管理', 'url' => '/admin/channels'];
+}
+if ($can('user.manage')) {
+    $navItems['users'] = ['label' => '用户与角色', 'url' => '/admin/users'];
+}
+$roleText = ($userRoleNames ?? []) === [] ? '未分配角色' : implode('、', $userRoleNames);
 ?>
 <!DOCTYPE html>
 <html lang="zh-CN">
@@ -36,7 +54,7 @@ $navItems = [
     </div>
     <div class="topbar-right">
       <?php if ($user): ?>
-        <span class="who"><?= hechi_e(($user['real_name'] ?? '') !== '' ? $user['real_name'] : $user['username']) ?></span>
+        <span class="who"><?= hechi_e(($user['real_name'] ?? '') !== '' ? $user['real_name'] : $user['username']) ?><span class="who-role"><?= hechi_e($roleText) ?></span></span>
         <form method="post" action="/admin/logout" class="inline"><?= $csrf ?>
           <button type="submit" class="link-btn">退出</button>
         </form>
