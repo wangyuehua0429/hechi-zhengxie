@@ -223,3 +223,5 @@ foreach ($slides as $slide) {
   </table>
   </div>
 <?php endif; ?>
+
+<?php include __DIR__ . '/_publish_hint.php'; ?>

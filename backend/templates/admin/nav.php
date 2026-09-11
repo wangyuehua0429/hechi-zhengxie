@@ -98,6 +98,4 @@ $lastIndex = count($items) - 1;
 </table>
 </div>
 
-<p class="muted">
-  导航条改动立即生效（首页与内页都走实时接口）；要更新静态化的首页快照，回概览点一次「立即发布全站」。
-</p>
+<?php include __DIR__ . '/_publish_hint.php'; ?>

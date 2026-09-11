@@ -71,6 +71,4 @@ declare(strict_types=1);
   <?php endforeach; ?>
 </div>
 
-<p class="muted">
-  横幅改动立即生效；要更新静态化的首页快照，回概览点一次「立即发布全站」。
-</p>
+<?php include __DIR__ . '/_publish_hint.php'; ?>

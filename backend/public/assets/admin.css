@@ -780,3 +780,15 @@ html:not(.js) .bulk-col { display: none; }
 .slot-preview { margin: 8px 0 12px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #fafbfc; }
 .slot-preview img { display: block; width: 100%; height: auto; }
 .slot-preview--empty { padding: 24px; text-align: center; color: var(--muted); font-size: 13px; }
+
+/* 四类页脚统一的发布提示：这是最容易踩的坑（改完前台没变），给它一点视觉重量 */
+.publish-hint {
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--field-line);
+  border-radius: 6px;
+  line-height: 1.9;
+}
+.publish-hint code { background: #f2f3f5; }

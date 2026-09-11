@@ -144,3 +144,5 @@ $kindLabels = [
     </div>
   <?php endforeach; ?>
 </section>
+
+<?php include __DIR__ . '/_publish_hint.php'; ?>
