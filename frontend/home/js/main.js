@@ -814,6 +814,9 @@
       console.error("首页数据加载失败:", err);
       showDataError();
     }
+    /* 首屏数据渲染完成（主导航含在内）：通知站头展开动画可以开始了。
+       导航条是异步渲染的，抢在它之前展开，主体会在动画中途被撑高 90px 而跳动。 */
+    document.dispatchEvent(new CustomEvent("site:rendered"));
   }
 
   function fillBox(prefix, items) {
