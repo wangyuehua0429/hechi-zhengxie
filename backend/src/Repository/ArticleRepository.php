@@ -144,9 +144,9 @@ final class ArticleRepository
     // ---------------------------------------------------------------- 后台
 
     /**
-     * 后台列表：可按栏目、状态、关键词筛选，返回原始行（含栏目名）。
+     * 后台列表：可按栏目、状态、关键词筛选，可按发布时间／最近更新／稿件号排序。
      *
-     * @param array{channel?:string, status?:string, keyword?:string} $filters
+     * @param array{channel?:string, status?:string, keyword?:string, sort?:string, order?:string} $filters
      * @param list<string>|null $channelScope 数据范围：null 不限栏目，数组为允许的栏目号
      * @return array{items: list<array<string, mixed>>, total: int}
      */
@@ -192,12 +192,21 @@ final class ArticleRepository
         $total = (int) $this->db->scalar('SELECT COUNT(*) FROM cms_article a WHERE ' . $whereSql, $params);
         $offset = max(0, ($page - 1) * $size);
 
+        // 排序白名单：列名固定在这里，模板传什么都不会拼进 SQL
+        $sortColumns = [
+            'published_at' => 'a.published_at',
+            'updated_at'   => 'a.updated_at',
+            'article_id'   => 'a.article_id',
+        ];
+        $sortColumn = $sortColumns[(string) ($filters['sort'] ?? '')] ?? 'a.published_at';
+        $direction = strtolower((string) ($filters['order'] ?? '')) === 'asc' ? 'ASC' : 'DESC';
+
         $items = $this->db->select(
             'SELECT a.*, c.name AS channel_name, c.inner_name AS channel_inner
              FROM cms_article a
              LEFT JOIN sys_channel c ON c.type_code = a.channel_type AND c.site_id = a.site_id
              WHERE ' . $whereSql . '
-             ORDER BY a.published_at DESC, a.article_id DESC
+             ORDER BY ' . $sortColumn . ' ' . $direction . ', a.article_id DESC
              LIMIT ' . max(1, $size) . ' OFFSET ' . $offset,
             $params
         );

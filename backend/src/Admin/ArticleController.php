@@ -19,6 +19,15 @@ use HechiZx\Support\Db;
 final class ArticleController extends AdminController
 {
     private const PAGE_SIZE = 20;
+    private const PAGE_SIZES = [20, 50, 100];
+    /** 列表可排序的字段：值会进 SQL 的 ORDER BY，白名单之外一律回落到发布时间 */
+    private const SORTS = [
+        'published_at' => '发布时间',
+        'updated_at'   => '最近更新',
+        'article_id'   => '稿件号',
+    ];
+    /** 允许批量执行的状态流转：移入回收站保留单篇确认页，不进批量 */
+    private const BULK_ACTIONS = ['submit', 'approve', 'reject', 'withdraw', 'republish', 'restore'];
     private const MAX_UPLOAD_BYTES = 33554432;   // 32 MB，与 deploy/php/php.ini 的 upload_max_filesize 对齐
     private const FILE_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', 'txt'];
     private const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
@@ -41,18 +50,41 @@ final class ArticleController extends AdminController
             return $redirect;
         }
 
+        // 排序在界面上是一个下拉，取值形如 article_id:asc；也兼容 sort/order 分开传
+        $sortParam = (string) $request->query('sort', 'published_at:desc');
+        $orderParam = (string) $request->query('order', '');
+        if (str_contains($sortParam, ':')) {
+            [$sortField, $sortOrder] = explode(':', $sortParam, 2);
+        } else {
+            $sortField = $sortParam;
+            $sortOrder = $orderParam;
+        }
+
         $filters = [
             'channel' => (string) $request->query('channel', ''),
             'status'  => (string) $request->query('status', ''),
             'keyword' => (string) $request->query('keyword', ''),
+            'sort'    => isset(self::SORTS[$sortField]) ? $sortField : 'published_at',
+            'order'   => in_array($sortOrder, ['asc', 'desc'], true) ? $sortOrder : 'desc',
         ];
+        $pageSize = $request->int('size', self::PAGE_SIZE, 1);
+        if (!in_array($pageSize, self::PAGE_SIZES, true)) {
+            $pageSize = self::PAGE_SIZE;
+        }
+
         $scope = $this->auth->channelScope();
         $page = $request->int('page', 1, 1);
-        $result = $this->articles->adminPaginate($filters, $page, self::PAGE_SIZE, $scope);
+        $result = $this->articles->adminPaginate($filters, $page, $pageSize, $scope);
         $items = $result['items'];
         foreach ($items as $index => $item) {
             $items[$index]['flow_actions'] = $this->allowedActions((string) $item['status']);
             $items[$index]['flow_state'] = ArticleWorkflow::label((string) $item['status']);
+            // 行内动作一律走已授权的流转表，模板不自己判断权限
+            $items[$index]['flow_rules'] = array_filter(
+                ArticleWorkflow::transitions(),
+                static fn (string $key): bool => in_array($key, $items[$index]['flow_actions'], true),
+                ARRAY_FILTER_USE_KEY
+            );
         }
 
         return $this->view->page('admin/articles', [
@@ -61,13 +93,93 @@ final class ArticleController extends AdminController
             'items'    => $items,
             'total'    => $result['total'],
             'page'     => $page,
-            'pages'    => max(1, (int) ceil($result['total'] / self::PAGE_SIZE)),
+            'pages'    => max(1, (int) ceil($result['total'] / $pageSize)),
+            'pageSize' => $pageSize,
+            'pageSizes' => self::PAGE_SIZES,
+            'sorts'    => self::SORTS,
+            'bulkActions' => $this->bulkActions(),
             'channels' => $this->channels->adminAll(),
             'navGroups' => $this->channels->navGroups(),
             'statusCounts' => $this->articles->statusCounts($filters['channel'] !== '' ? $filters['channel'] : null, $scope),
             'places'   => ArticleWorkflow::places(),
             'transitions' => ArticleWorkflow::transitions(),
         ], '稿件管理');
+    }
+
+    /**
+     * 批量流转：只做「一批稿件同一个动作」，逐篇复用 applyFlow，
+     * 因此状态机判断、数据范围与权限位和单篇完全一致，逐篇写操作日志。
+     */
+    public function bulk(Request $request): HtmlResponse|RedirectResponse
+    {
+        if ($redirect = $this->requireLogin()) {
+            return $redirect;
+        }
+        if ($denied = $this->guard($request)) {
+            return $denied;
+        }
+
+        $back = (string) $request->post('back');
+        if (!str_starts_with($back, '/admin/articles')) {
+            $back = '/admin/articles';
+        }
+
+        $action = $request->post('action');
+        $rule = in_array($action, self::BULK_ACTIONS, true) ? ArticleWorkflow::transition($action) : null;
+        if ($rule === null) {
+            Flash::set('error', '请先选择要执行的批量操作。');
+            return new RedirectResponse($back);
+        }
+
+        $allowed = $this->can((string) $rule['perm']);
+        if (!$allowed && (string) $rule['altPerm'] !== '') {
+            $allowed = $this->can((string) $rule['altPerm']);
+        }
+        if (!$allowed) {
+            Flash::set('error', '当前账号没有「' . $rule['label'] . '」权限（需要 ' . $rule['perm'] . '）。');
+            return new RedirectResponse($back);
+        }
+
+        $ids = $_POST['ids'] ?? [];
+        if (!is_array($ids) || $ids === []) {
+            Flash::set('error', '没有选中任何稿件。');
+            return new RedirectResponse($back);
+        }
+        if (count($ids) > 100) {
+            Flash::set('error', '一次最多处理 100 篇，请缩小选择范围。');
+            return new RedirectResponse($back);
+        }
+
+        $note = trim($request->post('note'));
+        $userId = (int) ($this->user()['user_id'] ?? 0);
+        $done = 0;
+        $skipped = [];
+        foreach (array_values($ids) as $rawId) {
+            $article = $this->articles->adminFind((string) $rawId);
+            if ($article === null) {
+                $skipped[] = '#' . (int) $rawId . '（不存在）';
+                continue;
+            }
+            $result = $this->applyFlow($article, $action, $note, $userId);
+            if ($result['ok']) {
+                $done++;
+                continue;
+            }
+            $skipped[] = '#' . (int) $rawId . '（' . $result['message'] . '）';
+        }
+
+        if ($done === 0) {
+            Flash::set('error', '批量' . $rule['label'] . '没有执行：' . implode('；', array_slice($skipped, 0, 3)));
+            return new RedirectResponse($back);
+        }
+
+        $message = '批量' . $rule['label'] . '：成功 ' . $done . ' 篇';
+        if ($skipped !== []) {
+            $message .= '；跳过 ' . count($skipped) . ' 篇——' . implode('；', array_slice($skipped, 0, 3))
+                . (count($skipped) > 3 ? ' 等' : '');
+        }
+        Flash::set('ok', $message . '。');
+        return new RedirectResponse($back);
     }
 
     /**
@@ -660,6 +772,37 @@ final class ArticleController extends AdminController
 
         Flash::set('ok', '已保存：' . $title . '（' . ArticleWorkflow::label((string) $article['status']) . '）');
         return new RedirectResponse('/admin/article/' . $id . '?saved=1');
+    }
+
+    /**
+     * 列表页批量操作条里能出现的动作：白名单 ∩ 权限位。
+     * 不判状态——同一批稿件状态可能不同，交给 applyFlow 逐篇判断并跳过。
+     *
+     * @return array<string, array{label:string, danger:bool, needNote:bool, noteLabel:string}>
+     */
+    private function bulkActions(): array
+    {
+        $out = [];
+        foreach (self::BULK_ACTIONS as $action) {
+            $rule = ArticleWorkflow::transition($action);
+            if ($rule === null) {
+                continue;
+            }
+            $allowed = $this->can((string) $rule['perm']);
+            if (!$allowed && (string) $rule['altPerm'] !== '') {
+                $allowed = $this->can((string) $rule['altPerm']);
+            }
+            if (!$allowed) {
+                continue;
+            }
+            $out[$action] = [
+                'label'     => (string) $rule['label'],
+                'danger'    => (bool) $rule['danger'],
+                'needNote'  => (bool) $rule['needNote'],
+                'noteLabel' => (string) $rule['noteLabel'],
+            ];
+        }
+        return $out;
     }
 
     private function composeDatetime(string $date, string $time): ?string

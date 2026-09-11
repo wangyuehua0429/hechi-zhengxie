@@ -80,6 +80,7 @@ return static function (Router $router, Db $db, Config $config): void {
     $router->post('/admin/logout', [$authController, 'logout']);
 
     $router->get('/admin/articles', [$articleController, 'index']);
+    $router->post('/admin/articles/bulk', [$articleController, 'bulk']);
     $router->get('/admin/article/new', [$articleController, 'createForm']);
     $router->post('/admin/article/create', [$articleController, 'store']);
     $router->get('/admin/article/{id}', [$articleController, 'edit']);
@@ -92,6 +93,7 @@ return static function (Router $router, Db $db, Config $config): void {
     $router->post('/admin/article/{id}/image', [$articleController, 'uploadImage']);
 
     $router->get('/admin/channels', [$channelController, 'index']);
+    $router->post('/admin/channel/{type}/move', [$channelController, 'move']);
     $router->get('/admin/channel/{type}', [$channelController, 'edit']);
     $router->post('/admin/channel/{type}', [$channelController, 'update']);
 

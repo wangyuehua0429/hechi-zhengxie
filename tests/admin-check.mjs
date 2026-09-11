@@ -673,6 +673,175 @@ async function main() {
     });
     check("保存栏目后跳回栏目编辑页", channelSaved.status === 302);
 
+    // ---- 稿件 / 栏目管理界面重构（2026-09-11）：筛选面板、排序、每页条数、批量操作、栏目分组与上移下移
+    const listPage = await client.get("/admin/articles");
+    check("稿件列表把稿库、栏目与筛选条件收进一块筛选面板",
+      listPage.text.includes('class="filter-panel"') &&
+      listPage.text.includes('class="vault-nav"') &&
+      listPage.text.includes('class="channel-nav"') &&
+      /<select name="size"/.test(listPage.text) &&
+      /<select name="sort"/.test(listPage.text));
+    check("稿件列表有面包屑与页码跳转",
+      listPage.text.includes('class="breadcrumb"') && listPage.text.includes('class="pager-jump"'));
+
+    const firstTitleId = (html) =>
+      (html.match(/class="title-link" href="\/admin\/article\/(\d+)"/) || [])[1] || "";
+    const ascList = await client.get("/admin/articles?sort=article_id:asc");
+    const descList = await client.get("/admin/articles?sort=article_id:desc");
+    check("列表可按稿件号排序（升序、降序结果不同）",
+      firstTitleId(ascList.text) !== "" && firstTitleId(descList.text) !== "" &&
+      Number(firstTitleId(ascList.text)) < Number(firstTitleId(descList.text)),
+      "升序首条 " + firstTitleId(ascList.text) + "，降序首条 " + firstTitleId(descList.text));
+
+    const bigList = await client.get("/admin/articles?size=50");
+    check("每页条数可选（50 条时一页列出 50 篇）",
+      (bigList.text.match(/class="title-link" href="\/admin\/article\//g) || []).length === 50 &&
+      bigList.text.includes('<option value="50" selected>'),
+      "实际 " + (bigList.text.match(/class="title-link" href="\/admin\/article\//g) || []).length + " 行");
+
+    check("列表提供批量操作条与可勾选行",
+      listPage.text.includes('id="bulk-form"') && /name="ids\[\]"/.test(listPage.text) &&
+      listPage.text.includes("data-bulk-action") && listPage.text.includes('form="bulk-form"'));
+    check("批量动作里没有「移入回收站」（这项保留单篇确认）",
+      !/<option value="delete"/.test(listPage.text));
+    check("列表页引用了渐进增强脚本",
+      listPage.text.includes("/assets/admin.js") && (await client.get("/assets/admin.js")).status === 200);
+
+    // 新建一篇草稿，用来验证「行内删除入口指向确认页」与批量流转
+    const bulkFormPage = await client.get("/admin/article/new");
+    const bulkCreated = await client.post("/admin/article/create", {
+      _token: csrfToken(bulkFormPage.text),
+      channel_type: "904",
+      title: "批量操作检查稿",
+      subtitle: "",
+      source: "检查脚本",
+      author: "",
+      editor: "",
+      published_date: "2026-09-11",
+      published_time: "11:00",
+      status: "draft",
+      summary: "",
+      content_html: "<p>批量操作检查正文。</p>"
+    });
+    const bulkId = (/(\/admin\/article\/(\d+))$/.exec(bulkCreated.headers.get("location") || "") || [])[2] || "";
+    check("批量检查用草稿创建成功", bulkCreated.status === 302 && bulkId !== "", "id=" + bulkId);
+
+    const draftList = await client.get("/admin/articles?status=draft&keyword=" + encodeURIComponent("批量操作检查稿"));
+    check("列表行内「移入回收站」指向确认页，不再直接提交表单",
+      draftList.text.includes('href="/admin/article/' + bulkId + '/delete"'));
+
+    const bulkSubmitted = await client.post("/admin/articles/bulk", {
+      _token: csrfToken(draftList.text),
+      back: "/admin/articles?status=draft",
+      action: "submit",
+      "ids[]": bulkId
+    });
+    check("批量提交审核后回到原筛选列表",
+      bulkSubmitted.status === 302 && (bulkSubmitted.headers.get("location") || "") === "/admin/articles?status=draft");
+    const afterBulkSubmit = await client.get("/admin/article/" + bulkId);
+    check("批量提交后稿件进入待审",
+      afterBulkSubmit.text.includes('value="approve"') && afterBulkSubmit.text.includes("待审"));
+
+    const bulkApproved = await client.post("/admin/articles/bulk", {
+      _token: csrfToken(afterBulkSubmit.text),
+      back: "/admin/articles",
+      action: "approve",
+      "ids[]": bulkId
+    });
+    check("批量审核通过成功", bulkApproved.status === 302);
+    check("批量审核通过后前台可见",
+      (await client.get("/api/v1/article/" + bulkId, { json: true })).status === 200);
+
+    const bulkEmpty = await client.post("/admin/articles/bulk", {
+      _token: csrfToken((await client.get("/admin/articles")).text),
+      back: "/admin/articles",
+      action: "submit"
+    });
+    check("批量操作不勾选稿件会被挡下并提示",
+      bulkEmpty.status === 302 &&
+      (await client.get("/admin/articles")).text.includes("没有选中任何稿件"));
+
+    const bulkBadAction = await client.post("/admin/articles/bulk", {
+      _token: csrfToken((await client.get("/admin/articles")).text),
+      back: "/admin/articles",
+      action: "purge",
+      "ids[]": bulkId
+    });
+    check("批量接口只认白名单里的动作",
+      bulkBadAction.status === 302 &&
+      (await client.get("/admin/articles")).text.includes("请先选择要执行的批量操作"));
+
+    // ---- 编辑页结构：分区卡片 + 右侧栏 + 正文预览
+    const editPage = await client.get("/admin/article/62246");
+    check("编辑页分成基本信息、发布设置、摘要与正文三块",
+      editPage.text.includes("基本信息") && editPage.text.includes("发布设置") && editPage.text.includes("摘要与正文"));
+    check("编辑页右侧栏放稿库流转、稿件信息与附件",
+      editPage.text.includes('class="edit-side"') && editPage.text.includes("稿库流转") &&
+      editPage.text.includes("稿件信息") && editPage.text.includes("正文插图"));
+    check("编辑页有正文预览与字数统计钩子",
+      editPage.text.includes("data-preview-toggle") && editPage.text.includes("data-content-count") &&
+      editPage.text.includes("data-preview-frame"));
+
+    // ---- 栏目管理：分组、检索、上移下移
+    const channelsGrouped = await client.get("/admin/channels");
+    check("栏目列表按一级栏目分组展示",
+      channelsGrouped.text.includes('class="channel-block"') &&
+      channelsGrouped.text.includes("group-head") &&
+      channelsGrouped.text.includes("组内第 1 个"));
+    check("栏目列表给出总数与上下线统计",
+      channelsGrouped.text.includes("栏目总数") && channelsGrouped.text.includes("已下线") &&
+      channelsGrouped.text.includes("栏目稿件数合计"));
+
+    const channelOrder = (html) =>
+      [...html.matchAll(/class="title-link" href="\/admin\/channel\/(\d+)"/g)].map((m) => m[1]);
+    const orderBefore = channelOrder(channelsGrouped.text);
+    const moveIndex = orderBefore.indexOf("905");
+    check("栏目列表能定位到要移动的栏目（905 在中间）",
+      moveIndex > 0 && moveIndex < orderBefore.length - 1, "顺序 " + orderBefore.slice(0, 8).join(","));
+    if (moveIndex > 0 && moveIndex < orderBefore.length - 1) {
+      const moved = await client.post("/admin/channel/905/move", {
+        _token: csrfToken(channelsGrouped.text),
+        dir: "up"
+      });
+      check("栏目上移接口执行后回到列表", moved.status === 302);
+      const orderAfterMove = channelOrder((await client.get("/admin/channels")).text);
+      check("上移后与相邻栏目交换了位置",
+        orderAfterMove[moveIndex - 1] === "905" && orderAfterMove[moveIndex] === orderBefore[moveIndex - 1],
+        "移动前 " + orderBefore.slice(0, 6).join(",") + " → 移动后 " + orderAfterMove.slice(0, 6).join(","));
+      const restored = await client.post("/admin/channel/905/move", {
+        _token: csrfToken((await client.get("/admin/channels")).text),
+        dir: "down"
+      });
+      check("再下移一位可还原顺序",
+        restored.status === 302 &&
+        channelOrder((await client.get("/admin/channels")).text).join(",") === orderBefore.join(","));
+    }
+
+    const searched = await client.get("/admin/channels?q=" + encodeURIComponent("市政协动态"));
+    check("栏目管理支持按名称检索",
+      searched.text.includes("市政协动态") && !searched.text.includes("县区政协工作动态") &&
+      searched.text.includes("匹配到 1 个栏目"),
+      "命中 " + (searched.text.match(/class="title-link" href="\/admin\/channel\//g) || []).length + " 个栏目");
+
+    // ---- 批量操作也要过权限位：栏目编辑只该看到「提交审核」
+    const editorListPage = await editorClient.get("/admin/articles");
+    check("栏目编辑的批量动作只列出他有权限的那几个",
+      /<option value="submit"/.test(editorListPage.text) &&
+      !/<option value="approve"/.test(editorListPage.text) &&
+      !/<option value="withdraw"/.test(editorListPage.text) &&
+      !/<option value="republish"/.test(editorListPage.text) &&
+      !/<option value="restore"/.test(editorListPage.text));
+    const editorBulkDenied = await editorClient.post("/admin/articles/bulk", {
+      _token: csrfToken(editorListPage.text),
+      back: "/admin/articles",
+      action: "withdraw",
+      note: "越权检查",
+      "ids[]": bulkId
+    });
+    check("越权批量撤回被判无权限",
+      editorBulkDenied.status === 302 &&
+      (await editorClient.get("/admin/articles")).text.includes("没有「撤回」权限"));
+
     // ---- 一键发布
     const pubToken = csrfToken((await client.get("/admin")).text);
     const published = await client.post("/admin/publish", { _token: pubToken });

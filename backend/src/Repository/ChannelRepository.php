@@ -276,6 +276,77 @@ final class ChannelRepository
     }
 
     /**
+     * 同一级栏目下的相邻栏目（按 sort_no 排），用于后台「上移／下移」。
+     *
+     * @param array<string, mixed> $channel
+     * @return list<array<string, mixed>> 含自身在内的组内栏目，顺序与前台导航一致
+     */
+    public function adminSiblings(array $channel): array
+    {
+        $key = (string) ($channel['parent_type'] ?? '') !== ''
+            ? (string) $channel['parent_type']
+            : (string) $channel['type_code'];
+
+        return $this->db->select(
+            'SELECT * FROM sys_channel
+             WHERE site_id = :site AND (type_code = :key OR parent_type = :key)
+             ORDER BY sort_no ASC, channel_id ASC',
+            ['site' => $this->siteId, 'key' => $key]
+        );
+    }
+
+    /**
+     * 组内上移／下移：与相邻的同级栏目交换 sort_no。
+     * 交换只动这两个值，其它栏目的相对顺序不变，因此前台导航整体顺序不会被打乱。
+     *
+     * @param array<string, mixed> $channel
+     * @return array{ok:bool, message:string, neighbor:string}
+     */
+    public function moveWithinGroup(array $channel, string $direction): array
+    {
+        $siblings = $this->adminSiblings($channel);
+        $type = (string) $channel['type_code'];
+        $index = null;
+        foreach ($siblings as $i => $row) {
+            if ((string) $row['type_code'] === $type) {
+                $index = $i;
+                break;
+            }
+        }
+        if ($index === null) {
+            return ['ok' => false, 'message' => '没有找到这个栏目在当前分组里的位置。', 'neighbor' => ''];
+        }
+
+        $targetIndex = $direction === 'up' ? $index - 1 : $index + 1;
+        if ($targetIndex < 0 || $targetIndex >= count($siblings)) {
+            return [
+                'ok' => false,
+                'message' => $direction === 'up' ? '已经是这一组的第一个栏目。' : '已经是这一组的最后一个栏目。',
+                'neighbor' => '',
+            ];
+        }
+
+        $neighbor = $siblings[$targetIndex];
+        $newSelf = (int) $neighbor['sort_no'];
+        $newNeighbor = (int) $channel['sort_no'];
+        if ($newSelf === $newNeighbor) {
+            // 排序值相同时交换没有效果，把自身挪到相邻的一格（seed 数据里不会出现相同值）
+            $newSelf = $direction === 'up' ? $newNeighbor - 1 : $newNeighbor + 1;
+        }
+
+        $this->adminUpdate($type, ['sort_no' => $newSelf]);
+        $this->adminUpdate((string) $neighbor['type_code'], ['sort_no' => $newNeighbor]);
+
+        return [
+            'ok' => true,
+            'message' => '已把「' . $channel['inner_name'] . '」'
+                . ($direction === 'up' ? '上移' : '下移') . '，换到「' . $neighbor['inner_name'] . '」'
+                . ($direction === 'up' ? '前面' : '后面') . '。',
+            'neighbor' => (string) $neighbor['inner_name'],
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $fields
      */
     public function adminUpdate(string $type, array $fields): void
