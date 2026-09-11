@@ -3,17 +3,22 @@
 > 河池市融媒体中心承建并负责技术维护的政务门户网站源码仓库。
 > 主办：中国人民政治协商会议河池市委员会办公室；官网：www.gxhczx.gov.cn
 
-## 当前进度（2026-09-05）
+## 当前进度（2026-09-11）
 
-- **前端静态版首页**：`frontend/home/` 已完成并提交，按现网内容做静态化重构——语义化骨架、响应式（桌面/平板/手机）、适老化字号与高对比度、轮播、站头横幅本地化。
-- **数据来源**：当前用 `frontend/home/data/home.json` 静态快照复用现网内容；后端就绪后以 REST API 平替该数据源，页面结构与 `main.js` 渲染逻辑不变（详见 [frontend/home/README.md](frontend/home/README.md)）。
-- **后端与编校微服务**：属目标架构，尚未开始编码；仓库已按架构预留 `backend/`、`api/`、`services/proofreader/` 等目录。
+- **前端静态版首页**：`frontend/home/index.html` 已完成，按现网内容做静态化重构——语义化骨架、响应式（桌面/平板/手机）、适老化字号与高对比度、轮播、站头横幅本地化。
+- **内页模板全集**：`channel.html`（二级栏目页）与 `detail.html`（信息详情页）按 `list`／`leaders`／`about`／`county`／`gallery`／`video`／`topic`／`interactive` 八类版式实现（`about` 暂无栏目使用），配套样例数据 43 个栏目页、70 篇详情，图片全部本地化。
+- **站头与链接映射**：内页站头收窄为全幅约三分之一，首页进出内页带收缩／展开动画；`js/site-links.js` 把旧站栏目与稿件地址改写为新版内页，首页与内页共用同一份映射。
+- **数据来源**：当前用 `frontend/home/data/` 下的静态快照（`home.json`／`channel.json`／`article.json`／`channel-index.json`）复用现网内容；后端就绪后以 REST API 平替该数据源，页面结构与渲染逻辑不变（详见 [frontend/home/README.md](frontend/home/README.md)）。
+- **后端与编校微服务**：属目标架构，仍为零行代码；仓库已按架构预留 `backend/`、`api/`、`services/proofreader/`、`database/`、`tools/migrate/`、`tests/` 等目录。
+- **已知回归（2026-09-11 16:03 起）**：提交 `85918c2` 为加速首屏把链接映射数据源换成精简索引后，`channel.html` 数据加载失败、`detail.html` 标题多出 `undefined`，实测结论与修复方向见 [frontend/home/README.md](frontend/home/README.md) 的“已知回归”一节。
 
 ## 本地预览
 
 ```bash
 cd frontend/home && python3 -m http.server 8899
 # 打开 http://127.0.0.1:8899/index.html
+# 栏目页 http://127.0.0.1:8899/channel.html?id=904
+# 详情页 http://127.0.0.1:8899/detail.html?id=62180
 ```
 
 > 直接双击 `index.html` 会因浏览器拦截本地 `fetch` JSON 而无法加载数据，需经静态服务器访问。
@@ -40,12 +45,20 @@ cd frontend/home && python3 -m http.server 8899
 
 ```
 hechi-zhengxie/
-├── frontend/home/         # 新版首页前端静态版（本期实际交付，数据来自 home.json）
-│   ├── index.html         # 页面骨架 + 数据挂载点
-│   ├── css/style.css      # 视觉 / 响应式 / 无障碍样式
-│   ├── js/main.js         # 数据渲染 / 轮播 / 导航 / 字号 / 高对比度
-│   ├── data/home.json     # 现网内容快照（数据契约原型）
-│   └── images/            # 本地化图片资源
+├── frontend/home/         # 前端静态版（本期实际交付，首页 + 栏目页 + 详情页）
+│   ├── index.html         # 首页骨架 + 数据挂载点
+│   ├── channel.html       # 二级栏目页（按 ?id=<旧库栏目ID> 渲染）
+│   ├── detail.html        # 信息详情页（按 ?id=<稿件ID> 渲染）
+│   ├── css/style.css      # 首页与内页共用变量、站头、响应式与无障碍样式
+│   ├── css/inner.css      # 内页样式（栏目页 + 详情页）
+│   ├── js/main.js         # 首页渲染 / 轮播 / 导航 / 字号 / 高对比度
+│   ├── js/shell.js        # 内页公共外壳（顶栏 / 导航 / 页脚 / 侧栏 / 无障碍）
+│   ├── js/channel.js      # 栏目页渲染与分页
+│   ├── js/detail.js       # 详情页渲染、附件下载、图集灯箱、字号、打印
+│   ├── js/header-fold.js  # 站头收窄 / 展开动画
+│   ├── js/site-links.js   # 站内链接映射（旧站地址 → 新内页）
+│   ├── data/              # 四份内容快照（home / channel / article / channel-index）
+│   └── images/            # 本地化图片资源（含 images/channel/ 138 张）
 ├── docs/                  # 需求、方案、接口契约、运维文档
 ├── backend/               # 主站 PHP CMS（应用层 + 前端 SSR + 静态化发布）
 │   ├── public/            # Web 根目录（Nginx 指向 / 入口）
@@ -61,15 +74,23 @@ hechi-zhengxie/
 
 ## 数据契约
 
-`frontend/home/data/home.json` 顶层键包含：`meta`（站名/域名/版权主体/ICP/公安备案）、18 个主栏目 `nav`、`leaders`、`slides`、`notice`/`bookCity`/`antiGang`/`videos`、`zxdt`/`sxNews`/`zxMeeting`、`zwhWork`/`partyGroups`/`theory`、`imageNews`、`memberWindow`、`countyZx`、`ranking`、`topic`、`scenery`、`links`。单条信息统一为 `{title, url, date?}`，图片类条目含 `img`；详细字段表见 [frontend/home/README.md](frontend/home/README.md)。
+`frontend/home/data/` 下的四份静态快照即后续 REST API 的数据契约原型：
+
+| 文件 | 用途 | 当前规模 |
+| --- | --- | --- |
+| `home.json` | 首页数据 | 21 个顶层键：`meta`、18 个主栏目 `nav`、`leaders`、`slides`、`notice`／`bookCity`／`antiGang`／`videos`、`zxdt`／`sxNews`／`zxMeeting`、`zwhWork`／`partyGroups`／`theory`、`imageNews`、`memberWindow`、`countyZx`、`ranking`、`topic`、`scenery`、`links` |
+| `channel.json` | 栏目页数据 | 43 个栏目（31 个带稿件列表，共 432 条） |
+| `article.json` | 详情页数据 | 70 篇正文、正文图片 53 张、附件 1 条 |
+| `channel-index.json` | 站内链接映射精简索引 | 43 个栏目 + 432 个稿件 id（约 4.4 KB） |
+
+单条信息统一为 `{title, url, date?}`，图片类条目含 `img`；栏目页与详情页的字段级说明见 [frontend/home/README.md](frontend/home/README.md)，不在此重复维护。
 
 ## 一期范围与合规约束
 
 - 本期只建**政协主站 + 校对模块**；县区子站与稿件互通缓做，按 `site_id` 预留升级接口。
-- 政务云 **2026-11-01** 停服前完成迁出；主站对照 61 天窗口（9/1—11/1）推进。
+- 政务云停服日期存在两种口径：《河池政协网迁移建设和技术维护合同（9 月 3 日）》为 **2026-11-20 起关停**，《河池政协网开发思路与技术栈方案》与执行时间表为 **2026-11-01 停服**。本仓库文档统一按合同口径 11 月 20 日编排，该冲突待甲方确认。
 - 数据策略：近 3 年数据公开访问，更早数据后台留存不公开；旧 URL 统一 301 映射保 SEO 与外链。
 
 ## 说明
 
 详细需求与选型依据见《河池政协网开发思路与技术栈方案》。运行环境、数据库结构、接口契约随实现推进逐步补齐。
-

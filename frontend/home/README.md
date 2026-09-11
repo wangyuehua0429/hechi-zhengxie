@@ -12,15 +12,18 @@ python3 -m http.server 8899
 # 打开 http://127.0.0.1:8899/index.html
 ```
 
-## 目录
+## 目录（首页部分，内页文件见下文“二级栏目页与详情页”）
 
 ```
 frontend/home/
-├── index.html          页面结构（语义化骨架 + 数据挂载点）
-├── css/style.css       视觉、响应式断点、无障碍/适老样式
-├── js/main.js          数据渲染、轮播、导航、字号/高对比度交互
-├── images/head.jpg     顶部站头横幅（已本地化，桌面展示/移动端换文字品牌条）
-└── data/home.json      现网内容快照（数据契约原型）
+├── index.html              页面结构（语义化骨架 + 数据挂载点）
+├── css/style.css           视觉、响应式断点、无障碍/适老样式
+├── js/main.js              数据渲染、轮播、导航、字号/高对比度交互
+├── js/header-fold.js       站头收窄/展开动画（首页与内页共用）
+├── js/site-links.js        站内链接映射（首页与内页共用）
+├── images/head_bg1-3.jpg   顶部站头横幅（已本地化，桌面轮换、随内页收窄）
+├── images/head_logo.png    站名标志
+└── data/home.json          现网内容快照（数据契约原型）
 ```
 
 ## 数据契约（home.json → 未来 REST API）
@@ -53,7 +56,7 @@ frontend/home/
 - 适老化字号：`A- / 默认 / A+`；高对比度：右上角“无障碍”按钮
 - 语义化标签、图片 `alt`、键盘可聚焦、图片加载失败占位降级
 
-> 顶部站头横幅已随页面本地化（`images/head.jpg`）；其余内容图片（轮播/领导/图片新闻/河池风光等）仍为绝对 URL 热链，待后续图片迁移完成后统一替换为本地资源。
+> 页面图片已全部本地化，不再依赖旧站热链：首页数据 `data/home.json` 的 48 个 `img` 字段、栏目列表 75 张缩略图、正文 53 张配图均为 `images/` 下的本地相对路径（`images/remote/` 44 张、`images/channel/` 138 张、顶层 26 张）。
 
 ## 站头动态收缩（2026-09-11）
 
@@ -64,8 +67,25 @@ frontend/home/
 - `channel.html`、`detail.html` 的 `<html>` 直接带 `mast-folded`，首屏即按收窄态渲染，不会先闪全幅。内页点栏目仍在当前页跳转（本来已是收窄态，不播动画）。
 - 首页点栏目：`js/header-fold.js` 先把站头高度固定为当前渲染值，再过渡到收窄高度（0.42s），动画结束后跳转。已接入新版内页的栏目链接因此改为当前页跳转，仍指向旧站的外链保持新标签打开（与内页导航规则一致）。
 - 从内页点“首页”返回：`index.html` 的 `<head>` 内联脚本按来源页判断，给 `<html>` 加上 `mast-folded`（首屏即收窄，不闪全幅），`js/header-fold.js` 再展开回全幅，即“只有点首页才显示当前界面”。标志放大与主体下移在同一帧起步、同时到位。
-- 展开不是高度动画（高度动画每帧都要重排重绘整页，首次回首页时正赶上首屏渲染与图片解码，会卡）。做法是：等首屏数据渲染完成（`js/main.js` 派发 `site:rendered`，最多等 1.5s）后再开始；一帧内把站头摆成全幅，随即用 transform 把主导航、主体、横幅照片与标志补偿回收缩态的位置，再挂过渡把这些补偿归零 —— 全程只动 transform（合成层位移）与标志宽度，页面高度自始至终不变。
+- 展开不是高度动画（高度动画每帧都要重排重绘整页，首次回首页时正赶上首屏渲染与图片解码，会卡）。做法是：一帧内把站头摆成全幅，随即用 transform 把主导航、主体、横幅照片与标志补偿回收缩态的位置，再挂过渡把这些补偿归零 —— 全程只动 transform（合成层位移）与标志宽度，页面高度自始至终不变。主导航异步渲染撑高页面这一前提已由 `.nav-wrap` 的 `min-height` 占位消除，展开动画不再等 `site:rendered`。
 - 系统开启“减弱动态效果”时不播高度过渡，直接落到对应状态。
+
+## 首屏性能与站头展开（2026-09-11 晚）
+
+提交 `85918c2` 针对首屏卡顿与布局抖动做了三处调整：
+
+- 站头首屏背景图设置 `fetchpriority`，站名 logo 与次级背景图改为异步解码，减少首页与栏目页的图片加载阻塞。
+- 主导航由 JS 异步渲染，加载期间原会撑开下方主体、推迟站头展开动画；现按渲染后的两行宫格高度在 `.nav-wrap` 预留 90px 占位（移动端折叠态归零），`js/header-fold.js` 不再等 `site:rendered` 与 1.5 秒兜底，展开动画立即开始。
+- 随批重压了一批缩略图（如 `images/channel/43878.jpg` 由 2.17 MB 压到 789 KB、`images/channel/61458.jpg` 由 601 KB 压到 52 KB）。当前 `images/channel/` 138 张合计 9.1 MB（单张 5.0 KB—789 KB），`images/remote/` 44 张合计 5.4 MB（单张 2.8 KB—666 KB），`frontend/home/images/` 整体 17 MB。
+
+## 已知回归（2026-09-11 16:03 起）
+
+提交 `85918c2` 把 `js/site-links.js` 的数据源改为精简索引后，`js/shell.js` 向栏目页与详情页转发的 `window.SITE.channelsReady` 也随之变成 `{type, ids}` 结构，与 `js/channel.js`、`js/detail.js` 期望的 `{type, list, name, …}` 不再一致：
+
+- `channel.html`（含 `?id=904`、`?id=202`、`?id=314`、无参数默认态）：读取 `channel.list` 抛错，页面只剩“数据加载失败，请通过本地静态服务器访问本页。”，列表与分页均不渲染。
+- `detail.html`：正文、侧栏、附件区正常，仅 `document.title` 的栏目名取不到，显示为 `标题 · undefined · 广西河池政协网`。
+
+实测证据（2026-09-11，本机 `python3 -m http.server` + Playwright）：当前 `main`（`631d055`，与 `85918c2` 表现相同）下栏目页 `#listHeading` 停留在“栏目”，`#listWrap li` 为 0；同在 `85918c2^` 上跑同一命令，栏目页渲染出 20 行稿件、20 个 `detail.html` 链接，详情页标题为“许显辉赴河池市调研 · 政协动态 · 广西河池政协网”。因此回归由 `85918c2` 引入，而非样例数据缺失。GitHub Pages 线上站点（`https://wangyuehua0429.github.io/hechi-zhengxie/frontend/home/…`）实测表现一致。修复方向：`js/shell.js` 的 `channelsReady` 继续取完整 `data/channel.json`，精简索引只用于链接改写。
 
 ---
 
@@ -103,11 +123,16 @@ frontend/home/
 ├── js/channel.js           栏目页渲染与分页
 ├── js/detail.js            详情页渲染、附件下载、图集灯箱、字号调整、打印
 ├── data/channel.json       栏目页样例数据（43 个栏目页）
+├── data/channel-index.json 链接映射精简索引（43 个栏目 type + 432 个稿件 id，约 4.4 KB）
 ├── data/article.json       详情页样例数据（70 篇）
 └── images/channel/         列表缩略图与正文配图（138 张，已本地化）
 ```
 
-外壳复用 `css/style.css` 的既有变量与站头样式，站级数据（`meta` / `nav` / `marquee`）统一读 `data/home.json`，不新增副本；`js/site-links.js` 依据 `data/channel.json` 生成地址映射，首页（`js/main.js`）与内页（`js/shell.js`）共用，已实现的栏目与稿件指向新内页，未覆盖的仍指向旧站。
+外壳复用 `css/style.css` 的既有变量与站头样式，站级数据（`meta` / `nav` / `marquee`）统一读 `data/home.json`，不新增副本；`js/site-links.js` 生成地址映射，首页（`js/main.js`）与内页（`js/shell.js`）共用，已实现的栏目与稿件指向新内页，未覆盖的仍指向旧站。
+
+映射数据的取法：优先读 4.4 KB 的 `data/channel-index.json`（栏目 `type` + 稿件 `id` 两个字段，足够改写链接，不会拖慢首屏）；该文件取不到时回退到 190 KB 的 `data/channel.json`。两份文件由 `tools/prototype/extract_sample_data.py` 同批生成，字段含义一致。
+
+映射覆盖率（2026-09-11 实测，脚本统计 `data/home.json`）：210 个 `url` 字段中 184 个指向旧站，其中 95 个可改写为新版内页，89 个仍落旧站——71 个 `news_view.php` 稿件详情不在样例稿件范围内，8 个站点首页／根路径、6 个 `news-view-<id>.html` 静态页、1 个未入样例的栏目 `news_list.php?id=210`、3 个旧站专题目录。
 
 栏目页按数据里的 `layout` 分流版式：`list`（左侧栏目按钮 + 最新新闻 + 图片新闻，右侧纯稿件列表；单栏目页隐藏栏目按钮、保留最新新闻与图片新闻左栏）、`leaders`（政协领导，按职务分组的照片卡片，见下）、`about`（一页式，列表上方加简介块）、`county`（县（区）政协，面板上方为“全部”按钮与各县区站点入口）、`gallery`（图片新闻、河池风光）、`video`（政协视频）、`topic`（专题）、`interactive`（委员直通车）；后四类为整幅卡片版式，不设左栏。
 
