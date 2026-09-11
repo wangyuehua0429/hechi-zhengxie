@@ -20,7 +20,7 @@ $kindLabels = [
   <div class="page-title">
     <h1>其他栏目</h1>
     <p class="subtitle">
-      首页正文的 <?= count($sections) ?> 个模块，每个模块绑定到栏目，取该栏目最新若干条已发布稿件；
+      首页正文的 <?= count($sections) ?> 个模块，每个模块绑定到栏目，把该栏目最新的已发布稿件显示在首页；
       置顶稿排在前面，其余按发布时间。绑定的栏目列表里有新稿，首页立刻跟着变。
     </p>
   </div>
@@ -44,7 +44,7 @@ $kindLabels = [
       </h2>
       <div class="card-tools">
         <span class="tag tag-<?= $status === 'published' ? 'published' : 'offline' ?>"><?= $status === 'published' ? '已上线' : '已下线' ?></span>
-        <span class="muted">取 <?= (int) $row['page_size'] ?> 条</span>
+        <span class="muted"><?= $section['kind'] === 'tabs' ? '每个标签显示' : '首页显示' ?> <?= (int) $row['page_size'] ?> 条</span>
         <?php if ((string) $section['firstChannel'] !== ''): ?>
           <a class="btn btn-sm btn-ghost" href="/admin/articles?channel=<?= hechi_e((string) $section['firstChannel']) ?>">进稿件管理</a>
         <?php endif; ?>
@@ -56,11 +56,11 @@ $kindLabels = [
       <?php if ((string) $row['more_url'] !== ''): ?>
         · 更多链接：<code><?= hechi_e((string) $row['more_url']) ?></code>
       <?php endif; ?>
-      · 当前取到 <?= (int) $section['preview']['count'] ?> 条
+      · 首页当前显示 <?= (int) $section['preview']['count'] ?> 条
     </p>
 
     <?php
-    // 模块当前取到的稿件：库内条目按头条轮换那样的表格列出来，可直接排序与置顶
+    // 模块当前显示的稿件：库内条目按头条轮换那样的表格列出来，可直接排序与置顶
     $groups = $section['groups'] ?? [];
     $dbCount = 0;
     foreach ($groups as $group) {
@@ -75,7 +75,7 @@ $kindLabels = [
         <h3 class="section-tab-title"><?= hechi_e((string) $group['title']) ?> <span class="muted">（栏目 <?= hechi_e((string) $group['channel']) ?>）</span></h3>
       <?php endif; ?>
       <?php if ($group['rows'] === []): ?>
-        <p class="muted">这个<?= $multiGroup ? '标签' : '模块' ?>当前没有取到库内稿件，检查绑定栏目与稿件状态。</p>
+        <p class="muted">这个<?= $multiGroup ? '标签' : '模块' ?>暂时没有可显示的稿件，检查绑定栏目与稿件状态。</p>
       <?php else: ?>
         <?php
         // 这一组里有没有配图：一条都没有就把「图」列省掉，免得整列都是「无」
@@ -86,7 +86,7 @@ $kindLabels = [
         ?>
         <div class="table-scroll">
         <table class="grid article-table section-table">
-          <caption class="visually-hidden">模块当前取到的稿件</caption>
+          <caption class="visually-hidden">模块当前显示的稿件</caption>
           <thead>
             <tr>
               <th scope="col" class="nowrap">序</th>
@@ -166,8 +166,13 @@ $kindLabels = [
       </p>
     <?php endif; ?>
 
+    <?php
+    // 上面的稿件表格循环也用 $row，会把模块配置覆盖成最后一篇稿件，
+    // 进表单前先取回模块自身那一行，否则标题、显示条数、更多链接会是空的。
+    $row = $section['row'];
+    ?>
     <details class="advanced">
-      <summary>改绑定与条数</summary>
+      <summary>改绑定与显示条数</summary>
       <form method="post" action="/admin/section/<?= hechi_e($key) ?>" class="edit-form">
         <?= $csrf ?>
         <div class="row">
@@ -191,8 +196,9 @@ $kindLabels = [
           <textarea name="scope_tabs" rows="4" placeholder="904|市政协动态"><?= $section['kind'] === 'tabs' ? hechi_e($section['scopeText']) : '' ?></textarea>
         </label>
         <div class="row">
-          <label>取几条（1—30）
+          <label>首页显示条数（1—30）
             <input type="number" name="page_size" min="1" max="30" value="<?= (int) $row['page_size'] ?>">
+            <span class="row-meta">显示绑定栏目里最新的已发布稿件，置顶稿排在最前；分标签模块每个标签各显示这么多篇。</span>
           </label>
           <label>状态
             <select name="status">

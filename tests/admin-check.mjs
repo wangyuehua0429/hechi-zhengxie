@@ -1008,8 +1008,14 @@ async function main() {
     check("其他栏目页列出 13 个首页模块",
       sectionsPage.status === 200 && (sectionsPage.text.match(/admin\/section\//g) || []).length === 13,
       "实际 " + (sectionsPage.text.match(/admin\/section\//g) || []).length + " 个");
-    check("其他栏目页给出绑定栏目与当前取到的稿件",
-      sectionsPage.text.includes("绑定：") && sectionsPage.text.includes("当前取到"));
+    check("其他栏目页给出绑定栏目与首页当前显示的稿件",
+      sectionsPage.text.includes("绑定：") && sectionsPage.text.includes("首页当前显示"));
+    // 稿件表格的循环变量曾把模块配置覆盖掉，表单里三个框会渲染成空值（保存即丢配置）
+    check("其他栏目页的模块表单带出当前配置，不被稿件表格覆盖",
+      sectionsPage.text.includes('name="label" value="公告通知"') &&
+      /name="page_size" min="1" max="30" value="4"/.test(sectionsPage.text) &&
+      sectionsPage.text.includes('name="more_url" value="https://www.gxhczx.gov.cn/news_list.php?id=302"'),
+      "标题/条数/更多链接三个框的值");
     check("其他栏目页列出未进首页导航的栏目",
       sectionsPage.text.includes("未进首页导航的栏目") && sectionsPage.text.includes("/admin/articles?channel="));
 
@@ -1022,8 +1028,8 @@ async function main() {
       status: "published",
       more_url: ""
     });
-    check("首页模块可以改绑定与取几条",
-      resized.status === 302 && /公告通知[\s\S]{0,800}?取 2 条/.test((await client.get("/admin/sections")).text));
+    check("首页模块可以改绑定与显示条数",
+      resized.status === 302 && /公告通知[\s\S]{0,800}?首页显示 2 条/.test((await client.get("/admin/sections")).text));
 
     const badScope = await client.post("/admin/section/notice", {
       _token: csrfToken((await client.get("/admin/sections")).text),
@@ -1045,7 +1051,7 @@ async function main() {
       more_url: "https://www.gxhczx.gov.cn/news_list.php?id=302"
     });
     check("首页模块改动可以还原",
-      /公告通知[\s\S]{0,800}?取 4 条/.test((await client.get("/admin/sections")).text));
+      /公告通知[\s\S]{0,800}?首页显示 4 条/.test((await client.get("/admin/sections")).text));
 
     // ---- 其他栏目页把稿件按头条轮换那样的表格列出来，并可直接排序／置顶
     const sectionsWithRows = await client.get("/admin/sections");
