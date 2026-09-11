@@ -1,11 +1,12 @@
 /**
  * 后台渐进增强脚本：不加载也能完成全部操作，加载后少点几下。
  *
- * 这里只做四件事：
+ * 这里只做五件事：
  * 1. 稿件列表的批量选择（勾选、全选半选、按动作显示备注框、提交前自检）；
  * 2. 栏目列表的即时筛选（不必回车，服务端筛选照旧可用）；
  * 3. 稿件编辑页的正文预览与字数统计（预览走 sandbox iframe，脚本不执行）；
- * 4. Ctrl/⌘+S 保存与「有改动未保存」离开提醒。
+ * 4. Ctrl/⌘+S 保存与「有改动未保存」离开提醒；
+ * 5. 上移／下移这类排序提交后还原滚动位置，长列表里不用每次再滚回去。
  *
  * 所有逻辑都用 data-* 钩子，模板改名不影响；没有匹配元素时静默跳过。
  */
@@ -180,4 +181,62 @@
       }
     });
   }
+
+  /* -------------------------------------------- 5. 排序后保持滚动位置 */
+  // 稿件「本栏目内上移／下移」（/order）与栏目、导航、头条的「上移／下移」（/move）
+  // 都是表单 POST + 302 回到本页，浏览器重新加载后停在页面顶部，一排 20 条里挪一次
+  // 就得重新滚回去。这里在提交前记下位置，回到同一路径时还原。
+  // 只认这两个排序端点，发稿、批量流转、改绑定等提交保持浏览器默认行为。
+  const SCROLL_KEY = "hechi-admin-scroll";
+
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (!form || form.tagName !== "FORM" || event.defaultPrevented) return;
+    const action = form.getAttribute("action") || "";
+    if (!/\/(move|order)$/.test(action)) return;
+    try {
+      sessionStorage.setItem(SCROLL_KEY, JSON.stringify({
+        path: location.pathname,
+        y: window.scrollY,
+        hadFlash: document.querySelector(".flash") !== null
+      }));
+    } catch (e) { /* 无痕模式写不了存储就按默认行为走 */ }
+  });
+
+  (() => {
+    let saved = null;
+    try {
+      saved = sessionStorage.getItem(SCROLL_KEY);
+      if (saved) sessionStorage.removeItem(SCROLL_KEY);
+    } catch (e) { return; }
+    if (!saved) return;
+
+    let state = null;
+    try { state = JSON.parse(saved); } catch (e) { return; }
+    // 路径不一致说明这次提交去了别的页面，不还原
+    if (!state || state.path !== location.pathname) return;
+    let y = Number(state.y) || 0;
+    if (y <= 0) return;
+
+    // 排序后本页会多出一条操作提示条（提交前没有、返回后有），它把下方内容整体推低，
+    // 量出它的高度补进偏移量，第一次操作也不会错位一行。
+    const flash = document.querySelector(".flash");
+    if (flash && !state.hadFlash) {
+      y += flash.offsetHeight + (parseFloat(getComputedStyle(flash).marginBottom) || 0);
+    }
+
+    // 浏览器自己的滚动恢复会先跳一次，统一交给下面的 restore 控制
+    if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+
+    // 缩略图加载完页面还会长高一点，所以首次排版与 load 后各还原一次；
+    // 用户自己滚动或按键后立即放手，不再跟他抢滚动位置。
+    let stop = false;
+    ["wheel", "touchstart", "keydown", "mousedown"].forEach((name) => {
+      addEventListener(name, () => { stop = true; }, { passive: true, once: true });
+    });
+    const restore = () => { if (!stop) window.scrollTo(0, y); };
+    restore();
+    document.addEventListener("DOMContentLoaded", restore);
+    addEventListener("load", restore);
+  })();
 })();
