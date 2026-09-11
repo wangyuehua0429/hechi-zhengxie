@@ -42,6 +42,11 @@
     return Math.round(w * ratio) + "px";
   }
 
+  /* 先把高度固定为当前渲染值：切换收缩态会改 aspect-ratio，不固定的话高度会瞬间跳到位 */
+  function pinHeight() {
+    layers.style.height = layers.getBoundingClientRect().height + "px";
+  }
+
   let inlineState = null;   // 内联高度生效时记录状态（"folded" / "full"），窗口变化时重算
   let running = false;
 
@@ -87,25 +92,26 @@
 
     e.preventDefault();
     inlineState = "folded";
-    /* 先按当前渲染高度固定起点，再切收缩态（否则 aspect-ratio 一变，高度会瞬间跳到位） */
-    layers.style.height = layers.getBoundingClientRect().height + "px";
+    pinHeight();
+    layers.classList.add(FOLDING);   // 先挂过渡：标志缩小与高度收窄同时进行
     html.classList.add(FOLDED);   // 收缩态同时收起标语，与内页落点一致
     animate(pxOf(ratioFolded()), function () {
       window.location.href = link.href;
     });
   });
 
-  /* 首页由内页返回：把收窄态展开回全幅 */
+  /* 首页由内页返回：标志放大与高度展开同时进行，都从动画一开始就起步 */
   if (html.classList.contains(FOLDED)) {
     if (reduceMotion.matches) {
       html.classList.remove(FOLDED);   // 减弱动态：直接给全幅，不做展开动画
     } else {
       inlineState = "folded";
-      layers.style.height = pxOf(ratioFolded());
+      pinHeight();
+      layers.classList.add(FOLDING);   // 先挂过渡，再解除收缩态，标志放大不等高度展开
+      html.classList.remove(FOLDED);
       window.requestAnimationFrame(function () {
         inlineState = "full";
         animate(pxOf(ratioFull()), function () {
-          html.classList.remove(FOLDED);
           inlineState = null;
           layers.style.height = "";   // 交回 CSS 的 aspect-ratio
         });
