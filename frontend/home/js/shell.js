@@ -51,7 +51,9 @@
   }
 
   function renderNav(nav) {
-    const home = nav[0];
+    // 与首页同源：后台隐藏的导航项在这里也跳过
+    const visible = (nav || []).filter(function (n) { return n && !n.hidden; });
+    const home = visible[0];
     const homeEl = el("navHome");
     if (homeEl && home) {
       homeEl.href = "./index.html";
@@ -62,7 +64,7 @@
         '<path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>' +
         '<span>' + esc(home.title) + '</span>';
     }
-    const rest = nav.slice(1);
+    const rest = visible.slice(1);
     const mid = Math.ceil(rest.length / 2);
     const rowLink = function (n) {
       const url = channelLink(n.url);

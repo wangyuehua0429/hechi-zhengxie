@@ -347,6 +347,40 @@ async function main() {
     check("恢复为已发布后公开接口又能读到",
       publishedPublic.status === 200 && publishedPublic.body?.article?.title === originalTitle);
 
+    // ---- 「在本栏目置顶」：稿件编辑页勾选后，首页模块与栏目页列表同时排前
+    const listBeforeTop = (await client.get("/api/v1/channels/904?listSize=5", { json: true })).body?.channel?.list || [];
+    const topTargetId = String(listBeforeTop[1]?.id || "");
+    check("取到用于置顶检查的第二篇稿件", topTargetId !== "", "904 前三条 " + listBeforeTop.slice(0, 3).map((i) => i.id).join(","));
+    if (topTargetId !== "") {
+      const topEdit = await client.get("/admin/article/" + topTargetId);
+      const topTitle = (/name="title" value="([^"]*)"/.exec(topEdit.text) || [])[1] || "";
+      const topSaved = await client.post("/admin/article/" + topTargetId, {
+        _token: csrfToken(topEdit.text),
+        title: topTitle,
+        content_html: "<p>置顶检查正文。</p>",
+        is_top: "1"
+      });
+      check("编辑页勾选「在本栏目置顶」可以保存", topSaved.status === 302);
+      const listAfterTop = (await client.get("/api/v1/channels/904?listSize=5", { json: true })).body?.channel?.list || [];
+      check("置顶后该稿排在栏目列表最前",
+        String(listAfterTop[0]?.id || "") === topTargetId,
+        "首条 " + (listAfterTop[0]?.id || "无") + "，置顶 " + topTargetId);
+      const homeAfterTop = await client.get("/api/v1/home", { json: true });
+      check("置顶后该稿同时排在首页「政协动态·市政协动态」最前",
+        String(homeAfterTop.body?.home?.zxdt?.tabs?.[0]?.items?.[0]?.id || "") === topTargetId,
+        "首页首条 " + (homeAfterTop.body?.home?.zxdt?.tabs?.[0]?.items?.[0]?.id || "无"));
+
+      const unTopPage = await client.get("/admin/article/" + topTargetId);
+      const unTopSaved = await client.post("/admin/article/" + topTargetId, {
+        _token: csrfToken(unTopPage.text),
+        title: topTitle,
+        content_html: "<p>置顶检查正文。</p>"
+      });
+      check("取消置顶后编辑页复选框回到未勾选",
+        unTopSaved.status === 302 &&
+        !/name="is_top" value="1" checked/.test((await client.get("/admin/article/" + topTargetId)).text));
+    }
+
     // ---- 新建稿件 → 附件 → 插图 → 删除
     const newForm = await client.get("/admin/article/new");
     check("新建稿件表单可打开", newForm.status === 200 && newForm.text.includes("新建稿件"));
@@ -841,6 +875,193 @@ async function main() {
     check("越权批量撤回被判无权限",
       editorBulkDenied.status === 302 &&
       (await editorClient.get("/admin/articles")).text.includes("没有「撤回」权限"));
+
+    // ---- 首页四大类：导航栏目 / 头条轮换 / 其他栏目 / 站内横幅
+    const navRows = (html) => {
+      const rows = [];
+      const re = /name="title" value="([^"]*)"[\s\S]*?name="url" value="([^"]*)"/g;
+      let hit;
+      while ((hit = re.exec(html)) !== null) rows.push({ title: hit[1], url: hit[2] });
+      return rows;
+    };
+
+    const navPage = await client.get("/admin/nav");
+    const navBefore = navRows(navPage.text);
+    check("导航栏目页列出 18 个首页导航项", navPage.status === 200 && navBefore.length === 18,
+      "实际 " + navBefore.length + " 项");
+    check("导航栏目页给出每个入口指向的栏目与稿件数",
+      navPage.text.includes("指向栏目") && navPage.text.includes("篇）"));
+
+    const navMoved = await client.post("/admin/nav/1/move", { _token: csrfToken(navPage.text), dir: "up" });
+    const navAfterMove = await client.get("/admin/nav");
+    const navMovedRows = navRows(navAfterMove.text);
+    check("导航项可以上移（前两项互换）",
+      navMoved.status === 302 && navMovedRows[0]?.title === navBefore[1]?.title && navMovedRows[1]?.title === navBefore[0]?.title,
+      navBefore.slice(0, 2).map((r) => r.title).join("/") + " → " + navMovedRows.slice(0, 2).map((r) => r.title).join("/"));
+    await client.post("/admin/nav/0/move", { _token: csrfToken(navAfterMove.text), dir: "down" });
+    check("导航顺序可以还原",
+      navRows((await client.get("/admin/nav")).text)[0]?.title === navBefore[0]?.title);
+
+    const hideRow = navBefore[1];
+    const hidden = await client.post("/admin/nav/1", {
+      _token: csrfToken((await client.get("/admin/nav")).text),
+      title: hideRow.title,
+      url: hideRow.url,
+      hidden: "1"
+    });
+    const hiddenPage = await client.get("/admin/nav");
+    check("导航项可以隐藏（条目保留、列表里标出）",
+      hidden.status === 302 && /name="hidden" value="1" checked/.test(hiddenPage.text) &&
+      navRows(hiddenPage.text).length === 18);
+    await client.post("/admin/nav/1", {
+      _token: csrfToken(hiddenPage.text),
+      title: hideRow.title,
+      url: hideRow.url
+    });
+    check("取消隐藏后恢复显示",
+      !/name="hidden" value="1" checked/.test((await client.get("/admin/nav")).text));
+
+    const slidesPage = await client.get("/admin/slides");
+    const slideTitles = (html) => [...html.matchAll(/name="title" value="([^"]*)"/g)].map((m) => m[1]);
+    check("头条轮换页可访问并列出初始 6 条", slidesPage.status === 200 && slidesPage.text.includes("共 6 条"));
+    check("头条轮换页同时提供「从稿件里选」与「手工新增」两个入口",
+      slidesPage.text.includes("从已发布稿件里选") && slidesPage.text.includes("手工新增外链条目"));
+
+    const pickPage = await client.get("/admin/slides?q=" + encodeURIComponent("政协"));
+    check("能检索已发布稿件并加入轮播", pickPage.text.includes("加入轮播"));
+    const addedFromArticle = await client.post("/admin/slides/create", {
+      _token: csrfToken(pickPage.text),
+      article_id: "62246"
+    });
+    check("从稿件加入轮播成功",
+      addedFromArticle.status === 302 && (await client.get("/admin/slides")).text.includes("共 7 条"));
+
+    const afterAddSlide = await client.get("/admin/slides");
+    const addedManual = await client.post("/admin/slides/create", {
+      _token: csrfToken(afterAddSlide.text),
+      title: "检查用外链条目",
+      link_url: "https://example.com/check",
+      summary: "检查脚本新增"
+    });
+    check("手工新增外链条目成功",
+      addedManual.status === 302 && slidesPage.text !== "" &&
+      (await client.get("/admin/slides")).text.includes("检查用外链条目"));
+
+    const slideList = await client.get("/admin/slides");
+    const slideTitlesBefore = slideTitles(slideList.text);
+    const secondSlideId = ([...slideList.text.matchAll(/\/admin\/slides\/(\d+)\/status/g)].map((m) => m[1]))[1];
+    const slideMoved = await client.post("/admin/slides/" + secondSlideId + "/move", {
+      _token: csrfToken(slideList.text),
+      dir: "up"
+    });
+    const slideTitlesAfter = slideTitles((await client.get("/admin/slides")).text);
+    check("轮播条目可以上移（前两条互换）",
+      slideMoved.status === 302 && slideTitlesAfter[0] === slideTitlesBefore[1] && slideTitlesAfter[1] === slideTitlesBefore[0],
+      slideTitlesBefore.slice(0, 2).join("/") + " → " + slideTitlesAfter.slice(0, 2).join("/"));
+
+    const firstSlideId = ([...slideList.text.matchAll(/\/admin\/slides\/(\d+)\/status/g)].map((m) => m[1]))[0];
+    const slideOff = await client.post("/admin/slides/" + firstSlideId + "/status", {
+      _token: csrfToken((await client.get("/admin/slides")).text)
+    });
+    check("轮播条目可以下线",
+      slideOff.status === 302 && /tag-offline">已下线/.test((await client.get("/admin/slides")).text));
+    const slideOn = await client.post("/admin/slides/" + firstSlideId + "/status", {
+      _token: csrfToken((await client.get("/admin/slides")).text)
+    });
+    check("轮播条目可以重新上线",
+      slideOn.status === 302 && !/tag-offline">已下线/.test((await client.get("/admin/slides")).text));
+
+    const manualSlidePage = await client.get("/admin/slides");
+    const manualId = ([...manualSlidePage.text.matchAll(/\/admin\/slides\/(\d+)\/status/g)].map((m) => m[1])).pop();
+    const slideDeleted = await client.post("/admin/slides/" + manualId + "/delete", {
+      _token: csrfToken(manualSlidePage.text)
+    });
+    // 删除后总数回到 7（初始 6 + 从稿件加入的 1）；被删标题仍会出现在本次的提示条里，所以比总数
+    check("轮播条目可以删除",
+      slideDeleted.status === 302 && (await client.get("/admin/slides")).text.includes("共 7 条"));
+
+    const sectionsPage = await client.get("/admin/sections");
+    check("其他栏目页列出 13 个首页模块",
+      sectionsPage.status === 200 && (sectionsPage.text.match(/admin\/section\//g) || []).length === 13,
+      "实际 " + (sectionsPage.text.match(/admin\/section\//g) || []).length + " 个");
+    check("其他栏目页给出绑定栏目与当前取到的稿件",
+      sectionsPage.text.includes("绑定：") && sectionsPage.text.includes("当前取到"));
+    check("其他栏目页列出未进首页导航的栏目",
+      sectionsPage.text.includes("未进首页导航的栏目") && sectionsPage.text.includes("/admin/articles?channel="));
+
+    const resized = await client.post("/admin/section/notice", {
+      _token: csrfToken(sectionsPage.text),
+      label: "公告通知",
+      kind: "channels",
+      scope: "302",
+      page_size: "2",
+      status: "published",
+      more_url: ""
+    });
+    check("首页模块可以改绑定与取几条",
+      resized.status === 302 && /公告通知[\s\S]{0,800}?取 2 条/.test((await client.get("/admin/sections")).text));
+
+    const badScope = await client.post("/admin/section/notice", {
+      _token: csrfToken((await client.get("/admin/sections")).text),
+      label: "公告通知",
+      kind: "channels",
+      scope: "999999",
+      page_size: "4",
+      status: "published"
+    });
+    check("绑定不存在的栏目会被挡下",
+      badScope.status === 302 && (await client.get("/admin/sections")).text.includes("这些栏目号不存在"));
+    await client.post("/admin/section/notice", {
+      _token: csrfToken((await client.get("/admin/sections")).text),
+      label: "公告通知",
+      kind: "channels",
+      scope: "302",
+      page_size: "4",
+      status: "published",
+      more_url: "https://www.gxhczx.gov.cn/news_list.php?id=302"
+    });
+    check("首页模块改动可以还原",
+      /公告通知[\s\S]{0,800}?取 4 条/.test((await client.get("/admin/sections")).text));
+
+    const bannersPage = await client.get("/admin/banners");
+    check("站内横幅页列出 7 个固定槽位",
+      bannersPage.status === 200 && (bannersPage.text.match(/槽位 <code>/g) || []).length === 7);
+    check("横幅页给出每个位置的位置说明",
+      bannersPage.text.includes("首屏专题条幅 · 左") && bannersPage.text.includes("页面底部通栏"));
+
+    const bannerOff = await client.post("/admin/banner/body-1", {
+      _token: csrfToken(bannersPage.text),
+      image_url: "images/chatu.gif",
+      link_url: "",
+      title: "政治协商",
+      status: "offline"
+    });
+    check("横幅可以下线",
+      bannerOff.status === 302 && /tag-offline">已下线/.test((await client.get("/admin/banners")).text));
+    const bannerOn = await client.post("/admin/banner/body-1", {
+      _token: csrfToken((await client.get("/admin/banners")).text),
+      image_url: "images/chatu.gif",
+      link_url: "",
+      title: "政治协商",
+      status: "published"
+    });
+    check("横幅可以重新上线",
+      bannerOn.status === 302 && !/tag-offline">已下线/.test((await client.get("/admin/banners")).text));
+
+    const homeLogs = await client.get("/admin/logs");
+    check("首页四类的改动都写进操作日志",
+      homeLogs.text.includes("调整导航顺序") && homeLogs.text.includes("新增头条轮换") &&
+      homeLogs.text.includes("修改首页模块") && homeLogs.text.includes("修改站内横幅"));
+
+    // ---- 无 home.manage 的账号看不到也进不去这四个页面
+    const reviewerHome = await reviewerClient.get("/admin");
+    check("没有 home.manage 的账号侧栏不出现首页四类入口",
+      !reviewerHome.text.includes("/admin/nav") && !reviewerHome.text.includes("/admin/banners"));
+    check("没有 home.manage 的账号访问首页四类页面被判 403",
+      (await reviewerClient.get("/admin/nav")).status === 403 &&
+      (await reviewerClient.get("/admin/slides")).status === 403 &&
+      (await reviewerClient.get("/admin/sections")).status === 403 &&
+      (await reviewerClient.get("/admin/banners")).status === 403);
 
     // ---- 一键发布
     const pubToken = csrfToken((await client.get("/admin")).text);

@@ -18,6 +18,7 @@ final class Permissions
     public const ARTICLE_RESTORE = 'article.restore';
     public const ARTICLE_PURGE = 'article.purge';
     public const CHANNEL_MANAGE = 'channel.manage';
+    public const HOME_MANAGE = 'home.manage';
     public const PUBLISH_RUN = 'publish.run';
     public const USER_MANAGE = 'user.manage';
     public const LOG_VIEW = 'log.view';
@@ -41,6 +42,7 @@ final class Permissions
             ],
             '栏目与发布' => [
                 self::CHANNEL_MANAGE => '栏目信息、版式与排序维护',
+                self::HOME_MANAGE    => '首页导航、头条轮换、其他栏目与站内横幅维护',
                 self::PUBLISH_RUN    => '生成静态页与数据快照',
             ],
             '系统' => [

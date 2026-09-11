@@ -206,6 +206,7 @@ final class ArticleController extends AdminController
             'attachments' => $this->articles->attachments((int) $args['id']),
             'canDelete' => true,
             'canEdit' => $this->can(Permissions::ARTICLE_EDIT) && $this->auth->canChannel((string) $article['channel_type']),
+            'channelTop' => $this->articles->channelTop((int) $args['id'], (string) $article['channel_type']),
             'actions' => $this->allowedActions((string) $article['status']),
             'transitions' => ArticleWorkflow::transitions(),
             'saved'   => $request->query('saved') === '1',
@@ -272,6 +273,7 @@ final class ArticleController extends AdminController
             $downgraded = true;
         }
         $userId = (int) ($this->user()['user_id'] ?? 0);
+        $isTop = $request->post('is_top') === '1' ? 1 : 0;
         $id = $this->articles->create([
             'channel_type' => $channelType,
             'title'        => $title,
@@ -283,9 +285,12 @@ final class ArticleController extends AdminController
             'editor'       => $request->post('editor'),
             'published_at' => $this->composeDatetime($request->post('published_date'), $request->post('published_time')),
             'status'       => $status,
-            'is_top'       => $request->post('is_top') === '1' ? 1 : 0,
+            'is_top'       => $isTop,
             'created_by'   => $userId,
         ]);
+        if ($isTop === 1) {
+            $this->articles->setChannelTop($id, $channelType, 1);
+        }
 
         $this->log('article.create', 'article', (string) $id, ['title' => $title, 'status' => $status, 'channel' => $channelType]);
         Flash::set('ok', '已新建稿件 #' . $id . '（' . $this->statusLabel($status) . '）'
@@ -498,6 +503,45 @@ final class ArticleController extends AdminController
             'message' => '已' . $rule['label'] . '：' . (string) $article['title']
                 . '（' . ArticleWorkflow::label($target) . '）',
         ];
+    }
+
+    /**
+     * 栏目内上移／下移：列表页在按单个栏目筛选时按行提供。
+     *
+     * @param array<string, string> $args
+     */
+    public function order(Request $request, array $args): HtmlResponse|RedirectResponse
+    {
+        if ($redirect = $this->requireLogin()) {
+            return $redirect;
+        }
+        if ($denied = $this->guard($request)) {
+            return $denied;
+        }
+
+        $id = (int) $args['id'];
+        $article = $this->articles->adminFind((string) $id);
+        if ($article === null) {
+            Flash::set('error', '稿件不存在。');
+            return new RedirectResponse('/admin/articles');
+        }
+
+        $channel = (string) $article['channel_type'];
+        if (!$this->auth->canChannel($channel)) {
+            Flash::set('error', '当前账号不在该稿件所属栏目的数据范围内。');
+            return new RedirectResponse('/admin/articles');
+        }
+
+        $direction = $request->post('dir') === 'up' ? 'up' : 'down';
+        $result = $this->articles->moveInChannel($id, $channel, $direction);
+        if (!$result['ok']) {
+            Flash::set('error', $result['message']);
+            return new RedirectResponse('/admin/articles?channel=' . rawurlencode($channel));
+        }
+
+        $this->log('article.order', 'article', (string) $id, ['channel' => $channel, 'direction' => $direction]);
+        Flash::set('ok', $result['message'] . '稿件：' . (string) $article['title']);
+        return new RedirectResponse('/admin/articles?channel=' . rawurlencode($channel));
     }
 
     /**
@@ -764,6 +808,12 @@ final class ArticleController extends AdminController
         }
 
         $this->articles->adminUpdate($id, $fields);
+        // 「置顶」按栏目生效：首页对应模块与该栏目列表共用这一套顺序
+        // 只在勾选状态真的变了时才写，免得「编辑一条旧稿」顺手把它的栏目内顺序重置掉
+        $channelType = (string) $article['channel_type'];
+        if ((int) $fields['is_top'] !== $this->articles->channelTop((int) $id, $channelType)) {
+            $this->articles->setChannelTop((int) $id, $channelType, (int) $fields['is_top']);
+        }
         $this->articles->syncBodyAssets((int) $id, $fields['content_html']);
         $this->log('article.update', 'article', $id, [
             'title'  => $title,

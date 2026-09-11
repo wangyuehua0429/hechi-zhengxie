@@ -10,11 +10,15 @@ declare(strict_types=1);
 use HechiZx\Admin\ArticleController;
 use HechiZx\Admin\Auth;
 use HechiZx\Admin\AuthController;
+use HechiZx\Admin\BannerController;
 use HechiZx\Admin\ChannelController;
 use HechiZx\Admin\DashboardController;
 use HechiZx\Admin\LogController;
+use HechiZx\Admin\NavController;
 use HechiZx\Admin\PublishController;
 use HechiZx\Admin\RoleController;
+use HechiZx\Admin\SectionController;
+use HechiZx\Admin\SlideController;
 use HechiZx\Admin\UserController;
 use HechiZx\Admin\View;
 use HechiZx\Http\Router;
@@ -37,8 +41,10 @@ return static function (Router $router, Db $db, Config $config): void {
         'userPerms'     => $auth->permissions(),
     ]);
 
-    $channels = new ChannelRepository($db, $siteId, new HomeRepository($db, $siteId));
+    $home = new HomeRepository($db, $siteId);
+    $channels = new ChannelRepository($db, $siteId, $home);
     $articles = new ArticleRepository($db, $siteId);
+    $uploadsDir = (string) $config->get('paths.uploads');
 
     $authController = new AuthController($auth, $view, $db, $siteId);
     $dashboard = new DashboardController(
@@ -60,6 +66,10 @@ return static function (Router $router, Db $db, Config $config): void {
         (string) $config->get('paths.uploads')
     );
     $channelController = new ChannelController($auth, $view, $db, $siteId, $channels);
+    $navController = new NavController($auth, $view, $db, $siteId, $home, $channels);
+    $slideController = new SlideController($auth, $view, $db, $siteId, $home, $articles, $uploadsDir);
+    $sectionController = new SectionController($auth, $view, $db, $siteId, $home, $channels);
+    $bannerController = new BannerController($auth, $view, $db, $siteId, $home, $uploadsDir);
     $userController = new UserController($auth, $view, $db, $siteId);
     $roleController = new RoleController($auth, $view, $db, $siteId, $channels);
     $logController = new LogController($auth, $view, $db, $siteId);
@@ -81,6 +91,7 @@ return static function (Router $router, Db $db, Config $config): void {
 
     $router->get('/admin/articles', [$articleController, 'index']);
     $router->post('/admin/articles/bulk', [$articleController, 'bulk']);
+    $router->post('/admin/article/{id}/order', [$articleController, 'order']);
     $router->get('/admin/article/new', [$articleController, 'createForm']);
     $router->post('/admin/article/create', [$articleController, 'store']);
     $router->get('/admin/article/{id}', [$articleController, 'edit']);
@@ -96,6 +107,23 @@ return static function (Router $router, Db $db, Config $config): void {
     $router->post('/admin/channel/{type}/move', [$channelController, 'move']);
     $router->get('/admin/channel/{type}', [$channelController, 'edit']);
     $router->post('/admin/channel/{type}', [$channelController, 'update']);
+
+    $router->get('/admin/nav', [$navController, 'index']);
+    $router->post('/admin/nav/{index}/move', [$navController, 'move']);
+    $router->post('/admin/nav/{index}', [$navController, 'update']);
+
+    $router->get('/admin/slides', [$slideController, 'index']);
+    $router->post('/admin/slides/create', [$slideController, 'create']);
+    $router->post('/admin/slides/{id}', [$slideController, 'update']);
+    $router->post('/admin/slides/{id}/move', [$slideController, 'move']);
+    $router->post('/admin/slides/{id}/status', [$slideController, 'toggle']);
+    $router->post('/admin/slides/{id}/delete', [$slideController, 'delete']);
+
+    $router->get('/admin/sections', [$sectionController, 'index']);
+    $router->post('/admin/section/{key}', [$sectionController, 'update']);
+
+    $router->get('/admin/banners', [$bannerController, 'index']);
+    $router->post('/admin/banner/{slot}', [$bannerController, 'update']);
 
     $router->get('/admin/users', [$userController, 'index']);
     $router->get('/admin/user/new', [$userController, 'createForm']);

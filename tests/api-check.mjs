@@ -111,6 +111,7 @@ async function main() {
   let server = null;
   let base = opts.url;
   let tmpRoot = null;
+  let dbEnv = null;
   const php = resolvePhp();
 
   if (!base) {
@@ -126,6 +127,7 @@ async function main() {
       APP_ENV: "local",
       APP_DEBUG: "1"
     };
+    dbEnv = env;
 
     console.log("PHP：" + php + "　临时库：" + dbFile);
 
@@ -244,12 +246,28 @@ async function main() {
     // ---- 首页
     const home = await fetchJson(base, "/api/v1/home");
     const homeKeys = Object.keys(home.body?.home || {});
-    check("home 返回 21 个顶层模块", homeKeys.length === Object.keys(snapshotHome).length,
+    const snapshotKeys = Object.keys(snapshotHome);
+    check("home 覆盖快照的全部顶层模块，并多出站内横幅",
+      snapshotKeys.every((key) => homeKeys.includes(key)) &&
+      homeKeys.includes("banners") &&
+      homeKeys.length === snapshotKeys.length + 1,
       "实际 " + homeKeys.length + " 个：" + homeKeys.slice(0, 6).join("、"));
     check("home.meta 与快照一致",
       JSON.stringify(home.body?.home?.meta) === JSON.stringify(snapshotHome.meta));
     check("home.nav 条数与快照一致",
       (home.body?.home?.nav || []).length === snapshotHome.nav.length);
+    check("home.slides 来自 cms_home_slide（带标题与图片）",
+      (home.body?.home?.slides || []).length > 0 &&
+      (home.body?.home?.slides || []).every((s) => typeof s.title === "string" && s.title !== ""));
+    const bannerSlots = Object.keys(home.body?.home?.banners || {});
+    check("home.banners 返回 7 个固定槽位",
+      ["hero-1", "hero-2", "body-1", "body-2", "body-3", "body-4", "body-5"]
+        .every((slot) => bannerSlots.includes(slot)),
+      bannerSlots.join(","));
+    check("首页模块由栏目稿件现算（政协动态三个标签都取到稿件）",
+      (home.body?.home?.zxdt?.tabs || []).length === 3 &&
+      (home.body?.home?.zxdt?.tabs || []).every((tab) => (tab.items || []).length > 0),
+      JSON.stringify((home.body?.home?.zxdt?.tabs || []).map((t) => (t.items || []).length)));
 
     // ---- 错误处理
     const missingChannel = await fetchJson(base, "/api/v1/channels/999999");
@@ -291,8 +309,9 @@ async function main() {
             (channel904.list || []).map((i) => String(i.id))));
       }
       if (existsSync(outHome)) {
-        check("发布的 home.json 顶层模块数与快照一致",
-          Object.keys(json(outHome)).length === Object.keys(snapshotHome).length);
+        const outKeys = Object.keys(json(outHome));
+        check("发布的 home.json 同样带站内横幅，且覆盖快照模块",
+          outKeys.includes("banners") && snapshotKeys.every((key) => outKeys.includes(key)));
       }
       if (existsSync(outIndex)) {
         const index = json(outIndex).channels;
@@ -317,6 +336,38 @@ async function main() {
         check("sitemap 收录首页与详情页",
           xml.includes("<loc>https://") && xml.includes("/article/62180.html"));
       }
+    }
+
+    // ---- 发稿即上首页、置顶即靠前（临时库模式才写库；放在发布对拍之后，避免影响快照比对）
+    if (dbEnv !== null) {
+      const created = runPhp(php, "-r", dbEnv, [
+        "require 'backend/src/bootstrap.php';"
+        + " $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+        + " $r = new HechiZx\\Repository\\ArticleRepository($db, 1);"
+        + " echo $r->create(['channel_type' => '904', 'title' => '接口检查用首页稿', 'summary' => '',"
+        + " 'content_html' => '<p>接口检查正文。</p>', 'source' => '检查', 'author' => '', 'editor' => '',"
+        + " 'published_at' => date('Y-m-d H:i:s'), 'status' => 'published', 'is_top' => 0, 'created_by' => 0]);"
+      ]);
+      const newId = (created.stdout || "").trim();
+      const afterHome = await fetchJson(base, "/api/v1/home");
+      const zxdtItems = afterHome.body?.home?.zxdt?.tabs?.[0]?.items || [];
+      check("新建的已发布稿件立刻出现在首页「政协动态·市政协动态」最前",
+        newId !== "" && String(zxdtItems[0]?.id || "") === newId,
+        "新建 " + newId + "，首页首条 " + (zxdtItems[0]?.id || "无"));
+
+      runPhp(php, "-r", dbEnv, [
+        "require 'backend/src/bootstrap.php';"
+        + " $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+        + " $r = new HechiZx\\Repository\\ArticleRepository($db, 1);"
+        + " $r->setChannelTop(" + Number(newId) + ", '904', 1);"
+      ]);
+      const topHome = await fetchJson(base, "/api/v1/home");
+      const topItems = topHome.body?.home?.zxdt?.tabs?.[0]?.items || [];
+      check("在栏目里置顶后该稿排在首页模块最前", String(topItems[0]?.id || "") === newId);
+      const channelList = await fetchJson(base, "/api/v1/channels/904?listSize=5");
+      check("置顶稿同时排在该栏目列表最前",
+        String((channelList.body?.channel?.list || [])[0]?.id || "") === newId,
+        "栏目首条 " + ((channelList.body?.channel?.list || [])[0]?.id || "无"));
     }
   } finally {
     if (server) server.kill("SIGTERM");

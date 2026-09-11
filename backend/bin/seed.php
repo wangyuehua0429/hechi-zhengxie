@@ -270,4 +270,138 @@ fwrite(STDOUT, sprintf(
     $attachmentCount,
     $blockIndex
 ));
+fwrite(STDOUT, seedHomeConfig($db, $siteId, $home, $now));
 fwrite(STDOUT, '数据源：' . $snapshotDir . "\n");
+
+/**
+ * 7) 首页四大类的初始配置：把阶段 A 快照里的绑定关系固化成可维护的配置。
+ *
+ * 只在目标表为空时写入（幂等）：这张表一旦有数据就说明后台已经接手维护，
+ * 再跑 seed 不能把编辑改过的绑定、头条、横幅覆盖掉。
+ *
+ * @param array<string, mixed> $home
+ */
+function seedHomeConfig(Db $db, int $siteId, array $home, string $now): string
+{
+    $report = [];
+
+    if ((int) $db->scalar('SELECT COUNT(*) FROM cms_home_section WHERE site_id = :s', ['s' => $siteId]) === 0) {
+        // [模块键, 标题, scope, group_by, 更多链接, 取几条]
+        $sections = [
+            ['zxdt', '政协动态', ['tabs' => [
+                ['channel' => '904', 'label' => '市政协动态'],
+                ['channel' => '903', 'label' => '广西政协动态'],
+                ['channel' => '902', 'label' => '全国政协动态'],
+            ]], 'child', '', 10],
+            ['zxMeeting', '政协会议', ['tabs' => [
+                ['channel' => '404', 'label' => '其它会议'],
+                ['channel' => '403', 'label' => '主席会议'],
+                ['channel' => '402', 'label' => '常委会议'],
+                ['channel' => '401', 'label' => '全体会议'],
+            ]], 'child', '', 8],
+            ['sxNews', '时政要闻', ['channels' => ['306']], '', 'https://www.gxhczx.gov.cn/news_list.php?id=306', 10],
+            ['notice', '公告通知', ['channels' => ['302']], '', 'https://www.gxhczx.gov.cn/news_list.php?id=302', 4],
+            ['bookCity', '网上书院', ['channels' => ['1301']], '', 'https://www.gxhczx.gov.cn/news_list.php?id=1301', 4],
+            ['antiGang', '扫黑除恶', ['channels' => ['400']], '', 'https://www.gxhczx.gov.cn/news_list.php?id=400', 3],
+            ['zwhWork', '专委会工作', ['channels' => ['308']], '', 'https://www.gxhczx.gov.cn/news_list.php?id=308', 9],
+            ['partyGroups', '党派团体', ['parent' => '601'], '', 'https://www.gxhczx.gov.cn/news_list.php?id=601', 9],
+            ['theory', '理论研究', ['channels' => ['317']], '', 'https://www.gxhczx.gov.cn/news_list.php?id=317', 9],
+            ['imageNews', '图片新闻', ['channels' => ['314']], '', 'https://www.gxhczx.gov.cn/news_list.php?id=314', 8],
+            ['scenery', '河池风光', ['channels' => ['901']], '', 'https://www.gxhczx.gov.cn/news_list.php?id=901', 7],
+            ['memberWindow', '委员之窗', ['channels' => ['311']], '', 'https://www.gxhczx.gov.cn/news_list.php?id=311', 14],
+            ['countyZx', '县（区）政协动态', ['channels' => ['906']], '', 'https://www.gxhczx.gov.cn/qy_list.php', 12],
+        ];
+        $blockOrder = array_flip(array_keys($home));
+        $count = 0;
+        foreach ($sections as [$key, $label, $scope, $groupBy, $moreUrl, $pageSize]) {
+            $db->execute(
+                'INSERT INTO cms_home_section
+                   (section_key, site_id, label, scope_json, page_size, group_by, more_url, status, sort_no, created_at, updated_at)
+                 VALUES (:key, :site, :label, :scope, :size, :group, :more, :status, :sort, :t, :t)',
+                [
+                    'key'    => $key,
+                    'site'   => $siteId,
+                    'label'  => $label,
+                    'scope'  => Json::encode($scope),
+                    'size'   => $pageSize,
+                    'group'  => $groupBy,
+                    'more'   => $moreUrl,
+                    'status' => 'published',
+                    'sort'   => (int) ($blockOrder[$key] ?? 99),
+                    't'      => $now,
+                ]
+            );
+            $count++;
+        }
+        $report[] = sprintf('首页模块 %d 个', $count);
+    }
+
+    if ((int) $db->scalar('SELECT COUNT(*) FROM cms_home_slide WHERE site_id = :s', ['s' => $siteId]) === 0) {
+        $index = 0;
+        foreach ((array) ($home['slides'] ?? []) as $slide) {
+            if (!is_array($slide)) {
+                continue;
+            }
+            $url = (string) ($slide['url'] ?? '');
+            $articleId = preg_match('/[?&]id=(\d+)/', $url, $m) === 1 ? (int) $m[1] : 0;
+            // 只有稿件库里真有这篇稿子才建立引用；否则按外链条目存原地址，
+            // 免得引用了不存在的稿件号，轮播里这条直接消失。
+            if ($articleId > 0 && $db->selectOne(
+                'SELECT 1 AS ok FROM cms_article WHERE site_id = :site AND article_id = :id',
+                ['site' => $siteId, 'id' => $articleId]
+            ) === null) {
+                $articleId = 0;
+            }
+            $db->execute(
+                'INSERT INTO cms_home_slide
+                   (site_id, article_id, title, summary, image_url, link_url, sort_no, status, created_at, updated_at)
+                 VALUES (:site, :aid, :title, :summary, :img, :link, :sort, :status, :t, :t)',
+                [
+                    'site'    => $siteId,
+                    'aid'     => $articleId,
+                    'title'   => (string) ($slide['title'] ?? ''),
+                    'summary' => (string) ($slide['summary'] ?? ''),
+                    'img'     => (string) ($slide['img'] ?? ''),
+                    // 外链条目保留原地址；引用稿件的条目留空，取稿件自身的详情页
+                    'link'    => $articleId === 0 ? $url : '',
+                    'sort'    => ++$index,
+                    'status'  => 'published',
+                    't'       => $now,
+                ]
+            );
+        }
+        $report[] = sprintf('头条轮换 %d 条', $index);
+    }
+
+    if ((int) $db->scalar('SELECT COUNT(*) FROM cms_home_banner WHERE site_id = :s', ['s' => $siteId]) === 0) {
+        $banners = [
+            ['hero-1', '提案填报系统', 'images/2026091102.jpg', 'channel.html?id=501'],
+            ['hero-2', '协商在河池', 'images/2025030102.jpg', 'https://www.gxhczx.gov.cn/zl20220331/'],
+            ['body-1', '政治协商', 'images/chatu.gif', ''],
+            ['body-2', '党史学习教育专栏', 'images/head_i.jpg', 'https://www.gxhczx.gov.cn/zl20210331'],
+            ['body-3', '政协干部队伍作风大查摆大整治活动专栏', 'images/zl320.jpg', 'https://www.gxhczx.gov.cn/news_list.php?id=320'],
+            ['body-4', '协商在河池', 'images/xs.jpg', 'https://www.gxhczx.gov.cn/zl20220331/'],
+            ['body-5', '联站到家进室办实事 助力乡村振兴委员行', 'images/fupin.jpg', 'https://www.gxhczx.gov.cn/fupin'],
+        ];
+        $index = 0;
+        foreach ($banners as [$slot, $title, $img, $link]) {
+            $db->execute(
+                'INSERT INTO cms_home_banner (site_id, slot_key, title, image_url, link_url, sort_no, status, created_at, updated_at)
+                 VALUES (:site, :slot, :title, :img, :link, :sort, :status, :t, :t)',
+                [
+                    'site'   => $siteId,
+                    'slot'   => $slot,
+                    'title'  => $title,
+                    'img'    => $img,
+                    'link'   => $link,
+                    'sort'   => ++$index,
+                    'status' => 'published',
+                    't'      => $now,
+                ]
+            );
+        }
+        $report[] = sprintf('站内横幅 %d 个槽位', $index);
+    }
+
+    return $report === [] ? "首页四大类配置已存在，未覆盖。\n" : '首页配置：' . implode('、', $report) . "。\n";
+}

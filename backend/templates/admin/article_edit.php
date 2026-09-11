@@ -22,6 +22,7 @@
  * @var string|null $defaultStatus
  * @var list<string> $actions
  * @var array<string, array<string, mixed>> $transitions
+ * @var int|null $channelTop 本稿件在所属栏目里是否置顶
  */
 
 declare(strict_types=1);
@@ -126,12 +127,13 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
             <input type="time" name="published_time" value="<?= hechi_e($timeValue) ?>">
           </label>
           <label class="check">
-            <input type="checkbox" name="is_top" value="1"<?= (int) ($article['is_top'] ?? 0) === 1 ? ' checked' : '' ?>> 置顶
+            <input type="checkbox" name="is_top" value="1"<?= (int) ($channelTop ?? $article['is_top'] ?? 0) === 1 ? ' checked' : '' ?>> 在本栏目置顶
           </label>
         </div>
         <p class="muted">
           只有「已发布」的稿件会出现在前台与内容接口；草稿、待审、退回、已撤回、回收站都只在后台可见。
           稿件状态不在这个表单里改，用右侧的「稿库流转」。
+          「在本栏目置顶」让这篇稿排在所属栏目的最前，首页对应模块（政协动态、时政要闻这类）也跟着排在前面。
         </p>
       </section>
 

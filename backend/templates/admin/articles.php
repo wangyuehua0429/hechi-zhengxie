@@ -77,6 +77,9 @@ foreach ($channels as $channel) {
     }
 }
 $activeFilters = [];
+// 按单个栏目筛选时，可以直接在列表里调整该栏目内的顺序（置顶稿始终在前）
+$canOrder = in_array('article.edit', $userPerms ?? [], true);
+$orderable = $canOrder && (string) $filters['channel'] !== '';
 if ($channelLabel !== '') {
     $activeFilters[] = '栏目：' . $channelLabel;
 }
@@ -93,6 +96,7 @@ if ((string) $filters['keyword'] !== '') {
     <p class="subtitle">
       共 <strong><?= (int) $total ?></strong> 篇稿件
       <?= $activeFilters === [] ? '（全部）' : '· 已筛选 ' . hechi_e(implode('　', $activeFilters)) ?>
+      <?= $orderable ? '· 可用「↑ ↓」调整该栏目内的顺序' : '' ?>
       <?php if ($activeFilters !== []): ?>
         <a class="clear-filter" href="/admin/articles">清除筛选</a>
       <?php endif; ?>
@@ -262,6 +266,18 @@ if ((string) $filters['keyword'] !== '') {
         </td>
         <td class="col-actions">
           <div class="row-actions">
+            <?php if ($orderable): ?>
+              <form method="post" action="/admin/article/<?= $id ?>/order" class="inline">
+                <?= $csrf ?>
+                <input type="hidden" name="dir" value="up">
+                <button type="submit" class="btn btn-sm btn-icon" aria-label="把「<?= hechi_e($title) ?>」在该栏目内上移一位">↑</button>
+              </form>
+              <form method="post" action="/admin/article/<?= $id ?>/order" class="inline">
+                <?= $csrf ?>
+                <input type="hidden" name="dir" value="down">
+                <button type="submit" class="btn btn-sm btn-icon" aria-label="把「<?= hechi_e($title) ?>」在该栏目内下移一位">↓</button>
+              </form>
+            <?php endif; ?>
             <a class="btn btn-sm" href="/admin/article/<?= $id ?>">编辑</a>
             <?php foreach (($item['flow_rules'] ?? []) as $action => $rule): ?>
               <?php if ((string) $action === 'delete'): ?>

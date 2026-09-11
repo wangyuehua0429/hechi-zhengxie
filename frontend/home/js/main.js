@@ -70,7 +70,9 @@
 
   function renderNav(nav) {
     // 首页单独在左侧，跨两行并配图标；其余栏目分两行排列（参照四川政协网导航）
-    const home = nav[0];
+    // 后台可以把某个导航项置为 hidden，前台直接跳过（条目仍留在后台列表里）
+    const visible = (nav || []).filter(function (n) { return n && !n.hidden; });
+    const home = visible[0];
     const homeEl = el("navHome");
     if (homeEl && home) {
       homeEl.href = "./index.html";
@@ -85,7 +87,7 @@
       const open = /^https?:\/\//i.test(url) ? ' target="_blank" rel="noopener"' : "";
       return '<a href="' + esc(url) + '"' + open + '>' + esc(n.title) + '</a>';
     };
-    const rest = nav.slice(1);
+    const rest = visible.slice(1);
     const mid = Math.ceil(rest.length / 2);
     const rowsEl = el("navRows");
     if (rowsEl) {
@@ -588,6 +590,31 @@
     else if (more && items[0]) more.href = link(items[0].url);
   }
 
+  /**
+   * 站内横幅：后台维护的 7 个固定图片位。
+   * 静态快照（data/home.json）里没有 banners 键时保持 index.html 里写死的兜底内容。
+   */
+  function renderBanners(banners) {
+    if (!banners || typeof banners !== "object") return;
+    document.querySelectorAll("[data-banner]").forEach(function (node) {
+      const item = (banners[node.getAttribute("data-banner")] || [])[0];
+      const img = node.tagName === "IMG" ? node : node.querySelector("img");
+      if (!item || !item.img) {
+        node.hidden = true;
+        return;
+      }
+      if (img) {
+        img.src = item.img;
+        if (item.title) img.alt = item.title;
+      }
+      if (node.tagName === "A") {
+        if (item.url) node.setAttribute("href", link(item.url));
+        else node.removeAttribute("href");
+      }
+      node.hidden = false;
+    });
+  }
+
   function renderLinks(links) {
     const box = el("linksGroups");
     if (!box) return;
@@ -797,6 +824,7 @@
       initCountyMap();
       renderTopic(d.topic);
       renderImageMarquee("sceneryGrid", d.scenery);
+      renderBanners(d.banners);
       renderLinks(d.links);
       // index.html 里静态写死的旧站「更多」与横幅入口，统一改指新版内页
       document.querySelectorAll("a.more, a.banner-single").forEach(function (a) {

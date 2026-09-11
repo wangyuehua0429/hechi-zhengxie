@@ -50,7 +50,9 @@ const CASES = [
         "#heroCarousel .carousel-slide": 1,
         "#leadersBody .leader-chair": 1,
         "#zxdtList li": 1,
-        "#imageMarquee img": 1
+        "#imageMarquee img": 1,
+        // 站内横幅 7 个固定位（首屏 2 个专题条幅 + 正文 5 处）
+        "[data-banner]": 7
       }
     }
   },

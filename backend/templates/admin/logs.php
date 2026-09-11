@@ -18,7 +18,12 @@ $actionLabels = [
     'article.withdraw' => '撤回', 'article.republish' => '重新发布',
     'article.delete' => '移入回收站', 'article.restore' => '从回收站恢复',
     'attachment.create' => '上传附件', 'attachment.delete' => '删除附件', 'image.create' => '插入正文图片',
-    'channel.update' => '修改栏目', 'publish.all' => '一键发布',
+    'article.order' => '调整栏目内顺序',
+    'channel.update' => '修改栏目', 'channel.move' => '调整栏目顺序', 'publish.all' => '一键发布',
+    'nav.update' => '修改导航项', 'nav.move' => '调整导航顺序',
+    'slide.create' => '新增头条轮换', 'slide.update' => '修改头条轮换', 'slide.move' => '调整轮换顺序',
+    'slide.status' => '轮换上下线', 'slide.delete' => '删除头条轮换',
+    'section.update' => '修改首页模块', 'banner.update' => '修改站内横幅',
     'user.create' => '新建账号', 'user.update' => '修改账号', 'user.reset_password' => '重置密码',
     'role.update' => '修改角色权限',
 ];

@@ -41,6 +41,20 @@ function hechi_e(mixed $value): string
     return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 }
 
+/**
+ * 后台页面在 /admin/ 下，`images/x.jpg` 这种相对地址会被解析成 /admin/images/x.jpg。
+ * 站点素材统一补上根路径；已经是绝对地址、协议相对或 data: 的原样返回。
+ */
+function hechi_asset(mixed $url): string
+{
+    $url = trim((string) $url);
+    if ($url === '' || str_starts_with($url, '/') || str_starts_with($url, 'data:')
+        || preg_match('#^(https?:)?//#i', $url) === 1) {
+        return $url;
+    }
+    return '/' . ltrim($url, '/');
+}
+
 /*
  * 统一时区：CLI 脚本与 Web 入口都从这里走，避免 date() 用 UTC、
  * 而数据库的 datetime('now','localtime') 用本地时间，两边差 8 小时。

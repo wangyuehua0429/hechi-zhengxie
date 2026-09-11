@@ -30,14 +30,21 @@ $canAny = static function (array $perms) use ($can): bool {
 };
 
 $navItems = ['dashboard' => ['label' => '概览', 'url' => '/admin']];
+if ($can('home.manage')) {
+    $navItems['nav'] = ['label' => '导航栏目', 'url' => '/admin/nav'];
+    $navItems['slides'] = ['label' => '头条轮换', 'url' => '/admin/slides'];
+    $navItems['sections'] = ['label' => '其他栏目', 'url' => '/admin/sections'];
+    $navItems['banners'] = ['label' => '站内横幅', 'url' => '/admin/banners'];
+}
 if ($canAny(['article.edit', 'article.submit', 'article.review', 'article.publish', 'article.delete', 'article.restore'])) {
     $navItems['articles'] = ['label' => '稿件管理', 'url' => '/admin/articles'];
 }
-if ($can('channel.manage')) {
-    $navItems['channels'] = ['label' => '栏目管理', 'url' => '/admin/channels'];
-}
 if ($can('user.manage')) {
     $navItems['users'] = ['label' => '用户与角色', 'url' => '/admin/users'];
+}
+// 没有首页维护权限、但能管栏目时，仍保留「栏目管理」入口（四类页面在他那里看不到）
+if ($can('channel.manage') && !$can('home.manage')) {
+    $navItems['channels'] = ['label' => '栏目管理', 'url' => '/admin/channels'];
 }
 $roleText = ($userRoleNames ?? []) === [] ? '未分配角色' : implode('、', $userRoleNames);
 
@@ -46,6 +53,10 @@ $sections = [
     'dashboard' => ['label' => '概览', 'url' => '/admin'],
     'articles'  => ['label' => '稿件管理', 'url' => '/admin/articles'],
     'channels'  => ['label' => '栏目管理', 'url' => '/admin/channels'],
+    'nav'       => ['label' => '导航栏目', 'url' => '/admin/nav'],
+    'slides'    => ['label' => '头条轮换', 'url' => '/admin/slides'],
+    'sections'  => ['label' => '其他栏目', 'url' => '/admin/sections'],
+    'banners'   => ['label' => '站内横幅', 'url' => '/admin/banners'],
     'users'     => ['label' => '用户与角色', 'url' => '/admin/users'],
 ];
 $section = $sections[$current] ?? null;

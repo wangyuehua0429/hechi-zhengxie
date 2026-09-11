@@ -722,3 +722,61 @@ html:not(.js) .bulk-col { display: none; }
   .filter-label { min-width: 100%; }
   .preview-panel iframe { height: 320px; }
 }
+
+/* ============================================================ 首页四大类页面 */
+
+/* 两栏：左边选稿、右边手工新增 */
+.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.two-col > .card { margin-bottom: 0; }
+
+/* 头条轮换：首屏效果预览 + 列表缩略图 */
+.slide-strip { display: flex; flex-wrap: wrap; gap: 12px; }
+.slide-chip { width: 180px; margin: 0; }
+.slide-chip img { display: block; width: 100%; height: 100px; object-fit: cover; border-radius: 4px; background: #f2f3f5; }
+.slide-chip figcaption { margin-top: 4px; font-size: 13px; line-height: 1.4; }
+.slide-chip-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
+  border: 1px dashed var(--line);
+  border-radius: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+.thumb-sm { display: block; width: 72px; height: 48px; object-fit: cover; border-radius: 4px; background: #f2f3f5; }
+.pick-list { list-style: none; margin: 10px 0 0; padding: 0; }
+.pick-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--line);
+}
+.pick-list li:last-child { border-bottom: 0; }
+.pick-title { flex: 1 1 220px; }
+
+/* 其他栏目：模块内容预览 + 未进导航的栏目清单 */
+.preview-list { list-style: none; margin: 0 0 10px; padding: 0; }
+.preview-list li { padding: 3px 0; }
+.preview-titles { display: block; color: var(--muted); font-size: 13px; }
+.other-group { margin-bottom: 12px; }
+.other-group-title { margin: 8px 0 4px; font-weight: 700; }
+.other-channels { display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; margin: 0; padding: 0; }
+.other-channels li { font-size: 14px; }
+
+/* 表格里的次要行：隐藏的导航项、展开的编辑行 */
+.row-hidden { background: #fafbfc; }
+.row-hidden .title-link { color: var(--muted); }
+.row-detail td { background: #fafbfc; }
+.row-detail details summary { cursor: pointer; color: var(--brand); font-size: 14px; }
+.row-detail .edit-form { margin-top: 12px; }
+
+/* 站内横幅：一个槽位一张卡 */
+.slot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+.slot-card { margin-bottom: 0; }
+.slot-preview { margin: 8px 0 12px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #fafbfc; }
+.slot-preview img { display: block; width: 100%; height: auto; }
+.slot-preview--empty { padding: 24px; text-align: center; color: var(--muted); font-size: 13px; }

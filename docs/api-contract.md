@@ -94,7 +94,9 @@
 
 ### 4.2 `GET /api/v1/home`
 
-首页聚合数据，与 `data/home.json` 同构（21 个顶层键：`meta`、`nav`、`leaders`、`slides`、`notice`、`bookCity`、`antiGang`、`videos`、`zxdt`、`sxNews`、`zxMeeting`、`zwhWork`、`partyGroups`、`theory`、`imageNews`、`memberWindow`、`countyZx`、`ranking`、`topic`、`scenery`、`links`）。
+首页聚合数据，与 `data/home.json` 同构（快照 21 个顶层键：`meta`、`nav`、`leaders`、`slides`、`notice`、`bookCity`、`antiGang`、`videos`、`zxdt`、`sxNews`、`zxMeeting`、`zwhWork`、`partyGroups`、`theory`、`imageNews`、`memberWindow`、`countyZx`、`ranking`、`topic`、`scenery`、`links`；2026-09-11 起接口另返回 `banners`，格式为“槽位 ⇒ 条目数组”，槽位固定为 `hero-1`、`hero-2`、`body-1`…`body-5`）。
+
+> 其中 `zxdt`／`sxNews`／`zxMeeting`／`notice`／`bookCity`／`antiGang`／`zwhWork`／`partyGroups`／`theory`／`imageNews`／`scenery`／`memberWindow`／`countyZx` 的列表由后台“其他栏目”里配置的绑定栏目**实时从稿件表组装**（置顶在前、再按栏目内顺序、再按发布时间），不足条数时用 `cms_home_block` 的同名快照兜底；其余键仍来自快照。`slides` 改由 `cms_home_slide` 提供。
 
 响应：`{"home": { ... }}`
 

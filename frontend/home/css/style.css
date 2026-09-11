@@ -242,6 +242,8 @@ html.mast-folded .masthead-layers .mast-slogan { opacity: 0; visibility: hidden;
 }
 .container > .banner-single { margin-top: var(--card-gap); }
 .banner-single img { width: 100%; height: auto; display: block; filter: saturate(0.86); }
+/* 后台把某个横幅位下线后，前台整块不占位（[hidden] 会被上面的 display:block 盖掉） */
+.banner-single[hidden], .banner-strip a[hidden] { display: none !important; }
 .card-body .banner-single { margin: 14px 0 0; border-radius: var(--radius); }
 /* 首屏条幅：按原图比例（355×76）显示，不再纵向拉伸填满剩余高度 */
 .hero-main .banner-strip { margin: auto 0 0; flex: 0 0 auto; }

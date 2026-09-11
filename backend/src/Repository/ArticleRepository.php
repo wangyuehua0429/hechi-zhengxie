@@ -251,6 +251,118 @@ final class ArticleRepository
     }
 
     /**
+     * 按栏目置顶：置顶的稿件在该栏目列表与首页对应模块里排在最前，
+     * 两处共用同一套顺序（cms_article_channel.is_top + sort_no）。
+     */
+    public function setChannelTop(int $articleId, string $channelType, int $isTop): void
+    {
+        $now = $this->db->now();
+        if ($isTop === 1) {
+            $min = $this->db->scalar(
+                'SELECT MIN(sort_no) FROM cms_article_channel
+                 WHERE site_id = :site AND channel_type = :channel AND is_top = 1 AND article_id <> :id',
+                ['site' => $this->siteId, 'channel' => $channelType, 'id' => $articleId]
+            );
+            $sortNo = $min === null ? 1 : min(0, (int) $min - 1);
+        } else {
+            $sortNo = 0;
+        }
+        $this->db->execute(
+            'UPDATE cms_article_channel SET is_top = :top, sort_no = :sort
+             WHERE site_id = :site AND channel_type = :channel AND article_id = :id',
+            [
+                'top'     => $isTop,
+                'sort'    => $sortNo,
+                'site'    => $this->siteId,
+                'channel' => $channelType,
+                'id'      => $articleId,
+            ]
+        );
+        $this->db->execute(
+            'UPDATE cms_article SET updated_at = :t WHERE site_id = :site AND article_id = :id',
+            ['t' => $now, 'site' => $this->siteId, 'id' => $articleId]
+        );
+    }
+
+    /** 稿件在某个栏目里是否置顶 */
+    public function channelTop(int $articleId, string $channelType): int
+    {
+        return (int) $this->db->scalar(
+            'SELECT COALESCE(is_top, 0) FROM cms_article_channel
+             WHERE site_id = :site AND channel_type = :channel AND article_id = :id',
+            ['site' => $this->siteId, 'channel' => $channelType, 'id' => $articleId]
+        );
+    }
+
+    /**
+     * 栏目内上移／下移：按「置顶在前、再按排序值、再按发布时间」的实际顺序交换相邻两条，
+     * 然后把整列按层级重新编号（1 起），保证顺序稳定、不出现相同排序值。
+     *
+     * @return array{ok:bool, message:string}
+     */
+    public function moveInChannel(int $articleId, string $channelType, string $direction): array
+    {
+        $rows = $this->db->select(
+            'SELECT ac.article_id, ac.is_top, ac.sort_no, a.published_at
+             FROM cms_article_channel ac
+             JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
+             WHERE ac.site_id = :site AND ac.channel_type = :channel
+             ORDER BY ac.is_top DESC, ac.sort_no ASC, a.published_at DESC, ac.article_id DESC',
+            ['site' => $this->siteId, 'channel' => $channelType]
+        );
+
+        $index = null;
+        foreach ($rows as $i => $row) {
+            if ((int) $row['article_id'] === $articleId) {
+                $index = $i;
+                break;
+            }
+        }
+        if ($index === null) {
+            return ['ok' => false, 'message' => '这篇稿件不在该栏目下。'];
+        }
+        $target = $direction === 'up' ? $index - 1 : $index + 1;
+        if (!isset($rows[$target])) {
+            return [
+                'ok' => false,
+                'message' => $direction === 'up' ? '已经是这个栏目的第一篇（不含置顶稿）。' : '已经是这个栏目的最后一篇。',
+            ];
+        }
+        if ((int) $rows[$index]['is_top'] !== (int) $rows[$target]['is_top']) {
+            return [
+                'ok' => false,
+                'message' => '置顶稿件始终排在前面，要跨过它请先取消置顶（在稿件编辑页里改）。',
+            ];
+        }
+
+        $order = array_map(static fn (array $row): int => (int) $row['article_id'], $rows);
+        [$order[$index], $order[$target]] = [$order[$target], $order[$index]];
+
+        $byId = [];
+        foreach ($rows as $row) {
+            $byId[(int) $row['article_id']] = $row;
+        }
+        $counter = [0 => 0, 1 => 0];
+        foreach ($order as $id) {
+            $tier = (int) $byId[$id]['is_top'] === 1 ? 1 : 0;
+            $counter[$tier]++;
+            if ((int) $byId[$id]['sort_no'] === $counter[$tier]) {
+                continue;
+            }
+            $this->db->execute(
+                'UPDATE cms_article_channel SET sort_no = :sort
+                 WHERE site_id = :site AND channel_type = :channel AND article_id = :id',
+                ['sort' => $counter[$tier], 'site' => $this->siteId, 'channel' => $channelType, 'id' => $id]
+            );
+        }
+
+        return [
+            'ok' => true,
+            'message' => '已' . ($direction === 'up' ? '上移' : '下移') . '一篇（栏目：' . $channelType . '）。',
+        ];
+    }
+
+    /**
      * 按稿库状态统计：后台首页用全站口径，稿件列表用「当前栏目 + 数据范围」口径。
      *
      * @param list<string>|null $channelScope null 表示不限栏目

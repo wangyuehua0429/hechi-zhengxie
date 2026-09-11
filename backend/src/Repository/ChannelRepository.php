@@ -95,7 +95,7 @@ final class ChannelRepository
              FROM cms_article_channel ac
              JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
              WHERE ac.site_id = :site AND a.status = :status AND a.public_scope = :scope
-             ORDER BY ac.channel_type ASC, ac.sort_no ASC, a.published_at DESC, a.article_id DESC',
+             ORDER BY ac.channel_type ASC, ac.is_top DESC, ac.sort_no ASC, a.published_at DESC, a.article_id DESC',
             ['site' => $this->siteId, 'status' => 'published', 'scope' => 'public']
         );
 
@@ -120,7 +120,7 @@ final class ChannelRepository
              JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
              WHERE ac.site_id = :site AND ac.channel_type = :type
                AND a.status = :status AND a.public_scope = :scope
-             ORDER BY ac.sort_no ASC, a.published_at DESC, a.article_id DESC
+             ORDER BY ac.is_top DESC, ac.sort_no ASC, a.published_at DESC, a.article_id DESC
              LIMIT ' . max(0, $listSize),
             ['site' => $this->siteId, 'type' => $type, 'status' => 'published', 'scope' => 'public']
         );
@@ -388,7 +388,7 @@ final class ChannelRepository
              FROM cms_article_channel ac
              JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
              WHERE ac.site_id = :site AND a.status = :status AND a.public_scope = :scope
-             ORDER BY ac.channel_type ASC, ac.sort_no ASC, a.published_at DESC, a.article_id DESC',
+             ORDER BY ac.channel_type ASC, ac.is_top DESC, ac.sort_no ASC, a.published_at DESC, a.article_id DESC',
             ['site' => $this->siteId, 'status' => 'published', 'scope' => 'public']
         );
 
