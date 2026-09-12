@@ -30,7 +30,8 @@ $layoutLabels = [
 ];
 $type = (string) $channel['type_code'];
 $parentName = $parent !== null ? (string) $parent['inner_name'] : (string) $channel['name'];
-$isChild = (string) ($channel['parent_type'] ?? '') !== '';
+// 一级栏目的 parent_type 是自身栏目号（控制器已把它判成“没有上级”），只有真挂了上级才显示层级
+$isChild = $parent !== null;
 ?>
 <div class="page-head">
   <div class="page-title">
@@ -42,6 +43,7 @@ $isChild = (string) ($channel['parent_type'] ?? '') !== '';
   </div>
   <div class="head-actions">
     <a class="btn" href="/channel.html?id=<?= hechi_e($type) ?>" target="_blank" rel="noopener">前台栏目页</a>
+    <a class="btn btn-ghost" href="/admin/channel/<?= hechi_e($type) ?>/delete">删除栏目</a>
     <a class="btn btn-ghost" href="/admin/channels">返回栏目列表</a>
   </div>
 </div>

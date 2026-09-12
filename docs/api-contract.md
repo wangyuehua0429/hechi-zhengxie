@@ -45,7 +45,7 @@
 | `intro` | string | 栏目简介 |
 | `layout` | string | 版式：`list`／`leaders`／`about`／`county`／`gallery`／`video`／`topic`／`interactive` |
 | `siblings` | array | 同级子栏目 `{type, name, url, active}` |
-| `total` | int | 栏目全量条数（旧库统计值，非样例条数） |
+| `total` | int | 栏目**当前公开条数**（`status=published` 且 `public_scope=public`，实时统计；2026-09-12 起不再用快照常量 `sys_channel.total_count`） |
 | `list` | array | 稿件列表项，见 3.2；`?withList=0` 时省略 |
 | `counties` | array? | 仅 `layout=county`：`{name, url}`，url 为空表示该县区尚未建站 |
 | `note` | string? | 仅 `layout=interactive`：互动栏目说明 |
@@ -141,12 +141,15 @@
   "articles": [ArticleListItem],
   "page": 1,
   "size": 20,
-  "total": 825,
-  "pages": 42
+  "total": 464,
+  "pages": 24
 }
 ```
 
-> `total` 是**库里真实条数**（旧库同口径），不是当前样例条数；原型期样例库只有 24 条时，`total` 即为 24。
+> `total` 是**当前公开条数**（实时统计，不含草稿与归档），与栏目页列表能翻到的条数一致：
+> 迁移后 904 栏目公开 464 篇（旧库已审 825 篇，其中 361 篇超出公开年限进 `archive` 只留后台），
+> 所以 `total` 是 464、`pages` 是 24；原型期样例库只有 24 条时 `total` 即为 24。
+> 栏目页列表用本接口真分页，每页 20 条（2026-09-12 之前前端只对首屏取的 50 条做本地分页）。
 
 ### 4.6 `GET /api/v1/article/{id}`
 
@@ -199,16 +202,28 @@
 | 产物 | 路径 | 说明 |
 | --- | --- | --- |
 | 首页 | `/index.html` | 首页全文静态 |
-| 栏目页 | `/channel/<slug>/index.html`、分页 `/channel/<slug>/page-<n>.html` | 列表分页静态 |
+| 栏目页 | `/channel/<目录名>/index.html`、分页 `/channel/<目录名>/page-<n>.html` | 列表分页静态；目录名规则见下 |
 | 详情页 | `/article/<id>.html` | 正文静态 |
+
+**归档不出静态页**（2026-09-12）：只有 `status=published` 且 `public_scope=public` 且有正文的稿件才产出 `/article/<id>.html` 并进 sitemap；`public_scope=archive`（超出公开年限的历史稿）只留后台，旧地址返回 404。
 | 数据快照 | `/data/home.json`、`/data/channel.json`、`/data/article.json` | 与接口同构，供前端异步取数 |
 | 站点地图 | `/sitemap.xml` | 首页 + 栏目 + 详情 |
 
 发布触发：后台保存／下线 → 该稿件与所属栏目、首页增量刷新；全量重建走命令行（`php backend/bin/publish.php --all`）。
 
+**栏目目录名**（2026-09-12 修正）：slug 唯一时用 `/channel/<slug>/`；slug 重复的一级栏目（如 902—906 都写 `zhengxie-dongtai`）补上栏目号，写成 `/channel/<slug>-<栏目号>/`。规则实现在 `backend/src/Publish/StaticPaths.php`。此前的写法会让 43 个栏目只产出 25 个静态页，已修正并纳入 `tests/redirect-check.mjs`。
+
 ## 7. 与旧站 301 的衔接
 
-旧地址（`news-view-<id>.html`、`news_list.php?id=<n>`、`cq_view.php?id=<n>`）由 `sys_url_redirect` 表落到新地址，映射规则见阶段 B 的《旧 URL 清单》。接口层不处理 301，由 Nginx／入口统一转发。
+旧地址（`/html/news-view-<id>.html`、`/news_view.php?id=<id>`、`/cq_view.php?id=<id>`、`/news_list.php?id=<栏目号>` 等）由 `sys_url_redirect` 表落到新地址：详情落 `/article/<id>.html`，栏目落 `/channel/<目录名>/`，入口页与专题目录落首页／专题栏目页。
+
+生成与判定：
+
+1. `php backend/bin/redirects.php --out=<发布目录>` 按库内内容生成映射，并产出 Nginx 片段、核对用 CSV 与报告；
+2. Nginx 按片段的旧地址形态把请求转给 PHP 入口，入口查表命中即 301，并把命中数累加到 `sys_url_redirect.hits`；
+3. 只登记“已发布 + 有正文 + `public_scope=public`”的稿件，保证每条 301 都指向真实存在的静态页，不会 301 到 404；归档稿件不登记（旧地址 404）；县区子站（`q=<县区号>`）本期不映射。
+
+逐条规则、旧地址出处与未覆盖项见 [旧地址301映射说明.md](旧地址301映射说明.md)。
 
 ## 8. 待定项
 

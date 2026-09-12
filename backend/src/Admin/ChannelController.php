@@ -217,9 +217,10 @@ final class ChannelController extends AdminController
             'position'     => $position,
             'prevChannel'  => $prev,
             'nextChannel'  => $next,
-            'parent'       => (string) $channel['parent_type'] !== ''
-                ? $this->channels->adminFind((string) $channel['parent_type'])
-                : null,
+            // 一级栏目的 parent_type 是自身栏目号，不该把它自己当成“上级栏目”
+            'parent'       => ChannelRepository::isTopLevel((string) $channel['type_code'], (string) $channel['parent_type'])
+                ? null
+                : $this->channels->adminFind((string) $channel['parent_type']),
         ], '编辑栏目 · ' . $channel['inner_name']);
     }
 
@@ -276,5 +277,217 @@ final class ChannelController extends AdminController
 
         Flash::set('ok', '已保存栏目：' . $inner);
         return new RedirectResponse('/admin/channel/' . $type);
+    }
+
+    // ---- 新建与删除（2026-09-12）------------------------------------------------
+
+    public function createForm(Request $request): HtmlResponse|RedirectResponse
+    {
+        if ($redirect = $this->requireLogin()) {
+            return $redirect;
+        }
+        if ($denied = $this->requirePermission(Permissions::CHANNEL_MANAGE)) {
+            return $denied;
+        }
+
+        return $this->view->page('admin/channel_new', [
+            'current'  => 'channels',
+            'layouts'  => self::LAYOUTS,
+            'parents'  => $this->channels->adminTopChannels(),
+            'defaults' => [
+                'parent_type' => '',
+                'type_code'   => '',
+                'name'        => '',
+                'inner_name'  => '',
+                'slug'        => '',
+                'layout'      => 'list',
+                'status'      => 'published',
+                'intro'       => '',
+            ],
+            'error' => '',
+        ], '新建栏目');
+    }
+
+    /**
+     * 新建栏目：栏目号唯一、子栏目名必填；挂在一级栏目下时，一级栏目名跟随父栏目，
+     * 避免同一组里出现两个不同的一级名（前台导航条按一级名分组）。
+     */
+    public function store(Request $request): HtmlResponse|RedirectResponse
+    {
+        if ($redirect = $this->requireLogin()) {
+            return $redirect;
+        }
+        if ($denied = $this->guard($request)) {
+            return $denied;
+        }
+        if ($denied = $this->requirePermission(Permissions::CHANNEL_MANAGE)) {
+            return $denied;
+        }
+
+        $type = trim($request->post('type_code'));
+        $parent = trim($request->post('parent_type'));
+        $inner = trim($request->post('inner_name'));
+        $name = trim($request->post('name'));
+        $slug = trim($request->post('slug'));
+        $intro = $request->post('intro');
+        $layout = $request->post('layout');
+        $status = $request->post('status');
+
+        if (!in_array($layout, self::LAYOUTS, true)) {
+            $layout = 'list';
+        }
+        if (!in_array($status, self::STATUSES, true)) {
+            $status = 'published';
+        }
+
+        $error = '';
+        $parentRow = null;
+        if ($parent !== '') {
+            $parentRow = $this->channels->adminFind($parent);
+            if ($parentRow === null) {
+                $error = '选的一级栏目不存在，请重新选择。';
+            } elseif (!ChannelRepository::isTopLevel((string) $parentRow['type_code'], (string) $parentRow['parent_type'])) {
+                $error = '只能挂在一级栏目下，本系统只做两级栏目。';
+            }
+        }
+        if ($error === '' && preg_match('/^[A-Za-z0-9_-]{1,32}$/', $type) !== 1) {
+            $error = '栏目号只能用 1—32 位字母、数字、下划线或连字符（例如 320 或 xianqu-news）。';
+        }
+        if ($error === '' && in_array(strtolower($type), ['new', 'create', 'index', 'delete'], true)) {
+            $error = '栏目号「' . $type . '」是后台的保留字，换一个。';
+        }
+        if ($error === '' && $this->channels->adminTypeExists($type)) {
+            $error = '栏目号「' . $type . '」已经被占用，换一个。';
+        }
+        if ($error === '' && $inner === '') {
+            $error = '子栏目名不能为空（前台导航与栏目页标题用它）。';
+        }
+        if ($error === '' && $slug !== '' && preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]*$/', $slug) !== 1) {
+            $error = 'URL 标识只能用字母、数字、点、下划线或连字符，且以字母或数字开头；留空则用栏目号。';
+        }
+        if ($error === '' && $parentRow === null && $name === '') {
+            $error = '新建一级栏目时，一级栏目名不能为空。';
+        }
+
+        if ($error !== '') {
+            // 直接回渲染，保留编辑已经填好的内容，不让他重填一遍
+            return $this->view->page('admin/channel_new', [
+                'current'  => 'channels',
+                'layouts'  => self::LAYOUTS,
+                'parents'  => $this->channels->adminTopChannels(),
+                'defaults' => [
+                    'parent_type' => $parent,
+                    'type_code'   => $type,
+                    'name'        => $name,
+                    'inner_name'  => $inner,
+                    'slug'        => $slug,
+                    'layout'      => $layout,
+                    'status'      => $status,
+                    'intro'       => $intro,
+                ],
+                'error' => $error,
+            ], '新建栏目');
+        }
+
+        $finalName = $parentRow !== null ? (string) $parentRow['name'] : $name;
+        $parentType = $parentRow !== null ? (string) $parentRow['type_code'] : $type;
+        $this->channels->adminCreate([
+            'type_code'   => $type,
+            // 一级栏目按 seed 的约定写自身栏目号（见 ChannelRepository::isTopLevel）
+            'parent_type' => $parentType,
+            'slug'        => $slug !== '' ? $slug : $type,
+            'name'        => $finalName,
+            'inner_name'  => $inner,
+            'intro'       => $intro,
+            'layout'      => $layout,
+            'sort_no'     => $this->channels->adminMaxSortNo($parentRow !== null ? $parentType : '') + 1,
+            'status'      => $status,
+        ]);
+        $this->log('channel.create', 'channel', $type, [
+            'name'        => $finalName,
+            'inner_name'  => $inner,
+            'parent_type' => $parentRow !== null ? (string) $parentRow['type_code'] : '',
+            'layout'      => $layout,
+            'status'      => $status,
+        ]);
+
+        Flash::set('ok', '已新建栏目：' . $inner . '。它排在所在分组的最后，可在列表里上移／下移。');
+        return new RedirectResponse('/admin/channel/' . $type);
+    }
+
+    /**
+     * @param array<string, string> $args
+     */
+    public function deleteConfirm(Request $request, array $args): HtmlResponse|RedirectResponse
+    {
+        if ($redirect = $this->requireLogin()) {
+            return $redirect;
+        }
+        if ($denied = $this->requirePermission(Permissions::CHANNEL_MANAGE)) {
+            return $denied;
+        }
+
+        $type = (string) $args['type'];
+        $channel = $this->channels->adminFind($type);
+        if ($channel === null) {
+            return $this->view->page('admin/message', [
+                'current' => 'channels',
+                'heading' => '未找到栏目',
+                'message' => '栏目 ' . $type . ' 不存在。',
+                'backUrl' => '/admin/channels',
+            ], '未找到栏目');
+        }
+
+        return $this->view->page('admin/channel_delete', [
+            'current'     => 'channels',
+            'channel'     => $channel,
+            'blockers'    => $this->channels->adminBlockers($type),
+            'parent'      => ChannelRepository::isTopLevel($type, (string) $channel['parent_type'])
+                ? null
+                : $this->channels->adminFind((string) $channel['parent_type']),
+        ], '删除栏目 · ' . $channel['inner_name']);
+    }
+
+    /**
+     * @param array<string, string> $args
+     */
+    public function delete(Request $request, array $args): HtmlResponse|RedirectResponse
+    {
+        if ($redirect = $this->requireLogin()) {
+            return $redirect;
+        }
+        if ($denied = $this->guard($request)) {
+            return $denied;
+        }
+        if ($denied = $this->requirePermission(Permissions::CHANNEL_MANAGE)) {
+            return $denied;
+        }
+
+        $type = (string) $args['type'];
+        $channel = $this->channels->adminFind($type);
+        if ($channel === null) {
+            Flash::set('error', '栏目不存在。');
+            return new RedirectResponse('/admin/channels');
+        }
+
+        if ($request->post('confirm') !== 'delete') {
+            Flash::set('error', '请先勾选确认再删除。');
+            return new RedirectResponse('/admin/channel/' . $type . '/delete');
+        }
+
+        $blockers = $this->channels->adminBlockers($type);
+        if ($blockers !== []) {
+            Flash::set('error', '这个栏目还有关联内容，暂不能删除：' . implode(' ', $blockers));
+            return new RedirectResponse('/admin/channel/' . $type . '/delete');
+        }
+
+        $this->channels->adminDelete($type);
+        $this->log('channel.delete', 'channel', $type, [
+            'name'       => (string) $channel['name'],
+            'inner_name' => (string) $channel['inner_name'],
+        ]);
+
+        Flash::set('ok', '已删除栏目：' . $channel['inner_name'] . '。它名下的旧地址 301 映射已一并清掉，重新发布后前台不再有这一页。');
+        return new RedirectResponse('/admin/channels');
     }
 }

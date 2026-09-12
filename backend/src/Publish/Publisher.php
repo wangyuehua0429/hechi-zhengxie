@@ -71,6 +71,9 @@ final class Publisher
         $articles = $this->articlesWithBody();
 
         $entries = [];
+        // 栏目页地址统一由 StaticPaths 决定：slug 重复的一级栏目会补上栏目号，
+        // 保证 43 个栏目 43 个路径，不互相覆盖（301 映射表也用同一份结果）。
+        $channelPaths = StaticPaths::channelPaths($channels);
 
         // 首页
         $this->write('index.html', $this->render([
@@ -84,16 +87,16 @@ final class Publisher
 
         // 栏目页
         foreach ($channels as $channel) {
-            $slug = $channel['slug'] !== '' ? $channel['slug'] : $channel['type'];
-            $path = 'channel/' . $slug . '/index.html';
+            $channelPath = $channelPaths[(string) $channel['type']] ?? '/channel/' . $channel['type'] . '/';
+            $path = ltrim($channelPath, '/') . 'index.html';
             $this->write($path, $this->render([
                 'title'       => $channel['inner'] . ' · ' . $this->siteName,
                 'description' => $channel['intro'] !== '' ? $channel['intro'] : $channel['inner'],
                 'heading'     => $channel['inner'],
                 'bodyHtml'    => $this->channelHtml($channel),
-                'canonical'   => '/channel/' . $slug . '/',
+                'canonical'   => $channelPath,
             ]));
-            $entries[] = ['loc' => '/channel/' . $slug . '/', 'priority' => '0.8'];
+            $entries[] = ['loc' => $channelPath, 'priority' => '0.8'];
         }
 
         // 详情页
@@ -127,9 +130,11 @@ final class Publisher
     {
         $rows = $this->db->select(
             'SELECT article_id FROM cms_article
-             WHERE site_id = :site AND status = :status AND has_body = 1
+             WHERE site_id = :site AND status = :status AND public_scope = :scope AND has_body = 1
              ORDER BY published_at DESC, article_id DESC',
-            ['site' => $this->siteId, 'status' => 'published']
+            // 归档（public_scope=archive）的稿件只留后台，不产静态页：口径见
+            // docs/稿库与内容状态设计.md 第 2 节（近 3 年公开，更早后台留存）。
+            ['site' => $this->siteId, 'status' => 'published', 'scope' => 'public']
         );
 
         $articles = [];

@@ -17,12 +17,14 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 use HechiZx\Support\Db;
 use HechiZx\Support\Json;
 
-$options = getopt('', ['snapshots::', 'home-only', 'help']);
+$options = getopt('', ['snapshots::', 'home-only', 'force', 'help']);
 
 if (isset($options['help'])) {
-    fwrite(STDOUT, "用法：php backend/bin/seed.php [--snapshots=<目录>] [--home-only]\n"
+    fwrite(STDOUT, "用法：php backend/bin/seed.php [--snapshots=<目录>] [--home-only] [--force]\n"
         . "  --home-only  只执行数据库迁移并回填首页四大类（模块 / 头条轮换 / 横幅）的初始配置，\n"
-        . "               不重灌栏目与稿件；老库升级到 003 后用这条。\n");
+        . "               不重灌栏目与稿件；老库升级到 003 后用这条。\n"
+        . "  --force      库里已有快照之外的稿件时仍然按快照重灌（会把已迁移内容的正文与\n"
+        . "               公开范围覆盖回样例，并清空重写栏目归属，请先备份）。\n");
     exit(0);
 }
 
@@ -102,6 +104,27 @@ $articleData = readSnapshot($snapshotDir, 'article.json');
 $channels = $channelData['channels'] ?? [];
 /** @var list<array<string, mixed>> $articles */
 $articles = $articleData['articles'] ?? [];
+
+// 安全闸：库里如果已经有快照之外的稿件，说明跑过迁移或有编辑在写稿，这时按快照重灌
+// 会把正文、公开范围与栏目归属覆盖回样例（实测会把 4,500+ 条归属砍回 400 多条）。
+$snapshotIds = [];
+foreach ($articles as $article) {
+    $snapshotIds[(string) ($article['id'] ?? '')] = true;
+}
+$unknown = 0;
+$existingTotal = 0;
+foreach ($db->select('SELECT article_id FROM cms_article WHERE site_id = :site', ['site' => $siteId]) as $row) {
+    $existingTotal++;
+    if (!isset($snapshotIds[(string) $row['article_id']])) {
+        $unknown++;
+    }
+}
+if ($unknown > 0 && !isset($options['force'])) {
+    fwrite(STDERR, "已停止：库里已有 {$existingTotal} 篇稿件，其中 {$unknown} 篇不在样例快照里（多为迁移导入或后台新建）。\n"
+        . "继续跑会把样例覆盖到同号稿件上，并清空重写栏目归属。\n"
+        . "如果确实要按样例重灌，先备份数据库再加 --force；只想补首页四大类配置请用 --home-only。\n");
+    exit(1);
+}
 
 // 1) 站点
 $meta = is_array($home['meta'] ?? null) ? $home['meta'] : [];

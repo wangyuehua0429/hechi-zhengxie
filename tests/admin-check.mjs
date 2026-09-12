@@ -940,6 +940,126 @@ async function main() {
       searched.text.includes("匹配到 1 个栏目"),
       "命中 " + (searched.text.match(/class="title-link" href="\/admin\/channel\//g) || []).length + " 个栏目");
 
+    // ---- 栏目新建与删除（2026-09-12）
+    const newChannelPage = await client.get("/admin/channel/new");
+    check("栏目列表与新建页都有入口",
+      channels.text.includes('href="/admin/channel/new"') && newChannelPage.status === 200 &&
+      newChannelPage.text.includes("新建栏目") && newChannelPage.text.includes('name="parent_type"'));
+    check("新建页给出一级栏目归属下拉与版式选项",
+      (newChannelPage.text.match(/<option value="\d+"[^>]*>[\s\S]*?（栏目号 \d+/g) || []).length >= 15 &&
+      newChannelPage.text.includes('value="county"'),
+      "归属选项 " + (newChannelPage.text.match(/<option value="\d+"[^>]*>[\s\S]*?（栏目号 \d+/g) || []).length + " 个");
+    check("栏目编辑（无 channel.manage）访问新建页被判 403",
+      (await editorClient.get("/admin/channel/new")).status === 403);
+
+    const newType = "9901";
+    const createdChannel = await client.post("/admin/channel/create", {
+      _token: csrfToken(newChannelPage.text),
+      parent_type: "904",
+      type_code: newType,
+      inner_name: "临时检查栏目",
+      slug: "lin-shi-jian-cha",
+      layout: "list",
+      status: "published",
+      intro: "检查用栏目，跑完就删。"
+    });
+    check("新建栏目成功后跳到该栏目的编辑页", createdChannel.status === 302 &&
+      (createdChannel.headers.get("location") || "").endsWith("/admin/channel/" + newType),
+      createdChannel.status + " → " + createdChannel.headers.get("location"));
+    const afterCreate = await client.get("/admin/channels");
+    check("新建的栏目出现在列表里，且沿用父栏目的一级名",
+      afterCreate.text.includes("临时检查栏目") &&
+      /href="\/admin\/channel\/9901"/.test(afterCreate.text) &&
+      afterCreate.text.includes("栏目总数") &&
+      afterCreate.text.includes(">44<"),
+      "列表里栏目数统计 " + ((afterCreate.text.match(/<span class="stat-num">(\d+)<\/span><span class="stat-label">栏目总数/) || [])[1] || "?"));
+    const afterCreateApi = await client.get("/api/v1/channels?listSize=1");
+    check("新建的已上线栏目立刻出现在内容接口里",
+      afterCreateApi.text.includes('"type":"' + newType + '"') || afterCreateApi.text.includes('"type": "' + newType + '"'));
+
+    const duplicate = await client.post("/admin/channel/create", {
+      _token: csrfToken(newChannelPage.text),
+      parent_type: "",
+      type_code: newType,
+      name: "重复栏目号",
+      inner_name: "重复栏目号",
+      layout: "list",
+      status: "published",
+      intro: ""
+    });
+    check("栏目号重复被挡下并给出提示",
+      duplicate.status === 200 && duplicate.text.includes("已经被占用") &&
+      ((await client.get("/admin/channels")).text.match(/<span class="stat-num">(\d+)<\/span><span class="stat-label">栏目总数/) || [])[1] === "44",
+      "栏目总数 " + (((await client.get("/admin/channels")).text.match(/<span class="stat-num">(\d+)<\/span><span class="stat-label">栏目总数/) || [])[1] || "?"));
+    const badType = await client.post("/admin/channel/create", {
+      _token: csrfToken(newChannelPage.text),
+      parent_type: "",
+      type_code: "非法 号",
+      name: "非法栏目号",
+      inner_name: "非法栏目号",
+      layout: "list",
+      status: "published",
+      intro: ""
+    });
+    check("栏目号格式不合法被挡下", badType.status === 200 && badType.text.includes("只能用"));
+    const underChild = await client.post("/admin/channel/create", {
+      _token: csrfToken(newChannelPage.text),
+      parent_type: "902",
+      type_code: "9902",
+      inner_name: "三级栏目",
+      layout: "list",
+      status: "published",
+      intro: ""
+    });
+    check("挂在子栏目下被挡下（只做两级）",
+      underChild.status === 200 && underChild.text.includes("只能挂在一级栏目下"));
+
+    const blockedDelete = await client.get("/admin/channel/904/delete");
+    check("删除有稿件的栏目会列出阻止理由",
+      blockedDelete.status === 200 && blockedDelete.text.includes("暂不能删除") &&
+      blockedDelete.text.includes("篇稿件挂在这个栏目"));
+    const blockedDeletePost = await client.post("/admin/channel/904/delete", {
+      _token: csrfToken(blockedDelete.text),
+      confirm: "delete"
+    });
+    check("即使勾选确认，有稿件的栏目仍删不掉",
+      blockedDeletePost.status === 302 &&
+      (await client.get("/admin/channel/904/delete")).text.includes("暂不能删除"));
+
+    // 先把新栏目写进 301 映射，验证删除时会一并清理
+    runPhp(php, "backend/bin/redirects.php", env);
+    const mappingBefore = runPhp(php, "-r", env, [
+      "require 'backend/src/bootstrap.php'; $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+      + " echo (int) $db->scalar(\"SELECT COUNT(*) FROM sys_url_redirect WHERE old_path = '/news_list.php?id=" + newType + "'\");"
+    ]);
+    check("新建栏目会进入旧地址 301 映射（该栏目号曾用过才需要，这里验证清理逻辑）",
+      (mappingBefore.stdout || "").trim() === "1", (mappingBefore.stdout || "").trim());
+
+    const noConfirm = await client.post("/admin/channel/" + newType + "/delete", {
+      _token: csrfToken(blockedDelete.text)
+    });
+    check("删除栏目必须先勾选确认",
+      noConfirm.status === 302 &&
+      (await client.get("/admin/channels")).text.includes("请先勾选确认"));
+    const deletedChannel = await client.post("/admin/channel/" + newType + "/delete", {
+      _token: csrfToken((await client.get("/admin/channel/" + newType + "/delete")).text),
+      confirm: "delete"
+    });
+    check("确认后栏目被删除并回到列表", deletedChannel.status === 302 &&
+      (deletedChannel.headers.get("location") || "").endsWith("/admin/channels"));
+    const afterDelete = await client.get("/admin/channels");
+    check("删除后列表里不再有该栏目",
+      !/href="\/admin\/channel\/9901"/.test(afterDelete.text) &&
+      ((afterDelete.text.match(/<span class="stat-num">(\d+)<\/span><span class="stat-label">栏目总数/) || [])[1] === "43"),
+      "栏目总数 " + ((afterDelete.text.match(/<span class="stat-num">(\d+)<\/span><span class="stat-label">栏目总数/) || [])[1] || "?"));
+    const mappingAfter = runPhp(php, "-r", env, [
+      "require 'backend/src/bootstrap.php'; $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+      + " echo (int) $db->scalar(\"SELECT COUNT(*) FROM sys_url_redirect WHERE old_path LIKE '%id=" + newType + "'\");"
+    ]);
+    check("删除栏目时清掉它的 301 映射记录", (mappingAfter.stdout || "").trim() === "0", (mappingAfter.stdout || "").trim());
+    const afterDeleteApi = await client.get("/api/v1/channels?listSize=1");
+    check("删除后内容接口里也不再有该栏目", !afterDeleteApi.text.includes(newType));
+
     // ---- 批量操作也要过权限位：栏目编辑只该看到「提交审核」
     const editorListPage = await editorClient.get("/admin/articles");
     check("栏目编辑的批量动作只列出他有权限的那几个",

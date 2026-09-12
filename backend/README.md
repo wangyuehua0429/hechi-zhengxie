@@ -1,6 +1,6 @@
 # 主站后端（PHP 轻量 CMS）
 
-本目录是《河池政协网开发思路与技术栈方案》里主站的后端实现。当前为**可运行的最小骨架**：数据模型、内容接口、静态化发布器与一个能用的后台管理界面已经跑通阶段 A 的样例数据；301 映射生成与旧库导入尚未实现（见文末“阶段 C 待办”）。
+本目录是《河池政协网开发思路与技术栈方案》里主站的后端实现。当前为**可运行的最小骨架**：数据模型、内容接口、静态化发布器、旧地址 301 映射与一个能用的后台管理界面已经跑通阶段 A 的样例数据；旧库全量导入尚未实现（见文末“阶段 C 待办”）。
 
 接口契约见 [../docs/api-contract.md](../docs/api-contract.md)，数据模型见 [../docs/架构与实施说明.md](../docs/架构与实施说明.md) 第 2 节。
 
@@ -12,6 +12,7 @@ backend/
 │   ├── migrate.php         建表 / 升级表结构
 │   ├── seed.php            把 frontend/home/data 的快照灌进库
 │   ├── publish.php         静态化发布（数据快照 + 全文静态页 + sitemap）
+│   ├── redirects.php       旧地址 301：生成 sys_url_redirect、Nginx 片段与核对 CSV
 │   ├── scan-content.php    只读体检：扫存量正文里的可疑标签，给出清洗前后预览，不改库
 │   └── user.php            后台账号管理（create / passwd / disable / list）
 ├── config/config.php       运行配置（读环境变量，本地默认 SQLite）
@@ -28,8 +29,8 @@ backend/
 │   ├── Admin/              后台：Auth / Csrf / Flash / View + 首页四类与稿件、栏目、用户等控制器
 │   ├── Api/                health / home / channels / articles / search 控制器
 │   ├── Content/            正文清洗（HtmlSanitizer，HTMLPurifier 白名单）、稿库状态机与权限码
-│   ├── Http/               Request / Response / HtmlResponse / RedirectResponse / Router / ApiException
-│   ├── Publish/Publisher.php
+│   ├── Http/               Request / Response / HtmlResponse / RedirectResponse / Router / ApiException / LegacyRedirect（旧地址 301 判定）
+│   ├── Publish/            Publisher（静态化）· StaticPaths（栏目页路径）· RedirectMap（301 映射与产物）
 │   ├── Repository/         栏目、稿件、首页模块仓储（SQL 只写在这里）
 │   └── Support/            Config / Db / Json / Migrator
 ├── storage/                运行时目录（SQLite 文件、发布产物、HTMLPurifier 定义缓存，不入库）
@@ -53,6 +54,10 @@ php backend/bin/seed.php
 # 3. 起接口服务
 php -S 127.0.0.1:8080 -t backend/public backend/public/router.php
 ```
+
+> **迁移入库后不要再跑 `seed.php`**（2026-09-12 起有安全闸）：它按 `frontend/home/data/` 的样例快照灌库，
+> 会把同号稿件的正文与公开范围覆盖回样例，并把栏目归属清空重写（实测会把 4,500+ 条砍回 400 多条）。
+> 库里已有快照之外的稿件时它会直接停下并说明；确实要重灌得先备份再加 `--force`，只想补首页四大类配置用 `--home-only`。
 
 > **已有的库升级到 003（首页四大类）**：不要重跑 `seed.php`（会把栏目与稿件重新按快照覆盖），用这条：
 >
@@ -109,7 +114,7 @@ php backend/bin/user.php disable admin    # 停用
 | 站内横幅 | 首页 7 个固定图片位（`hero-1/2`、`body-1…5`）：换图、改链接与 alt、上下线；每个位置在文件框下面给出该位的**显示尺寸、宽高比例与建议像素**（按显示尺寸 2 倍、文件 ≤ 300 KB），首屏两张是固定框裁切、正文里的按图片自身比例撑高；**选中文件后立刻在上方预览框里显示预览图**（本地预览，点“保存”才生效）。下线后前台整块不占位，且**不影响相邻模块的间距**——首页区块间距已改成容器统一定的固定值（`gap`），不再靠横幅自己的上下外边距撑开 |
 | 稿件管理 | 列表：**一块筛选面板**收稿库（导航条）+ 栏目（导航条）+ 关键词 + 排序（发布时间／最近更新／稿件号）+ 每页条数（20／50／100），标题即编辑入口，**批量提交／审核通过／退回／撤回／重新发布／恢复**（单次 ≤100 篇，按权限位出动作），分页含页码与跳转，空结果给下一步；新建稿件（先点导航条选栏目，再填内容，状态默认“已发布”）；编辑页两栏：左侧一张“摘要与正文”写作窗（标题带 64 字计数、作者／责任编辑／来源一行、原标题三项、栏目内置顶、富文本正文），右侧稿库流转、稿件信息、附件、正文插图、回收站，保存条吸底，正文可预览并显示字数；列表里的**预览／复制链接**已发布才有（未发布置灰），**高亮／徽标**改到首页管理维护；删除稿件走确认页（软删除，可恢复） |
 | 附件与插图 | 上传附件（pdf／doc／xls／ppt／zip／rar／txt，单个 ≤32 MB）；上传正文插图（自动追加到正文末尾并登记为图集图片）；编辑器里插图、mp4／webm 视频走 `POST /admin/media/image` 与 `POST /admin/media/video`，插在光标处；可删除附件。新建稿件还没有稿件号时，素材先落 `backend/public/uploads/pending/`，保存稿件时自动迁进 `uploads/<稿件号>/` 并登记图集。**图片一律 ≤ 2 MB**（横幅、头条大图、正文插图、编辑器插图都算），附件与视频仍是 32 MB |
-| 栏目管理 | **按一级栏目分组**展示 43 个栏目（组头给子栏目数、稿件条数、上下线数），组内可直接**上移／下移**，支持按栏目名／栏目号检索；可改一级栏目名、子栏目名、版式、排序、上下线、栏目简介；稿件数、前台页、编辑页都有直达入口 |
+| 栏目管理 | **按一级栏目分组**展示 43 个栏目（组头给子栏目数、稿件条数、上下线数），组内可直接**上移／下移**，支持按栏目名／栏目号检索；可改一级栏目名、子栏目名、版式、排序、上下线、栏目简介；稿件数、前台页、编辑页都有直达入口。**新建栏目**（选归属、栏目号、URL 标识、版式与状态，只做两级）与**删除栏目**（确认页；有稿件、子栏目、首页模块绑定或导航指向时逐条说明并挡下，确认后清理角色的栏目数据范围与该栏目的 301 映射）见 [../docs/栏目新建与删除说明（2026-09-12）.md](../docs/栏目新建与删除说明（2026-09-12）.md) |
 | 一键发布 | 重新生成数据快照 + 全文静态页 + sitemap，产物在 `backend/storage/publish/` |
 | 审计与安全 | 会话 Cookie（HttpOnly + SameSite=Lax）、所有 POST 校验 CSRF、口令 `password_hash`、登录与改动写 `sys_operation_log` |
 
@@ -135,7 +140,7 @@ php backend/bin/user.php disable admin    # 停用
 
 **改前确认**：首页管理四类页面的改动保存即同步前台（前台读实时接口），所以会改前台的提交都会先弹一次确认：导航保存（含隐藏）与导航上移／下移、轮播上线／下线／删除／编辑保存与轮播上移／下移、模块保存（改绑定／条数／上下线）与模块内稿件上移／下移、置顶／取消置顶、横幅保存（换图／改链接／上下线）。文案写在模板的 `data-confirm` 上（写在表单上就是整表一个，写在提交按钮上就按按钮区分），由 `assets/admin.js` 统一拦截；预览区按住缩略图拖动排序不弹，拖完松手即保存。
 
-还没有的（阶段 C 后续）：新建/删除栏目、栏目拖拽排序、按角色细分到“站点 × 栏目”的权限（表已建）、登录失败次数限制；`uploads/pending/` 目前没有定期清理任务，未保存的草稿会留下素材文件。
+还没有的（阶段 C 后续）：栏目拖拽排序、按角色细分到“站点 × 栏目”的权限（表已建）、登录失败次数限制、栏目软删除与历史栏目号备查；`uploads/pending/` 目前没有定期清理任务，未保存的草稿会留下素材文件。
 
 > 稿件管理与栏目管理界面在 2026-09-11 做过一轮重构（筛选集中、批量操作、栏目分组与上下移、编辑页两栏 + 正文预览），改动理由、逐项清单与验证方式见 [../docs/后台稿件与栏目管理重构说明（2026-09-11）.md](../docs/后台稿件与栏目管理重构说明（2026-09-11）.md)。
 
@@ -186,11 +191,31 @@ php backend/bin/publish.php --out=/tmp/site # 指定输出目录
 ```
 publish/
 ├── index.html                      首页
-├── channel/<slug>/index.html       栏目页
+├── channel/<目录名>/index.html     栏目页（slug 重复的一级栏目补栏目号，见下）
 ├── article/<id>.html               详情页
 ├── data/{home,channel,article,channel-index}.json   与阶段 A 快照同构
+├── redirects/nginx-301.conf        旧地址 301 的 Nginx 片段（由 redirects.php 生成）
 └── sitemap.xml
 ```
+
+**栏目目录名**：slug 唯一时用 `/channel/<slug>/`；slug 重复的一级栏目（902—906 都写 `zhengxie-dongtai`、601—607 都写 `dangpai-tuanti` 等，43 个栏目里 23 个如此）补上栏目号，写成 `/channel/<slug>-<栏目号>/`。规则在 `src/Publish/StaticPaths.php`；修正前 43 个栏目只写出 25 个静态页，sitemap 里还有重复地址。
+
+**归档稿件不出静态页**（2026-09-12）：发布器只出 `status=published` **且** `public_scope=public` 且有正文的稿件；`public_scope=archive`（超出公开年限的历史稿，见 [旧库迁移说明](../docs/旧库迁移说明.md)）只留后台，不产 `/article/<id>.html`、不进 sitemap。
+
+## 旧地址 301
+
+```bash
+php backend/bin/redirects.php                    # 按库内内容生成/更新 sys_url_redirect
+php backend/bin/redirects.php --dry-run          # 只看统计，不写库
+php backend/bin/redirects.php --out=backend/storage/publish --check=backend/storage/publish
+php backend/bin/redirects.php --legacy-site="/path/to/zhengxie2026/gxhczx.gov.cn"
+```
+
+产物在发布目录的 `redirects/` 下：`nginx-301.conf`（Nginx 片段，`server{}` 里 `include`）、`url-map.csv`（逐条清单，交甲方核对）、`report.txt`（分类小计、目标缺失、未登记旧地址）。
+
+运行期：Nginx 按片段把旧地址形态转给 PHP 入口，入口用 `src/Http/LegacyRedirect.php` 查 `sys_url_redirect` 精确判定，命中即 301 并把 `sys_url_redirect.hits` 加一，未命中照旧 404。本地 `router.php` 同样只在“文件不存在”时查表。**只登记“已发布且有正文且 `public_scope=public`”的稿件**（与发布器的产出条件一致），所以不会出现 301 指到 404；归档稿件不登记，旧地址返回 404；县区子站参数（`q=<县区号>`）本期不映射。
+
+规则明细、旧地址出处与未覆盖项见 [../docs/旧地址301映射说明.md](../docs/旧地址301映射说明.md)；回归检查 `node tests/redirect-check.mjs`（48 项）。
 
 ## 生产部署
 
@@ -219,5 +244,5 @@ SQL 方言只出现在 `database/migrations/<driver>/` 与 `src/Repository/`，�
 2. **正式模板**：把 `frontend/home` 的首页、栏目页、详情页结构搬进 `templates/`，替换当前的 `page.php` 最小模板；发布器接口不变。
 3. **缓存与刷新**：Redis 缓存、发布后按栏目/稿件粒度刷新、附件下载计数。
 4. **索引**：站内检索目前走 `LIKE`（SQLite 无 ngram 索引）；MySQL 下已建 `ft_article_title`，数据量上来后切全文索引，接口不变。
-5. **301 与旧数据**：`sys_url_redirect` 的生成、旧库 20,705 条稿件的导入清洗属阶段 D，脚本落在 `tools/migrate/`。
+5. **旧数据导入**：旧库 20,705 条稿件的导入清洗属阶段 D，脚本落在 `tools/migrate/`；导入后重跑 `php backend/bin/redirects.php` 即把新库内容补进 `sys_url_redirect`（301 生成本身已完成，见上文“旧地址 301”）。
 6. **后台视觉**：换 UI 皮（Tabler／AdminLTE 一类纯 CSS 方案），见 [开源选型说明](../docs/开源选型说明.md) 第 3.2 节。

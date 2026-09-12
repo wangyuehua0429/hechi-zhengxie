@@ -7,14 +7,16 @@
 
 declare(strict_types=1);
 
-require dirname(__DIR__) . '/src/bootstrap.php';
+require_once dirname(__DIR__) . '/src/bootstrap.php';
 
 use HechiZx\Http\ApiException;
 use HechiZx\Http\HtmlResponse;
+use HechiZx\Http\LegacyRedirect;
 use HechiZx\Http\RedirectResponse;
 use HechiZx\Http\Request;
 use HechiZx\Http\Response;
 use HechiZx\Http\Router;
+use HechiZx\Publish\RedirectMap;
 use HechiZx\Support\Db;
 
 $config = hechi_config();
@@ -33,6 +35,17 @@ $router = new Router();
 $isAdmin = str_starts_with($request->path(), '/admin');
 if ($isAdmin) {
     (require dirname(__DIR__) . '/routes/admin.php')($router, $db, $config);
+}
+
+// 旧地址 301：Nginx 把旧路径形态转到这里（规则见发布目录 redirects/nginx-301.conf），
+// 命中 sys_url_redirect 的精确映射就跳转并累计命中数，未命中继续往下走 404。
+if (!$isAdmin && !str_starts_with($request->path(), '/api/')) {
+    $legacy = new LegacyRedirect(new RedirectMap($db, (int) $config->get('site.site_id', 1)));
+    $redirect = $legacy->handle($request);
+    if ($redirect !== null) {
+        $redirect->send();
+        exit;
+    }
 }
 
 try {

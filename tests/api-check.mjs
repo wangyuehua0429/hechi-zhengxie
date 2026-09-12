@@ -194,8 +194,14 @@ async function main() {
     check("channels/904 返回 200", ch.status === 200 && !!chBody, "状态 " + ch.status);
     check("channels/904 栏目元信息与快照一致",
       chBody && chBody.name === channel904.name && chBody.inner === channel904.inner &&
-      chBody.layout === channel904.layout && String(chBody.total) === String(channel904.total),
-      JSON.stringify({ name: chBody?.name, inner: chBody?.inner, layout: chBody?.layout, total: chBody?.total }));
+      chBody.layout === channel904.layout,
+      JSON.stringify({ name: chBody?.name, inner: chBody?.inner, layout: chBody?.layout }));
+    // total 必须是"当前公开条数"（实时算），不能再用 seed 时的快照常量（904 写死是 825）：
+    // 夹具库里 904 只有快照列表这些条，所以两者应相等。
+    check("channels/904 的 total 是实时公开条数（不是快照常量）",
+      chBody && Number(chBody.total) === (channel904.list || []).length,
+      "total=" + chBody?.total + "，快照列表 " + (channel904.list || []).length +
+        " 条（旧的按 sys_channel.total_count 会返回 " + channel904.total + "）");
     check("channels/904 列表项 id 与快照一致",
       chBody && sameIds((chBody.list || []).map((i) => String(i.id)), (channel904.list || []).map((i) => String(i.id))));
     const firstItem = (chBody?.list || [])[0] || {};
@@ -209,6 +215,9 @@ async function main() {
     const page = await fetchJson(base, "/api/v1/articles?channel=904&page=1&size=20");
     check("articles 分页返回结构完整", page.status === 200 && Array.isArray(page.body?.articles) &&
       typeof page.body.total === "number" && typeof page.body.pages === "number", JSON.stringify(page.body).slice(0, 120));
+    check("栏目接口的 total 与稿件分页接口的 total 一致",
+      chBody && Number(chBody.total) === Number(page.body?.total),
+      chBody?.total + " vs " + page.body?.total);
     check("articles 第 1 页内容与快照前 20 条一致",
       page.body?.articles && sameIds(page.body.articles.map((i) => String(i.id)), (channel904.list || []).slice(0, 20).map((i) => String(i.id))));
     check("articles 的 size 上限被夹到 100",

@@ -23,7 +23,7 @@ docker compose exec php php bin/seed.php --snapshots=/var/www/snapshots
 - 站点：<http://127.0.0.1:8080>（首页即站点页面），后台 <http://127.0.0.1:8080/admin>，接口自检 `/api/v1/health`
 - MySQL：`127.0.0.1:3307`，库 `hechi_zx`，账号见 `docker-compose.yml`（**示例口令，上线前必须换成密钥管理下发的强口令**）
 - Redis：`127.0.0.1:6380`
-- 静态化产物：`backend/storage/publish/`，由 Nginx 直出 `/article/` 与 `/sitemap.xml`
+- 静态化产物：`backend/storage/publish/`，由 Nginx 直出 `/article/`、`/channel/` 与 `/sitemap.xml`
 
 > 站点页面、接口、后台同源：`/api` 与 `/admin` 交给同一个 PHP 入口，前端取数不需要跨域。
 
@@ -33,5 +33,5 @@ docker compose exec php php bin/seed.php --snapshots=/var/www/snapshots
 
 1. 数据库口令、`APP_DEBUG=0` 走 `.env`，不进仓库。
 2. 时区：`APP_TIMEZONE`（默认 `Asia/Shanghai`）要设对。PHP 不设会走 php.ini 的 UTC，后台时间会差 8 小时；MySQL 容器同时要把 `--default-time-zone='+08:00'` 或 `TZ=Asia/Shanghai` 设上，应用连接时也会 `SET time_zone`，两边不能只改一边。
-3. `deploy/nginx/default.conf` 的旧地址 301 规则要按 `sys_url_redirect` 表生成后的实际映射替换。
+3. 旧地址 301：先跑 `php backend/bin/redirects.php --out=/var/www/publish --check=/var/www/publish`（带 `--legacy-site=` 可对照旧站目录列出未登记地址），再把生成片段 `redirects/nginx-301.conf` 放到发布目录；`deploy/nginx/default.conf` 已经 `include` 它，映射明细由 PHP 入口查 `sys_url_redirect` 判定并累计命中数。规则与未覆盖项见 [../docs/旧地址301映射说明.md](../docs/旧地址301映射说明.md)。
 4. HTTPS、WAF、等保二级相关配置（日志留存 180 天、防篡改、主备与异地备份）在此模板之外单独落地。

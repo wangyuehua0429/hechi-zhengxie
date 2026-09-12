@@ -224,6 +224,7 @@ a.county-link:hover { border-color: var(--primary); color: var(--primary); }
 }
 .pager button:disabled { color: #b9bec6; cursor: not-allowed; }
 .pager .pager-info { margin-left: 8px; font-size: 0.86em; color: var(--muted); }
+.pager .pager-gap { padding: 0 2px; color: var(--muted); font-size: 0.9em; }
 
 /* ---------- 侧栏 ---------- */
 .side-card {

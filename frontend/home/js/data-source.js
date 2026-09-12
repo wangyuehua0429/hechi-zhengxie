@@ -85,6 +85,45 @@
         return getJSON(STATIC_BASE + "channel.json").then(function (data) { return data.channels || []; });
       }
     },
+    // 栏目页列表分页：接口模式是真分页（每页 20 条，按需取），
+    // 静态快照模式只能在快照自带的那几十条里本地分页，并标记 demo 让页面写明"演示数据"。
+    articles: {
+      api: function (options) {
+        var size = options.size || 20;
+        var page = options.page || 1;
+        return getJSON(API_BASE + "/articles?channel=" + encodeURIComponent(options.channel) +
+          "&page=" + page + "&size=" + size).then(function (data) {
+          return {
+            items: data.articles || [],
+            page: data.page || page,
+            size: data.size || size,
+            total: data.total || 0,
+            pages: data.pages || 1,
+            demo: false
+          };
+        });
+      },
+      static: function (options) {
+        var size = options.size || 20;
+        var page = options.page || 1;
+        return getJSON(STATIC_BASE + "channel.json").then(function (data) {
+          var channel = (data.channels || []).filter(function (c) {
+            return String(c.type) === String(options.channel);
+          })[0];
+          var list = (channel && channel.list) ? channel.list : [];
+          var start = (page - 1) * size;
+          return {
+            items: list.slice(start, start + size),
+            page: page,
+            size: size,
+            total: list.length,
+            pages: Math.max(1, Math.ceil(list.length / size)),
+            demo: true,
+            channelTotal: channel ? (channel.total || list.length) : list.length
+          };
+        });
+      }
+    },
     channelIndex: {
       api: function (options) {
         return getJSON(API_BASE + "/channel-index?listSize=" + (options.listSize || 50)).then(function (data) {
@@ -150,6 +189,16 @@
     home: function () { return load("home"); },
     channels: function (listSize) { return load("channels", { listSize: listSize }); },
     channelIndex: function (listSize) { return load("channelIndex", { listSize: listSize }); },
-    article: function (id) { return load("article", { id: id }); }
+    article: function (id) { return load("article", { id: id }); },
+    /** 栏目页列表分页：{items, page, size, total, pages, demo}；接口不可用时回退快照的本地分页 */
+    articles: function (options) {
+      options = options || {};
+      var key = "articles:" + (options.channel || "") + ":" + (options.page || 1) + ":" + (options.size || 20);
+      return once(key, function () {
+        return resolvedMode().then(function (mode) {
+          return loaders.articles[mode](options);
+        });
+      });
+    }
   };
 })();

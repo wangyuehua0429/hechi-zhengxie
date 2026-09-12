@@ -38,6 +38,7 @@ foreach ($groups as $group) {
     </p>
   </div>
   <div class="head-actions">
+    <a class="btn btn-primary" href="/admin/channel/new">新建栏目</a>
     <a class="btn" href="/" target="_blank" rel="noopener">打开前台首页</a>
   </div>
 </div>

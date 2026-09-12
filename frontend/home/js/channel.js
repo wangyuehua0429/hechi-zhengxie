@@ -24,7 +24,9 @@
   const esc = (s) => String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-  const state = { channel: null, all: [], page: 1 };
+  // rows 是"当前这一页"的稿件（真分页后一页就是 20 条，不再把整栏读进来）；
+  // total/pages 由数据源给出：接口模式是实时公开条数，静态快照模式是快照里的条数。
+  const state = { channel: null, rows: [], page: 1, pages: 1, total: 0, demo: false, channelTotal: 0 };
 
   function param(name) {
     return new URLSearchParams(window.location.search).get(name);
@@ -123,8 +125,7 @@
   }
 
   function pageRows() {
-    const start = (state.page - 1) * PAGE_SIZE;
-    return state.all.slice(start, start + PAGE_SIZE);
+    return state.rows;
   }
 
   // 图集型：图片卡片网格，点开进详情页看大图
@@ -152,8 +153,13 @@
   const ROLE_ORDER = ["主席", "副主席", "秘书长"];
 
   function renderLeaders(wrap) {
+    // 只把"有职务"的条目当花名册：政协章程、机构设置、委员名单这类一页式内容也挂在
+    // 政协概况下，不能因为它们没写职务就一律归到"副主席"里。
+    const roster = state.rows.filter(function (item) { return !!(item.role || "").trim(); });
+    const items = roster.length ? roster : state.rows;
+    state.leaderCount = items.length;
     const groups = [];
-    state.all.forEach(function (item) {
+    items.forEach(function (item) {
       const role = item.role || "副主席";
       let group = groups.filter(function (g) { return g.role === role; })[0];
       if (!group) {
@@ -234,8 +240,8 @@
   // 互动型：栏目说明 + 建言入口说明（内容与提交链路由后端接入）
   function renderInteractive(wrap, channel) {
     const note = channel.note || "";
-    const items = state.all.length
-      ? '<ul class="article-rows">' + state.all.map(function (item) {
+    const items = state.rows.length
+      ? '<ul class="article-rows">' + state.rows.map(function (item) {
           return '<li><a href="' + esc(item.url) + '" title="' + esc(item.title) + '">' +
             esc(item.title) + '</a>' +
             (item.date ? '<time datetime="' + esc(item.datetime || item.date) + '">' + esc(item.date) + '</time>' : "") +
@@ -266,14 +272,11 @@
     const render = LAYOUT_RENDER[channel.layout];
     if (render) {
       render(wrap, channel);
-      const totalPages = Math.max(1, Math.ceil(state.all.length / PAGE_SIZE));
       if (channel.layout === "leaders") {
-        el("listCount").textContent = state.all.length ? "共 " + channel.total + " 位" : "";
+        const seats = state.leaderCount || state.rows.length;
+        el("listCount").textContent = seats ? "共 " + seats + " 位" : "";
       } else {
-        el("listCount").textContent = state.all.length
-          ? "演示数据 " + state.all.length + " 条 / 全站共 " + channel.total +
-            " 条 · 第 " + state.page + "/" + totalPages + " 页"
-          : "";
+        el("listCount").textContent = state.rows.length ? countLabel() : "";
       }
       return;
     }
@@ -287,9 +290,18 @@
         esc(item.title) + '</a>' +
         '<time datetime="' + esc(item.datetime) + '">' + esc(item.date) + '</time></li>';
     }).join("") + '</ul>';
-    const totalPages = Math.max(1, Math.ceil(state.all.length / PAGE_SIZE));
-    el("listCount").textContent = "演示数据 " + state.all.length + " 条 / 全站共 " +
-      channel.total + " 条 · 第 " + state.page + "/" + totalPages + " 页";
+    el("listCount").textContent = countLabel();
+  }
+
+  // 接口模式写明实时条数与页码；静态快照模式保留"演示数据"字样，
+  // 免得把快照里的几十条误当成全站数据（旧版就是这里显示快照常量，看着像全站）。
+  function countLabel() {
+    const suffix = state.pages > 1 ? " · 第 " + state.page + "/" + state.pages + " 页" : "";
+    if (state.demo) {
+      return "演示数据 " + state.rows.length + " 条 / 全站共 " + state.channelTotal +
+        " 条 · 第 " + state.page + "/" + state.pages + " 页";
+    }
+    return "共 " + state.total + " 条" + suffix;
   }
 
   function renderPager() {
@@ -300,9 +312,10 @@
       box.hidden = true;
       return;
     }
-    const totalPages = Math.max(1, Math.ceil(state.all.length / PAGE_SIZE));
+    const totalPages = state.pages || 1;
     if (totalPages <= 1) {
-      box.innerHTML = '<span class="pager-info">已显示全部演示数据</span>';
+      box.innerHTML = '<span class="pager-info">' +
+        (state.demo ? "已显示全部演示数据" : "已显示全部 " + state.total + " 条") + '</span>';
       return;
     }
     const btn = function (page, label, disabled) {
@@ -311,13 +324,38 @@
         ' aria-label="' + esc(label) + '">' + esc(label) + '</button>';
     };
     const parts = [btn(state.page - 1, "上一页", state.page <= 1)];
-    for (let i = 1; i <= totalPages; i += 1) {
+    pageWindow(state.page, totalPages).forEach(function (n) {
+      if (n === "…") {
+        parts.push('<span class="pager-gap" aria-hidden="true">…</span>');
+        return;
+      }
+      const i = n;
       parts.push('<button type="button" data-page="' + i + '"' +
         (i === state.page ? ' class="is-active" aria-current="page"' : "") +
         ' aria-label="第 ' + i + ' 页">' + i + '</button>');
-    }
+    });
     parts.push(btn(state.page + 1, "下一页", state.page >= totalPages));
     box.innerHTML = parts.join("");
+  }
+
+  // 页数多时只列「首页 + 当前页前后 1 页 + 末页」，中间用省略号，
+  // 免得 306 这种 800 多条的栏目排出几十个按钮。
+  function pageWindow(current, total) {
+    if (total <= 9) {
+      const all = [];
+      for (let i = 1; i <= total; i += 1) all.push(i);
+      return all;
+    }
+    const keep = [1, total, current, current - 1, current + 1]
+      .filter(function (n) { return n >= 1 && n <= total; });
+    const unique = keep.filter(function (n, i) { return keep.indexOf(n) === i; })
+      .sort(function (a, b) { return a - b; });
+    const out = [];
+    unique.forEach(function (n, i) {
+      if (i > 0 && n - unique[i - 1] > 1) out.push("…");
+      out.push(n);
+    });
+    return out;
   }
 
   // 左侧栏下方：最新新闻 + 图片新闻，内容与详情页统一（见 js/shell.js）
@@ -332,18 +370,49 @@
       const btn = e.target.closest("button[data-page]");
       if (!btn || btn.disabled) return;
       const page = Number(btn.dataset.page);
-      const totalPages = Math.max(1, Math.ceil(state.all.length / PAGE_SIZE));
-      if (!page || page < 1 || page > totalPages || page === state.page) return;
-      state.page = page;
-      renderList();
-      renderPager();
-      const panel = document.querySelector(".panel");
-      if (panel) {
-        window.scrollTo({
-          top: panel.getBoundingClientRect().top + window.scrollY - 90,
-          behavior: "smooth"
-        });
-      }
+      if (!page || page < 1 || page > (state.pages || 1) || page === state.page) return;
+      btn.disabled = true;
+      loadPage(page).then(function () {
+        renderList();
+        renderPager();
+        const panel = document.querySelector(".panel");
+        if (panel) {
+          window.scrollTo({
+            top: panel.getBoundingClientRect().top + window.scrollY - 90,
+            behavior: "smooth"
+          });
+        }
+      }).catch(function () {
+        btn.disabled = false;
+      });
+    });
+  }
+
+  // 取某一页：接口模式走 /api/v1/articles 真分页；静态快照模式由 data-source 本地切片。
+  function loadPage(page, size) {
+    // 视频、专题这类栏目（homeSourced）的内容取自首页整块配置，不进出稿件的接口，
+    // 直接用栏目自带的列表渲染，一次列全、不分页。
+    if (state.channel.homeSourced) {
+      const items = (state.channel.list || []).slice();
+      state.rows = items;
+      state.page = 1;
+      state.pages = 1;
+      state.total = items.length;
+      state.demo = false;
+      state.channelTotal = items.length;
+      return Promise.resolve();
+    }
+    return window.SITE_DATA.articles({
+      channel: state.channel.type,
+      page: page,
+      size: size || PAGE_SIZE
+    }).then(function (data) {
+      state.rows = data.items || [];
+      state.page = data.page || page;
+      state.pages = data.pages || 1;
+      state.total = data.total || 0;
+      state.demo = !!data.demo;
+      state.channelTotal = data.channelTotal || data.total || 0;
     });
   }
 
@@ -413,22 +482,24 @@
         const channel = channels.filter(function (c) { return String(c.type) === String(id); })[0];
         if (!channel) {
           renderEmpty(id);
-          return;
+          return null;
         }
         state.channel = channel;
-        state.all = channel.list.slice();
-        state.page = 1;
-        renderCrumb(channel);
-        renderHead(channel);
-        renderButtons(channel);
-        renderFeature(channel);
-        renderCounties(channel);
-        renderList();
-        renderPager();
-        renderSide(channels);
-        bindPager();
-        bindChannelButtons();
-        restoreScroll();
+        // 领导型栏目一次列全（10 来位），其余栏目每页 20 条按需取
+        const size = channel.layout === "leaders" ? 200 : PAGE_SIZE;
+        return loadPage(1, size).then(function () {
+          renderCrumb(channel);
+          renderHead(channel);
+          renderButtons(channel);
+          renderFeature(channel);
+          renderCounties(channel);
+          renderList();
+          renderPager();
+          renderSide(channels);
+          bindPager();
+          bindChannelButtons();
+          restoreScroll();
+        });
       })
       .catch(function () {
         el("listWrap").innerHTML =

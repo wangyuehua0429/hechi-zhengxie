@@ -1,38 +1,82 @@
 # 旧站数据迁移（阶段 D）
 
-本目录用于旧站到新库的迁移脚本，**当前尚未实现**——按 [../../docs/下阶段开发计划（2026-09-11）.md](../../docs/下阶段开发计划（2026-09-11）.md) 第三节，它排在阶段 C 后端之后（9 月 27 日—9 月 30 日）。
+把旧库（Navicat 导出 `gxhczx_db.sql`）的主站内容迁进新库，并把历史图片抓回本地。
+口径、基线数字、字段映射与验收指标见 [../../docs/旧库迁移说明.md](../../docs/旧库迁移说明.md)，本文件只讲怎么跑。
 
-## 迁移对象
+## 两段式
 
-| 来源 | 规模 | 说明 |
+```bash
+# 1) 解析：旧 SQL → articles.jsonl + 媒体清单 + 报表（只读旧库，不连数据库）
+~/py-tools/bin/python tools/migrate/legacy_extract.py parse \
+  --sql "/path/to/gxhczx_db.sql" --out tools/migrate/out
+
+# 2) 抓图：图片与视频抓回 backend/public/uploads/legacy/，回填清单
+~/py-tools/bin/python tools/migrate/fetch_media.py \
+  --manifest tools/migrate/out/media_manifest.csv --base http://www.gxhczx.gov.cn
+
+# 2b) 改从服务器拷文件的走这条：拷完在仓库根目录做离线核对（不联网、算 sha256）
+~/py-tools/bin/python tools/migrate/fetch_media.py \
+  --manifest tools/migrate/out/media_manifest.csv --verify
+
+# 3) 渲染：清洗正文 + 按清单改写媒体地址
+~/py-tools/bin/python tools/migrate/legacy_extract.py render \
+  --in tools/migrate/out/articles.jsonl \
+  --manifest tools/migrate/out/media_manifest.csv --out tools/migrate/out
+
+# 4) 入库：先干跑，再提交
+php tools/migrate/legacy_import.php --in tools/migrate/out/articles.final.jsonl --dry-run
+php tools/migrate/legacy_import.php --in tools/migrate/out/articles.final.jsonl --commit
+```
+
+| 脚本 | 作用 | 关键参数 |
 | --- | --- | --- |
-| `zhengxie2026/date/database/gxhczx_db.sql` | 73,795,613 字节，导出于 2026-04-28，16 张表 | 旧库导出，`rd_news` 20,705 条为主表 |
-| `zhengxie2026/server/data/gxhczx_db/rd_news.MYD` | 71,208,372 字节，最后修改 2026-09-05 | 在线数据文件，比 SQL 导出新，**阶段 B 需重新导出一次全量** |
-| `zhengxie2026/gxhczx.gov.cn/html/` | 53,542 个静态文章页，513 MB | `news-view-<id>.html`，正文兜底与 301 输入 |
-| `zhengxie2026/gxhczx.gov.cn/uploadfile*` | — | 历史图片与附件（是否纳入本次迁移待甲方按合同口径确认） |
+| `legacy_extract.py parse` | 按口径筛稿、生成媒体清单、映射报表、未映射清单、次要表产物 | `--sql`、`--out`、`--channels`（栏目快照，默认 `frontend/home/data/channel.json`）、`--skip-side-tables` |
+| `legacy_extract.py render` | 正文清洗（去 `font`／`span`／内联样式、折叠空段落）＋媒体地址改写＋标题字段映射 | `--in`、`--out`、`--manifest`（不传则保留旧站地址） |
+| `fetch_media.py` | 4 并发、超时 15s、重试 3 次、间隔 200ms 抓取；记 `status/bytes/sha256`，误返回网页视为失败 | `--manifest`、`--base`、`--limit`、`--force`、`--dry-run` |
+| `fetch_media.py --verify` | 离线核对：按清单的 `target` 看本地有没有文件，有就标 `ok` 并算 `sha256`，缺的留 `pending`（不联网） | `--manifest`、`--root` |
+| `legacy_import.php` | 校验 → 报告 → upsert 入库（`cms_article`／`cms_article_channel`／`cms_article_image`／`cms_attachment`），次要表合并进首页整块 | `--in`、`--dry-run`／`--commit`、`--out`、`--side-tables` |
+| `reconcile.py` | 对账：逐栏目比对旧库（`Type`＋对应 `Region`）与新库的稿件号，列出缺失／多出／前台可见／归档／草稿；有缺失时退出码 1 | `--sql`、`--db`、`--channels`、`--out`（写 CSV） |
 
-> 以上数字来自本仓库 2026-09-11 的实际统计，见计划文档“附：事实／推断／未知备注”。
+## 产物（`tools/migrate/out/`，不入库）
 
-## 目标表
-
-与 [../../database/migrations/mysql/001_init.sql](../../database/migrations/mysql/001_init.sql) 对应：`rd_news → cms_article`、`rd_menu`／`rd_menu1 → sys_channel`、`rd_cr → cms_article`（领导简介）、`rd_hot`／`rd_run`／`rd_video`／`rd_about`／`rd_links`／`rd_region`／`rd_ad → cms_home_block`（原型期按模块整块），旧地址 → `sys_url_redirect`。
-
-## 计划步骤
-
-1. **取数**：从 `172.21.43.11` 重新导出全量数据库（现有 SQL 停在 4 月 28 日），同时备份 `uploadfile`／`uploadfiles` 与 `html/` 目录。
-2. **建映射**：以 `rd_menu`／`rd_menu1` 为准产出 `Type`（98 个取值）到 `channel_id` 的完整映射表，输出《栏目与 Type 映射总表》交甲方确认。
-3. **清洗**：正文去 `font`／`span` 内联样式、统一图片路径、剥离冗余空段落；`From` 字段拆出日期与版面（约 7.8% 的记录把日期版面拼在来源后，如“河池日报 2026/3/2 1 版”）。
-4. **导入**：`Audit` 映射发布状态（已审 20,540 / 未审 163），按 `Time` 转 `published_at`，`Hot`／`Top` 映射置顶与热点，`Region` 区分主站与县区。
-5. **301**：按 `news-view-<id>.html`、`news_list.php?id=<n>`、`cq_view.php?id=<n>` 等模式批量生成 `sys_url_redirect`，交 Nginx 层统一跳转。
-6. **核对**：行数比对、栏目归属抽样、301 命中率抽样、移动端抽查，产出《迁移核对报告》。
-
-## 可复用的现有代码
-
-- `backend/bin/seed.php`：快照 → 新库的灌库逻辑（幂等、可重跑），迁移脚本可沿用同一套 upsert 写法。
-- `tools/prototype/extract_sample_data.py`：样例数据抽取脚本（当前从旧库 SQL 取 `Region=22` 每栏目 24 条、详情 6 篇），其中的正文清洗与来源字段清理规则可直接搬到正式迁移里并加强。
+`articles.jsonl`（解析结果）、`articles.final.jsonl`（入库字段）、`media_manifest.csv`（`url,target,status,bytes,sha256,error`）、`mapping_report.csv`（栏目对拍）、`unmapped.csv`（未映射稿件）、`side_tables.json`（视频／链接／互动）、`stats.json`／`render_stats.json`、`report.txt`（入库报告）、`imported_ids.txt`（回滚清单）。
 
 ## 约束
 
-- 迁移脚本必须**幂等、可重复执行、带校验**，失败可重跑不产生重复数据。
-- 涉密稿件不发外网、不调用厂商接口；迁移全程按合同保密条款执行，素材不入 git（见根 `.gitignore`）。
-- 历史图片与附件是否随本次迁移，按合同口径（合同写明不在本次迁移范围内）与方案书口径（纳入迁移）存在冲突，需甲方确认后再定实现范围。
+- 迁移脚本幂等：按 `article_id` upsert，可反复执行；`--dry-run` 不写库。
+- 只迁主站口径；县区内容与未映射栏目按口径排除，分别写进报告。
+- 归档稿件（`public_scope=archive`）不产静态页、不登记 301；发布了也不会出现在前台。
+- 生产执行前先备份数据库；回滚按 `imported_ids.txt` 处理。
+- **迁移入库后不要再跑 `backend/bin/seed.php`**：它按样例快照重灌，会覆盖同号稿件与栏目归属；`seed.php` 已有安全闸会拦下，确要重灌需加 `--force`。
+- 涉密稿件不发外网；抓图只访问旧站本域，不调用厂商接口。
+
+## 从服务器拷贝图片（比抓网快，推荐）
+
+本地目标路径与旧站目录一一对应：
+
+```
+backend/public/uploads/legacy/uploadfiles/<年月>/<文件名>
+```
+
+服务器上的 `uploadfile`／`uploadfiles` 目录整个拷到这个位置（保持 `年月/文件名` 层级），然后在仓库根目录依次执行：
+
+```bash
+~/py-tools/bin/python tools/migrate/fetch_media.py --manifest tools/migrate/out/media_manifest.csv --verify
+~/py-tools/bin/python tools/migrate/legacy_extract.py render \
+  --in tools/migrate/out/articles.jsonl --manifest tools/migrate/out/media_manifest.csv --out tools/migrate/out
+php tools/migrate/legacy_import.php --in tools/migrate/out/articles.final.jsonl --commit
+php backend/bin/publish.php
+```
+
+`--verify` 只认清单里已有的 target 路径：没拷到的仍保留旧站外链（不会写成死链），补齐后再跑一次即可。入库与发布都是幂等的。
+
+## 检查
+
+```bash
+node tests/migrate-check.mjs        # 36 项：用 fixture 跑完整两段式（不联网）
+
+# 入库后证明“一篇没少”（缺失不为 0 时退出码 1）
+~/py-tools/bin/python tools/migrate/reconcile.py \
+  --sql "/path/to/gxhczx_db.sql" --db backend/storage/hechi_zx.sqlite \
+  --out tools/migrate/out/reconcile.csv
+```

@@ -108,7 +108,12 @@ return static function (Router $router, Db $db, Config $config): void {
     $router->post('/admin/media/video', [$articleController, 'uploadVideoMedia']);
 
     $router->get('/admin/channels', [$channelController, 'index']);
+    // 必须排在 /admin/channel/{type} 前面：路由首条匹配生效，否则 new/create 会被当成栏目号
+    $router->get('/admin/channel/new', [$channelController, 'createForm']);
+    $router->post('/admin/channel/create', [$channelController, 'store']);
     $router->post('/admin/channel/{type}/move', [$channelController, 'move']);
+    $router->get('/admin/channel/{type}/delete', [$channelController, 'deleteConfirm']);
+    $router->post('/admin/channel/{type}/delete', [$channelController, 'delete']);
     $router->get('/admin/channel/{type}', [$channelController, 'edit']);
     $router->post('/admin/channel/{type}', [$channelController, 'update']);
 

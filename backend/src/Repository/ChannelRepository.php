@@ -48,6 +48,7 @@ final class ChannelRepository
 
         $rows = $this->db->select($sql, $params);
         $lists = $withList ? $this->listsForAll($listSize) : [];
+        $counts = $this->publicCounts();
 
         $channels = [];
         foreach ($rows as $row) {
@@ -57,7 +58,7 @@ final class ChannelRepository
                     ? $this->homeSourcedList($row, $listSize)
                     : ($lists[(string) $row['type_code']] ?? []);
             }
-            $channels[] = $this->map($row, $list);
+            $channels[] = $this->map($row, $list, $counts[(string) $row['type_code']] ?? 0);
         }
         return $channels;
     }
@@ -80,7 +81,42 @@ final class ChannelRepository
                 ? $this->homeSourcedList($row, $listSize)
                 : $this->listFor($type, $listSize);
         }
-        return $this->map($row, $list);
+        return $this->map($row, $list, $this->publicCountFor($type));
+    }
+
+    /**
+     * 各栏目当前公开稿件数：`total` 必须反映前台真正取得到的条数。
+     * 此前用的是 sys_channel.total_count（seed 时的快照常量，904 一直是 825），
+     * 迁移后前台显示“共 825 条”却只翻得到 464 条，属于口径不一致。
+     *
+     * @return array<string, int> 栏目号 => 公开条数
+     */
+    private function publicCounts(): array
+    {
+        $rows = $this->db->select(
+            'SELECT ac.channel_type AS type_code, COUNT(*) AS n
+             FROM cms_article_channel ac
+             JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
+             WHERE ac.site_id = :site AND a.status = :status AND a.public_scope = :scope
+             GROUP BY ac.channel_type',
+            ['site' => $this->siteId, 'status' => 'published', 'scope' => 'public']
+        );
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(string) $row['type_code']] = (int) $row['n'];
+        }
+        return $counts;
+    }
+
+    private function publicCountFor(string $type): int
+    {
+        return (int) $this->db->scalar(
+            'SELECT COUNT(*) FROM cms_article_channel ac
+             JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
+             WHERE ac.site_id = :site AND ac.channel_type = :type
+               AND a.status = :status AND a.public_scope = :scope',
+            ['site' => $this->siteId, 'type' => $type, 'status' => 'published', 'scope' => 'public']
+        );
     }
 
     /**
@@ -164,8 +200,12 @@ final class ChannelRepository
      * @param array<string, mixed> $row
      * @return array<string, mixed>
      */
-    private function map(array $row, ?array $list): array
+    private function map(array $row, ?array $list, int $publicTotal = 0): array
     {
+        // 视频、专题这类栏目的内容取自首页整块配置（不是稿件表），条数按取到的条目算
+        $total = (int) $row['home_sourced'] === 1
+            ? ($list !== null ? count($list) : 0)
+            : $publicTotal;
         $channel = [
             'type'     => (string) $row['type_code'],
             'columnId' => (string) ($row['parent_type'] !== '' ? $row['parent_type'] : $row['type_code']),
@@ -175,7 +215,7 @@ final class ChannelRepository
             'intro'    => (string) ($row['intro'] ?? ''),
             'layout'   => (string) $row['layout'],
             'siblings' => Json::decode($row['siblings_json'] ?? null, []),
-            'total'    => (int) $row['total_count'],
+            'total'    => $total,
         ];
 
         if ((int) $row['home_sourced'] === 1) {
@@ -410,5 +450,189 @@ final class ChannelRepository
             ];
         }
         return $index;
+    }
+
+    // ---- 新建与删除（2026-09-12）------------------------------------------------
+
+    /** 栏目号是否已被占用（同一站点内唯一，数据库也有 UNIQUE(site_id, type_code) 兜底）。 */
+    public function adminTypeExists(string $type): bool
+    {
+        return $this->db->selectOne(
+            'SELECT 1 AS ok FROM sys_channel WHERE site_id = :site AND type_code = :type',
+            ['site' => $this->siteId, 'type' => $type]
+        ) !== null;
+    }
+
+    /**
+     * 一级栏目判定：parent_type 为空或等于自身栏目号。
+     * seed 写的是自身栏目号（`columnId` 对一级栏目等于自己的 `type`），手建的栏目两种写法都要认。
+     */
+    public static function isTopLevel(string $type, string $parentType): bool
+    {
+        return $parentType === '' || $parentType === $type;
+    }
+
+    /**
+     * 一级栏目清单，新建栏目时用来选归属。
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function adminTopChannels(): array
+    {
+        return $this->db->select(
+            "SELECT type_code, name, inner_name, status FROM sys_channel
+             WHERE site_id = :site AND (parent_type = '' OR parent_type = type_code)
+             ORDER BY sort_no ASC, channel_id ASC",
+            ['site' => $this->siteId]
+        );
+    }
+
+    /**
+     * 新建栏目的默认排序值（排到最后）。
+     * 挂在某个一级栏目下时算该组的最大值；新建一级栏目时算全站最大值，让它排在导航最后。
+     */
+    public function adminMaxSortNo(string $parentType): int
+    {
+        if ($parentType === '') {
+            return (int) $this->db->scalar(
+                'SELECT COALESCE(MAX(sort_no), 0) FROM sys_channel WHERE site_id = :site',
+                ['site' => $this->siteId]
+            );
+        }
+        return (int) $this->db->scalar(
+            'SELECT COALESCE(MAX(sort_no), 0) FROM sys_channel
+             WHERE site_id = :site AND (type_code = :key OR parent_type = :key)',
+            ['site' => $this->siteId, 'key' => $parentType]
+        );
+    }
+
+    /**
+     * 新建栏目。字段已由控制器校验，这里只负责落库。
+     *
+     * @param array<string, mixed> $fields
+     */
+    public function adminCreate(array $fields): void
+    {
+        $now = $this->db->now();
+        $this->db->execute(
+            'INSERT INTO sys_channel
+               (site_id, type_code, parent_type, slug, name, inner_name, intro, layout,
+                total_count, home_sourced, sort_no, status, created_at, updated_at)
+             VALUES
+               (:site, :type, :parent, :slug, :name, :inner, :intro, :layout,
+                0, 0, :sort, :status, :t, :t)',
+            [
+                'site'   => $this->siteId,
+                'type'   => (string) $fields['type_code'],
+                'parent' => (string) $fields['parent_type'],
+                'slug'   => (string) $fields['slug'],
+                'name'   => (string) $fields['name'],
+                'inner'  => (string) $fields['inner_name'],
+                'intro'  => (string) $fields['intro'],
+                'layout' => (string) $fields['layout'],
+                'sort'   => (int) $fields['sort_no'],
+                'status' => (string) $fields['status'],
+                't'      => $now,
+            ]
+        );
+    }
+
+    /**
+     * 删除前的关联检查：返回阻止删除的理由，空数组表示可以删。
+     * 栏目一删，前台导航、首页模块与 301 映射都会跟着失去目标，所以宁可挡下来让编辑先改归属。
+     *
+     * @return list<string>
+     */
+    public function adminBlockers(string $type): array
+    {
+        $blockers = [];
+
+        $articles = (int) $this->db->scalar(
+            'SELECT COUNT(*) FROM cms_article_channel WHERE site_id = :site AND channel_type = :type',
+            ['site' => $this->siteId, 'type' => $type]
+        );
+        if ($articles > 0) {
+            $blockers[] = '还有 ' . $articles . ' 篇稿件挂在这个栏目（含草稿与回收站稿件），请先把它们改到别的栏目。';
+        }
+
+        $children = (int) $this->db->scalar(
+            'SELECT COUNT(*) FROM sys_channel WHERE site_id = :site AND parent_type = :type',
+            ['site' => $this->siteId, 'type' => $type]
+        );
+        if ($children > 0) {
+            $blockers[] = '下面还有 ' . $children . ' 个子栏目，请先删掉子栏目或改掉它们的归属。';
+        }
+
+        foreach ($this->db->select(
+            'SELECT section_key, label, scope_json FROM cms_home_section WHERE site_id = :site',
+            ['site' => $this->siteId]
+        ) as $section) {
+            $scope = Json::decode((string) $section['scope_json'], []);
+            if (is_array($scope) && $this->scopeUsesChannel($scope, $type)) {
+                $label = (string) $section['label'] !== '' ? (string) $section['label'] : (string) $section['section_key'];
+                $blockers[] = '首页「其他栏目」的模块“' . $label . '”绑定了它，请先在首页管理里改绑定。';
+            }
+        }
+
+        $nav = $this->db->selectOne(
+            'SELECT payload_json FROM cms_home_block WHERE site_id = :site AND block_key = :key',
+            ['site' => $this->siteId, 'key' => 'nav']
+        );
+        if ($nav !== null) {
+            $items = Json::decode((string) $nav['payload_json'], []);
+            foreach (is_array($items) ? $items : [] as $item) {
+                $url = is_array($item) ? (string) ($item['url'] ?? '') : '';
+                if ($url !== '' && preg_match('/(?:[?&])id=' . preg_quote($type, '/') . '(?![0-9])/', $url) === 1) {
+                    $title = is_array($item) ? (string) ($item['title'] ?? '') : '';
+                    $blockers[] = '首页顶部导航的“' . $title . '”指向它，请先在“导航栏目”里改链接。';
+                }
+            }
+        }
+
+        return $blockers;
+    }
+
+    /**
+     * 删除栏目，并清理只跟着它走的附属记录：角色的栏目数据范围、该栏目的旧地址 301 映射。
+     * 稿件与首页模块绑定的检查在 adminBlockers() 里，能走到这里说明已经没有关联内容。
+     */
+    public function adminDelete(string $type): void
+    {
+        $this->db->execute(
+            'DELETE FROM sys_channel WHERE site_id = :site AND type_code = :type',
+            ['site' => $this->siteId, 'type' => $type]
+        );
+        $this->db->execute(
+            'DELETE FROM sys_role_channel WHERE site_id = :site AND channel_type = :type',
+            ['site' => $this->siteId, 'type' => $type]
+        );
+        foreach (\HechiZx\Publish\RedirectMap::LIST_SCRIPTS as $script) {
+            $this->db->execute(
+                'DELETE FROM sys_url_redirect WHERE old_path = :old',
+                ['old' => '/' . $script . '?id=' . $type]
+            );
+        }
+    }
+
+    /**
+     * 首页模块的绑定范围里是否用到这个栏目（单个栏目 / 标签分组 / 一级栏目含子栏目）。
+     *
+     * @param array<string, mixed> $scope
+     */
+    private function scopeUsesChannel(array $scope, string $type): bool
+    {
+        if ((string) ($scope['parent'] ?? '') === $type) {
+            return true;
+        }
+        $channels = [];
+        foreach ((array) ($scope['channels'] ?? []) as $channel) {
+            $channels[] = (string) $channel;
+        }
+        foreach ((array) ($scope['tabs'] ?? []) as $tab) {
+            foreach ((array) (is_array($tab) ? ($tab['channels'] ?? []) : []) as $channel) {
+                $channels[] = (string) $channel;
+            }
+        }
+        return in_array($type, $channels, true);
     }
 }
