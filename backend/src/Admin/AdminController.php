@@ -16,9 +16,9 @@ use HechiZx\Support\Db;
  */
 abstract class AdminController
 {
-    /** 首页横幅与头条上传的大图：与稿件图共用同一套限制 */
+    /** 首页横幅与头条上传的大图：与稿件图共用同一套限制，图片一律 ≤ 2 MB */
     protected const HOME_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
-    protected const HOME_UPLOAD_MAX_BYTES = 33554432;
+    protected const HOME_IMAGE_MAX_BYTES = 2097152;
 
     public function __construct(
         protected Auth $auth,
@@ -130,6 +130,11 @@ abstract class AdminController
     protected function storeHomeImage(array $file): string
     {
         $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+        // 本机 php.ini 的 upload_max_filesize 就是 2M，超限的图 PHP 根本不会交给我们，
+        // 这里把错误码翻成人话，别让编辑看到"错误码 1"。
+        if ($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE) {
+            throw new \RuntimeException('图片超过服务器允许的上传大小（2 MB）');
+        }
         if ($error !== UPLOAD_ERR_OK) {
             throw new \RuntimeException('上传中断（错误码 ' . $error . '）');
         }
@@ -137,8 +142,8 @@ abstract class AdminController
         if ($size <= 0) {
             throw new \RuntimeException('文件为空');
         }
-        if ($size > self::HOME_UPLOAD_MAX_BYTES) {
-            throw new \RuntimeException('文件超过 32 MB 上限');
+        if ($size > self::HOME_IMAGE_MAX_BYTES) {
+            throw new \RuntimeException('图片超过 2 MB 上限，请先压缩再上传');
         }
 
         $ext = strtolower((string) pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION));

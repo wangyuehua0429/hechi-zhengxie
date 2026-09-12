@@ -31,6 +31,7 @@ final class ArticleController extends AdminController
     /** 允许批量执行的状态流转：移入回收站保留单篇确认页，不进批量 */
     private const BULK_ACTIONS = ['submit', 'approve', 'reject', 'withdraw', 'republish', 'restore'];
     private const MAX_UPLOAD_BYTES = 33554432;   // 32 MB，与 deploy/php/php.ini 的 upload_max_filesize 对齐
+    private const MAX_IMAGE_BYTES = 2097152;     // 图片一律 ≤ 2 MB（2026-09-12 定的口径），附件与视频仍是 32 MB
     private const FILE_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', 'txt'];
     private const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
     private const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg', 'mov', 'm4v'];
@@ -775,7 +776,7 @@ final class ArticleController extends AdminController
         }
 
         try {
-            $stored = $this->storeUpload($file, $id, self::IMAGE_EXTENSIONS);
+            $stored = $this->storeUpload($file, $id, self::IMAGE_EXTENSIONS, self::MAX_IMAGE_BYTES, '图片');
         } catch (\RuntimeException $e) {
             Flash::set('error', '图片上传失败：' . $e->getMessage());
             return new RedirectResponse('/admin/article/' . $id);
@@ -862,7 +863,14 @@ final class ArticleController extends AdminController
 
         $label = $kind === 'video' ? '视频' : '图片';
         try {
-            $stored = $this->storeUpload($file, $articleId, $kind === 'video' ? self::VIDEO_EXTENSIONS : self::IMAGE_EXTENSIONS);
+            $isVideo = $kind === 'video';
+            $stored = $this->storeUpload(
+                $file,
+                $articleId,
+                $isVideo ? self::VIDEO_EXTENSIONS : self::IMAGE_EXTENSIONS,
+                $isVideo ? self::MAX_UPLOAD_BYTES : self::MAX_IMAGE_BYTES,
+                $isVideo ? '视频' : '图片'
+            );
         } catch (\RuntimeException $e) {
             Response::error('upload_failed', $label . '上传失败：' . $e->getMessage(), 400);
             exit;
@@ -948,13 +956,27 @@ final class ArticleController extends AdminController
     /**
      * 落盘并返回附件信息；失败抛 RuntimeException（消息可直接给用户看）。
      *
+     * 大小上限按类型分开：图片 2 MB（$label 传「图片」），附件与视频 32 MB。
+     *
      * @param array<string, mixed> $file
      * @param list<string> $allowedExtensions
      * @return array{name:string,url:string,ext:string,size:int,path:string}
      */
-    private function storeUpload(array $file, int $articleId, array $allowedExtensions): array
+    private function storeUpload(
+        array $file,
+        int $articleId,
+        array $allowedExtensions,
+        int $maxBytes = self::MAX_UPLOAD_BYTES,
+        string $label = '文件'
+    ): array
     {
         $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+        $limitText = number_format($maxBytes / 1048576, 0) . ' MB';
+        // 超限的图会在 PHP 那一层就被拦下（本机 upload_max_filesize 就是 2M），
+        // 错误码翻成人话，别让编辑看到"错误码 1"。
+        if ($error === UPLOAD_ERR_INI_SIZE || $error === UPLOAD_ERR_FORM_SIZE) {
+            throw new \RuntimeException($label . '超过服务器允许的上传大小（' . $limitText . '）');
+        }
         if ($error !== UPLOAD_ERR_OK) {
             throw new \RuntimeException('上传中断（错误码 ' . $error . '）');
         }
@@ -962,8 +984,10 @@ final class ArticleController extends AdminController
         if ($size <= 0) {
             throw new \RuntimeException('文件为空');
         }
-        if ($size > self::MAX_UPLOAD_BYTES) {
-            throw new \RuntimeException('文件超过 32 MB 上限');
+        if ($size > $maxBytes) {
+            throw new \RuntimeException(
+                $label . '超过 ' . $limitText . ' 上限' . ($maxBytes <= self::MAX_IMAGE_BYTES ? '，请先压缩再上传' : '')
+            );
         }
 
         $original = (string) ($file['name'] ?? 'file');

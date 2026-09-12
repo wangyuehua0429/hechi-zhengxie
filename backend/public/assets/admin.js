@@ -10,6 +10,7 @@
  * 6. 头条轮换「首屏效果预览」里拖动缩略图排序（拖完一次性提交整串顺序）；
  *    首页管理里会改前台的提交（下线／删除／隐藏／置顶／改绑定／换图等）先弹一次确认。
  * 7. 长页面滚过一屏后，左下角出现「回到顶部」（模板默认 hidden，没有脚本就不显示）。
+ * 8. 站内横幅选了图片文件后，先在页面上方的预览框里显示这张图（本地预览，点「保存」才生效）。
  *
  * 所有逻辑都用 data-* 钩子，模板改名不影响；没有匹配元素时静默跳过。
  */
@@ -392,4 +393,35 @@
     window.addEventListener("scroll", syncToTop, { passive: true });
     syncToTop();
   }
+
+  /* ------------------ 8. 选好图片先在上方预览（保存后才真正生效） */
+  // 站内横幅这类「先选文件、再点保存」的表单：选中图片后立刻把图显示进上面的预览框，
+  // 免得上传完才发现选错。这里只在浏览器里读成 data: 地址做本地预览（后台 CSP 的
+  // img-src 只放行 'self' 与 data:，blob: 会被拦掉），服务端与已保存的图都不动，
+  // 真要替换仍然是点「保存」之后的事（预览框里那行提示就是提醒这一点）。
+  document.querySelectorAll("[data-preview-file]").forEach((input) => {
+    const box = document.querySelector(input.getAttribute("data-preview-file") || "");
+    if (!box) return;
+
+    const image = box.querySelector("[data-preview-image]");
+    const empty = box.querySelector("[data-preview-empty]");
+    const note = box.querySelector("[data-preview-pending]");
+
+    input.addEventListener("change", () => {
+      const file = input.files && input.files[0];
+      // accept="image/*" 只是给文件选择器看的，这里再挡一次，别把非图片塞进 <img>
+      if (!file || (file.type && file.type.indexOf("image/") !== 0)) return;
+
+      const reader = new FileReader();
+      reader.addEventListener("load", () => {
+        if (image) {
+          image.src = String(reader.result || "");
+          image.hidden = false;
+        }
+        if (empty) empty.hidden = true;
+        if (note) note.hidden = false;
+      });
+      reader.readAsDataURL(file);
+    });
+  });
 })();

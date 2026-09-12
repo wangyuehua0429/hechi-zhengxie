@@ -149,7 +149,7 @@ foreach ($slides as $slide) {
       </label>
       <div class="actions">
         <button type="submit" class="btn-primary">新增条目</button>
-        <span class="muted">图片支持 jpg／png／gif／webp，单个 ≤ 32 MB。</span>
+        <span class="muted">图片支持 jpg／png／gif／webp，单个 ≤ 2 MB。</span>
       </div>
     </form>
   </section>

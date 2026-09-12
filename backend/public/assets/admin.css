@@ -1025,7 +1025,13 @@ html:not(.js) .bulk-col { display: none; }
 .slot-card { margin-bottom: 0; }
 .slot-preview { margin: 8px 0 12px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #fafbfc; }
 .slot-preview img { display: block; width: 100%; height: auto; }
-.slot-preview--empty { padding: 24px; text-align: center; color: var(--muted); font-size: 13px; }
+/* 没有图时的占位、以及选中文件后的「待保存」提示条（都要能盖掉上面的 display:block） */
+.slot-preview img[hidden], .slot-preview-note[hidden] { display: none; }
+.slot-preview [data-preview-empty] { display: block; padding: 24px; text-align: center; color: var(--muted); font-size: 13px; }
+.slot-preview-note {
+  margin: 0; padding: 8px 12px; border-top: 1px solid var(--line);
+  background: #fff8e1; color: #8a6d3b; font-size: 13px;
+}
 
 /* 四类页脚统一的发布提示：这是最容易踩的坑（改完前台没变），给它一点视觉重量 */
 .publish-hint {

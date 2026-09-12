@@ -3,7 +3,7 @@
 /**
  * 站内横幅：首页 7 个固定图片位。
  *
- * @var list<array{slot:string, label:string, hint:string, row:array<string,mixed>|null}> $slots
+ * @var list<array{slot:string, label:string, hint:string, spec:string, row:array<string,mixed>|null}> $slots
  */
 
 declare(strict_types=1);
@@ -14,6 +14,11 @@ declare(strict_types=1);
     <p class="subtitle">
       首页上 <?= count($slots) ?> 个固定的图片位，位置由前台版式决定，这里只换图、改链接、上下线。
       图片建议用与位置匹配的横图，链接留空则该图不可点。
+    </p>
+    <p class="muted">
+      出图建议按「显示尺寸的 2 倍」给：首屏两张是固定框（355:76），比例不符会被裁切填满；
+      正文里的横幅按图片自身比例撑高，比例偏离建议值会连带改变页面占位。图片单个不超过 2 MB，
+      横幅类建议压在 300 KB 以内。
     </p>
   </div>
   <div class="head-actions">
@@ -34,17 +39,23 @@ declare(strict_types=1);
       </div>
       <p class="muted">槽位 <code><?= hechi_e($slot['slot']) ?></code> · <?= hechi_e($slot['hint']) ?></p>
 
-      <?php if ($row !== null && (string) $row['image_url'] !== ''): ?>
-        <div class="slot-preview"><img src="<?= hechi_e(hechi_asset($row['image_url'])) ?>" alt=""></div>
-      <?php else: ?>
-        <div class="slot-preview slot-preview--empty">还没有设置图片</div>
-      <?php endif; ?>
+      <?php $hasImage = $row !== null && (string) $row['image_url'] !== ''; ?>
+      <div class="slot-preview" id="banner-preview-<?= hechi_e($slot['slot']) ?>" data-preview-box>
+        <?php if ($hasImage): ?>
+          <img src="<?= hechi_e(hechi_asset($row['image_url'])) ?>" alt="" data-preview-image>
+        <?php else: ?>
+          <img alt="" data-preview-image hidden>
+          <span data-preview-empty>还没有设置图片</span>
+        <?php endif; ?>
+        <p class="slot-preview-note" data-preview-pending hidden>待上传的预览 · 点下面的「保存」后才会生效</p>
+      </div>
 
       <form method="post" action="/admin/banner/<?= hechi_e($slot['slot']) ?>" enctype="multipart/form-data" class="edit-form">
         <?= $csrf ?>
         <label class="full">图片（上传新图会替换当前图）
-          <input type="file" name="image" accept="image/*">
+          <input type="file" name="image" accept="image/*" data-preview-file="#banner-preview-<?= hechi_e($slot['slot']) ?>">
         </label>
+        <p class="hint-line">出图建议：<?= hechi_e($slot['spec']) ?></p>
         <label class="full">图片地址
           <input type="text" name="image_url" value="<?= hechi_e($row === null ? '' : (string) $row['image_url']) ?>">
         </label>
@@ -65,7 +76,7 @@ declare(strict_types=1);
         <div class="actions">
           <button type="submit" class="btn-primary"
                   data-confirm="保存「<?= hechi_e((string) $slot['label']) ?>」？首页这个位置会立刻换成新的图片／链接。">保存</button>
-          <span class="muted">jpg／png／gif／webp，单个 ≤ 32 MB。</span>
+          <span class="muted">jpg／png／gif／webp，单个 ≤ 2 MB。</span>
         </div>
       </form>
     </section>

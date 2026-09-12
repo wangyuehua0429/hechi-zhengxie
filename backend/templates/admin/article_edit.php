@@ -133,7 +133,7 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
             <input type="text" name="orig_title" value="<?= hechi_e($article['orig_title'] ?? '') ?>" placeholder="主标题">
             <input type="text" name="orig_subtitle" value="<?= hechi_e($article['orig_subtitle'] ?? '') ?>" placeholder="副题">
           </div>
-          <p class="writing-hint muted">正文（可直接插图与 mp4／webm 视频；粘贴网页或 Word 内容时图片自动上传）</p>
+          <p class="writing-hint muted">正文（可直接插图与 mp4／webm 视频，图片单个 ≤ 2 MB；粘贴网页或 Word 内容时图片自动上传）</p>
           <textarea name="content_html" rows="18" class="mono"><?= hechi_e($article['content_html'] ?? '') ?></textarea>
           <div class="editor-mount" data-editor-mount hidden></div>
         </div>
@@ -255,7 +255,7 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
           <?= $csrf ?>
           <input type="file" name="image" accept="image/*" required>
           <button type="submit" class="btn btn-sm">插入图片</button>
-          <span class="muted">jpg／jpeg／png／gif／webp，单个 ≤ 32 MB。</span>
+          <span class="muted">jpg／jpeg／png／gif／webp，单个 ≤ 2 MB。</span>
         </form>
       </section>
 

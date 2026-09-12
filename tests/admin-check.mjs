@@ -1279,6 +1279,34 @@ async function main() {
       bannersPage.status === 200 && (bannersPage.text.match(/槽位 <code>/g) || []).length === 7);
     check("横幅页给出每个位置的位置说明",
       bannersPage.text.includes("首屏专题条幅 · 左") && bannersPage.text.includes("页面底部通栏"));
+    check("横幅页每个位置给出比例与出图建议",
+      (bannersPage.text.match(/出图建议：/g) || []).length === 7 &&
+      bannersPage.text.includes("355:76") &&
+      bannersPage.text.includes("建议 1960×350"));
+    check("横幅页给出通用出图说明",
+      bannersPage.text.includes("显示尺寸的 2 倍") && bannersPage.text.includes("300 KB"));
+    check("横幅页的图片框带选后即时预览的钩子",
+      (bannersPage.text.match(/data-preview-file="/g) || []).length === 7 &&
+      (bannersPage.text.match(/data-preview-box/g) || []).length === 7 &&
+      (bannersPage.text.match(/data-preview-pending/g) || []).length === 7 &&
+      bannersPage.text.includes('data-preview-file="#banner-preview-hero-1"'));
+
+    // 图片一律 ≤ 2 MB（2026-09-12 定的口径），附件与视频仍是 32 MB
+    const oversizedImage = Buffer.alloc(2 * 1024 * 1024 + 4096, 7);
+    const oversizedBanner = await client.upload(
+      "/admin/banner/hero-1",
+      { _token: csrfToken(bannersPage.text), image_url: "", link_url: "", title: "", status: "published" },
+      [{ field: "image", filename: "oversized.jpg", type: "image/jpeg", content: oversizedImage }]
+    );
+    check("横幅上传超过 2 MB 的图片被挡下，且提示能看懂",
+      oversizedBanner.status === 302 && (await client.get("/admin/banners")).text.includes("2 MB"));
+    const oversizedInline = await client.upload(
+      "/admin/article/" + createdId + "/image",
+      { _token: csrfToken((await client.get("/admin/article/" + createdId)).text) },
+      [{ field: "image", filename: "oversized.jpg", type: "image/jpeg", content: oversizedImage }]
+    );
+    check("正文插图超过 2 MB 同样被挡下",
+      oversizedInline.status === 302 && (await client.get("/admin/article/" + createdId)).text.includes("2 MB"));
 
     const bannerOff = await client.post("/admin/banner/body-1", {
       _token: csrfToken(bannersPage.text),
