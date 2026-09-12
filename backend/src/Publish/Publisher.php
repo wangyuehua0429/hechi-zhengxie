@@ -7,6 +7,7 @@ namespace HechiZx\Publish;
 use HechiZx\Repository\ArticleRepository;
 use HechiZx\Repository\ChannelRepository;
 use HechiZx\Repository\HomeRepository;
+use HechiZx\Content\HtmlSanitizer;
 use HechiZx\Support\Db;
 use HechiZx\Support\Json;
 
@@ -188,7 +189,8 @@ final class Publisher
             $meta .= '　来源：' . htmlspecialchars((string) $article['source'], ENT_QUOTES);
         }
         $html = '<p class="meta">' . $meta . '</p>';
-        $html .= '<div class="article-body">' . (string) $article['content'] . '</div>';
+        // 出口兜底：静态页直接对外，正文统一过白名单（覆盖编辑器上线前的历史正文）
+        $html .= '<div class="article-body">' . HtmlSanitizer::clean((string) $article['content']) . '</div>';
 
         $attachments = $article['attachments'] ?? [];
         if ($attachments !== []) {

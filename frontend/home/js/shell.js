@@ -20,6 +20,7 @@
     if (!u || u === "#") return u;
     if (/^(https?:)?\/\//.test(u)) return u;
     if (u.startsWith("//")) return "https:" + u;
+    if (/^\/?(?:channel|detail)\.html(?:[?#]|$)/.test(u)) return u;   // 站内内页：本站地址，不能补旧站域名
     if (u.startsWith("/")) return site + u;
     if (/^(\.\/|\.\.\/|images\/|data:|channel\.html|detail\.html)/.test(u)) return u;
     return site + "/" + u;

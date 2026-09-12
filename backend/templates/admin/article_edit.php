@@ -7,8 +7,9 @@
  * 右边是「随手要用」的东西（稿库流转、稿件信息、附件、正文插图、回收站），
  * 这样改稿时不用在长页面里上下找保存按钮与流转按钮。
  *
- * 正文仍是文本框直接编辑 HTML（旧文多为 <div>/<p> 结构，富文本编辑器随阶段 C 接），
- * 但补了「预览正文」与字数统计；保存后静态页要走「立即发布全站」才会更新。
+ * 正文用富文本编辑器（SunEditor，本地自托管），脚本未加载或初始化失败时退回原来的
+ * HTML 文本框；两种方式都保留「预览正文」「切到源码」与字数统计。保存后静态页要走
+ * 「立即发布全站」才会更新。
  *
  * @var array<string, mixed>|null $article
  * @var list<array<string, mixed>> $attachments
@@ -28,6 +29,7 @@
 declare(strict_types=1);
 
 use HechiZx\Content\ArticleWorkflow;
+use HechiZx\Admin\Csrf;
 
 $isNew = $article === null;
 $published = (string) ($article['published_at'] ?? '');
@@ -88,69 +90,47 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
 
 <div class="edit-layout<?= $isNew ? ' edit-layout--single' : '' ?>">
   <div class="edit-main">
-    <form method="post" action="<?= hechi_e($action) ?>" class="edit-form" id="article-form">
+    <form method="post" action="<?= hechi_e($action) ?>" class="edit-form" id="article-form"
+          data-image-upload-url="/admin/media/image"
+          data-video-upload-url="/admin/media/video"
+          data-article-id="<?= $isNew ? '' : (int) $article['article_id'] ?>"
+          data-csrf-token="<?= hechi_e(Csrf::token()) ?>">
       <?= $csrf ?>
       <?php if ($isNew): ?>
         <input type="hidden" name="channel_type" value="<?= hechi_e((string) ($defaultChannel ?? '')) ?>">
       <?php endif; ?>
 
-      <section class="card">
-        <h2>基本信息</h2>
-        <label class="full">标题
-          <input type="text" name="title" value="<?= hechi_e($article['title'] ?? '') ?>" required>
-        </label>
-        <div class="row">
-          <label>引题／副标题
-            <input type="text" name="subtitle" value="<?= hechi_e($article['subtitle'] ?? '') ?>">
-          </label>
-          <label>来源
-            <input type="text" name="source" value="<?= hechi_e($article['source'] ?? '') ?>" placeholder="如：广西政协报">
-          </label>
-        </div>
-        <div class="row">
-          <label>作者
-            <input type="text" name="author" value="<?= hechi_e($article['author'] ?? '') ?>">
-          </label>
-          <label>责任编辑
-            <input type="text" name="editor" value="<?= hechi_e($article['editor'] ?? '') ?>">
-          </label>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>发布设置</h2>
-        <div class="row">
-          <label>发布时间（日期）
-            <input type="date" name="published_date" value="<?= hechi_e($dateValue) ?>">
-          </label>
-          <label>发布时间（时刻）
-            <input type="time" name="published_time" value="<?= hechi_e($timeValue) ?>">
-          </label>
-          <label class="check">
-            <input type="checkbox" name="is_top" value="1"<?= (int) ($channelTop ?? $article['is_top'] ?? 0) === 1 ? ' checked' : '' ?>> 在本栏目置顶
-          </label>
-        </div>
-        <p class="muted">
-          只有「已发布」的稿件会出现在前台与内容接口；草稿、待审、退回、已撤回、回收站都只在后台可见。
-          稿件状态不在这个表单里改，用右侧的「稿库流转」。
-          「在本栏目置顶」让这篇稿排在所属栏目的最前，首页对应模块（政协动态、时政要闻这类）也跟着排在前面。
-        </p>
-      </section>
+      <input type="hidden" name="published_date" value="<?= hechi_e($dateValue) ?>">
+      <input type="hidden" name="published_time" value="<?= hechi_e($timeValue) ?>">
 
       <section class="card">
         <div class="card-head">
           <h2>摘要与正文</h2>
           <div class="card-tools">
             <button type="button" class="btn btn-sm btn-ghost" data-preview-toggle hidden>预览正文</button>
+            <button type="button" class="btn btn-sm btn-ghost" data-editor-toggle hidden>切到源码</button>
             <span class="muted" data-content-count></span>
           </div>
         </div>
-        <label class="full">摘要（列表页与检索结果里显示）
-          <textarea name="summary" rows="3"><?= hechi_e($article['summary'] ?? '') ?></textarea>
-        </label>
-        <label class="full">正文（可直接写纯文本，系统按空行自动分段；也支持 HTML）
+        <div class="writing-paper">
+          <div class="writing-title-line">
+            <input type="text" name="title" value="<?= hechi_e($article['title'] ?? '') ?>" class="writing-title"
+                   maxlength="64" placeholder="请在这里输入标题" aria-label="标题" required>
+            <span class="writing-title-count" data-title-count aria-hidden="true"></span>
+          </div>
+          <div class="writing-meta">
+            <input type="text" name="author" value="<?= hechi_e($article['author'] ?? '') ?>" class="writing-author"
+                   placeholder="请输入作者" aria-label="作者">
+            <input type="text" name="editor" value="<?= hechi_e($article['editor'] ?? '') ?>" class="writing-author"
+                   placeholder="责任编辑" aria-label="责任编辑">
+            <input type="text" name="source" value="<?= hechi_e($article['source'] ?? '') ?>" class="writing-author"
+                   placeholder="来源（如：广西政协报）" aria-label="来源">
+          </div>
+          <label class="writing-top"><input type="checkbox" name="is_top" value="1"<?= (int) ($channelTop ?? $article['is_top'] ?? 0) === 1 ? ' checked' : '' ?>> 在本栏目置顶（首页对应模块也跟着排前）</label>
+          <p class="writing-hint muted">正文（可直接插图与 mp4／webm 视频；粘贴网页或 Word 内容时图片自动上传）</p>
           <textarea name="content_html" rows="18" class="mono"><?= hechi_e($article['content_html'] ?? '') ?></textarea>
-        </label>
+          <div class="editor-mount" data-editor-mount hidden></div>
+        </div>
         <div class="preview-panel" data-preview-panel hidden>
           <iframe data-preview-frame title="正文预览" sandbox referrerpolicy="no-referrer"></iframe>
         </div>

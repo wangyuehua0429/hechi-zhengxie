@@ -95,6 +95,7 @@ $rootCrumb = isset($section['parent']) ? $section['parent'] : ['label' => '概�
   <meta name="color-scheme" content="light">
   <title><?= hechi_e($title) ?> · <?= hechi_e($siteName) ?>后台</title>
   <link rel="stylesheet" href="/assets/admin.css">
+  <?php if (!empty($pageHead)): ?><?= $pageHead ?><?php endif; ?>
   <script src="/assets/admin.js" defer></script>
 </head>
 <body>
@@ -164,5 +165,10 @@ $rootCrumb = isset($section['parent']) ? $section['parent'] : ['label' => '概�
       <?= $content ?>
     </main>
   </div>
+
+  <?php /* 长页面（如「其他栏目」）回到顶部：默认隐藏，脚本滚过一屏后才让它出现 */ ?>
+  <button type="button" class="to-top" data-to-top hidden>
+    <span aria-hidden="true">↑</span> 回到顶部
+  </button>
 </body>
 </html>

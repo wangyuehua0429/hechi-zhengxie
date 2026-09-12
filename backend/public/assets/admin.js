@@ -1,7 +1,7 @@
 /**
  * 后台渐进增强脚本：不加载也能完成全部操作，加载后少点几下。
  *
- * 这里只做六件事：
+ * 这里只做七件事：
  * 1. 稿件列表的批量选择（勾选、全选半选、按动作显示备注框、提交前自检）；
  * 2. 栏目列表的即时筛选（不必回车，服务端筛选照旧可用）；
  * 3. 稿件编辑页的正文预览与字数统计（预览走 sandbox iframe，脚本不执行）；
@@ -9,6 +9,7 @@
  * 5. 上移／下移这类排序提交后还原滚动位置，长列表里不用每次再滚回去。
  * 6. 头条轮换「首屏效果预览」里拖动缩略图排序（拖完一次性提交整串顺序）；
  *    首页管理里会改前台的提交（下线／删除／隐藏／置顶／改绑定／换图等）先弹一次确认。
+ * 7. 长页面滚过一屏后，左下角出现「回到顶部」（模板默认 hidden，没有脚本就不显示）。
  *
  * 所有逻辑都用 data-* 钩子，模板改名不影响；没有匹配元素时静默跳过。
  */
@@ -114,6 +115,15 @@
   const previewPanel = document.querySelector("[data-preview-panel]");
   const previewFrame = document.querySelector("[data-preview-frame]");
   const countNode = document.querySelector("[data-content-count]");
+  const titleArea = document.querySelector('input[name="title"]');
+  const titleCount = document.querySelector("[data-title-count]");
+
+  // 编辑页挂了富文本编辑器时以内里的内容为准；没有编辑器就用 textarea（渐进增强）
+  const readContent = () => (
+    window.AdminEditor && typeof window.AdminEditor.getContent === "function"
+      ? window.AdminEditor.getContent()
+      : (contentArea ? contentArea.value : "")
+  );
 
   const toPreviewHtml = (raw) => {
     const text = raw.trim();
@@ -127,7 +137,7 @@
 
   const refreshPreview = () => {
     if (!previewFrame || !contentArea) return;
-    const body = toPreviewHtml(contentArea.value);
+    const body = toPreviewHtml(readContent());
     previewFrame.setAttribute(
       "srcdoc",
       '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">' +
@@ -138,11 +148,20 @@
 
   if (contentArea && countNode) {
     const refreshCount = () => {
-      const text = contentArea.value.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
+      const text = readContent().replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
       countNode.textContent = text.length > 0 ? "正文约 " + text.length + " 字" : "";
     };
     contentArea.addEventListener("input", refreshCount);
     refreshCount();
+  }
+
+  /* ---------------------------------------------------- 标题字数（标题输入框） */
+  if (titleArea && titleCount) {
+    const refreshTitleCount = () => {
+      titleCount.textContent = titleArea.value.length + "/64";
+    };
+    titleArea.addEventListener("input", refreshTitleCount);
+    refreshTitleCount();
   }
 
   if (previewToggle && previewPanel && previewFrame && contentArea) {
@@ -340,4 +359,20 @@
     // 按钮本身不 disabled，只挡住后续点击；表单数据照常提交
     submitter.style.pointerEvents = "none";
   });
+
+  /* ------------------------------------ 7. 长页面回到顶部 */
+  // 「其他栏目」这类页面有一万多像素高，滚到下面想回顶部得一直往上搓。
+  // 按钮平时藏着，滚过一屏才出现（模板里默认 hidden，没有脚本就不会留下一个点不动的按钮）。
+  const toTop = document.querySelector("[data-to-top]");
+  if (toTop) {
+    const reduceMotion = typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const syncToTop = () => { toTop.hidden = window.scrollY < 400; };
+
+    toTop.addEventListener("click", () => {
+      window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+    });
+    window.addEventListener("scroll", syncToTop, { passive: true });
+    syncToTop();
+  }
 })();

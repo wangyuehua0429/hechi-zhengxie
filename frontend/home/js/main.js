@@ -20,11 +20,15 @@
     return i >= 0 ? t.slice(0, i) : t;
   };
 
-  // 旧站绝对地址补偿：相对路径拼域名
+  // 旧站绝对地址补偿：相对路径拼域名。
+  // 例外：站内内页（channel.html / detail.html）属于本站地址，有/无前导斜杠都原样保留——
+  // 内容接口给的就是这两种写法，补成旧站域名后点开的地址会与后台设置不一致（旧站没有这些页）。
+  const LOCAL_PAGE = /^\/?(?:channel|detail)\.html(?:[?#]|$)/;
   function abs(u) {
     if (!u || u === "#") return u;
     if (/^(https?:)?\/\//.test(u)) return u;
     if (u.startsWith("//")) return "https:" + u;
+    if (LOCAL_PAGE.test(u)) return u;
     if (u.startsWith("/")) return site + u;
     if (/^(\.\/|\.\.\/|images\/|data:)/.test(u)) return u;
     return site + "/" + u;

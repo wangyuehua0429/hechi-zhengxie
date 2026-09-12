@@ -224,12 +224,14 @@ foreach ($slides as $slide) {
           </td>
           <td class="col-actions">
             <div class="row-actions">
-              <form method="post" action="/admin/slides/<?= $id ?>/move" class="inline">
+              <form method="post" action="/admin/slides/<?= $id ?>/move" class="inline"
+                    data-confirm="把轮播条目「<?= hechi_e((string) $slide['title']) ?>」上移一位？首屏轮播顺序会立刻跟着变。">
                 <?= $csrf ?>
                 <input type="hidden" name="dir" value="up">
                 <button type="submit" class="btn btn-sm btn-icon"<?= $index === 0 ? ' disabled' : '' ?> aria-label="上移">↑</button>
               </form>
-              <form method="post" action="/admin/slides/<?= $id ?>/move" class="inline">
+              <form method="post" action="/admin/slides/<?= $id ?>/move" class="inline"
+                    data-confirm="把轮播条目「<?= hechi_e((string) $slide['title']) ?>」下移一位？首屏轮播顺序会立刻跟着变。">
                 <?= $csrf ?>
                 <input type="hidden" name="dir" value="down">
                 <button type="submit" class="btn btn-sm btn-icon"<?= $index === count($slides) - 1 ? ' disabled' : '' ?> aria-label="下移">↓</button>

@@ -1,0 +1,135 @@
+/* 正文写作区与编辑器衔接样式（编辑器本体样式在 suneditor.min.css）
+ *
+ * 视觉参照"纸张式写作窗"：白纸卡片、大标题、作者行、正文区；
+ * 工具栏与正文区都收进这张纸里，与后台其它表单卡片区分开。
+ */
+
+.editor-mount {
+  margin-top: 6px;
+}
+
+.editor-mount[hidden] {
+  display: none;
+}
+
+.editor-mount .se-container,
+.editor-mount .se-toolbar {
+  border-radius: 6px;
+}
+
+.editor-mount .se-wrapper-inner {
+  min-height: 260px;
+  font-size: 15px;
+  line-height: 1.9;
+}
+
+/* ------------------------------------------------------------ 纸张式写作区 */
+
+.writing-paper {
+  margin-top: 12px;
+  padding: 26px 30px 30px;
+  background: #fff;
+  border: 1px solid #e6e8eb;
+  border-radius: 10px;
+}
+
+.writing-title-line {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.writing-title {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #1f2328;
+  background: none;
+}
+
+.writing-title::placeholder {
+  color: #9aa1a9;
+  font-weight: 500;
+}
+
+.writing-title:focus {
+  border-bottom-color: #c9302c;
+  box-shadow: none;
+  outline: none;
+}
+
+.writing-title-count {
+  flex: none;
+  color: #8c959f;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.writing-author {
+  width: 100%;
+  margin: 4px 0 18px;
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 1px solid transparent;
+  font-size: 15px;
+  color: #57606a;
+  background: none;
+}
+
+/* 作者／责任编辑／来源并排一行 */
+.writing-meta {
+  display: flex;
+  gap: 14px;
+  margin: 4px 0 18px;
+}
+
+.writing-meta .writing-author {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.writing-author::placeholder {
+  color: #9aa1a9;
+}
+
+.writing-author:focus {
+  border-bottom-color: #d0d7de;
+  box-shadow: none;
+  outline: none;
+}
+
+.writing-hint {
+  margin: 0 0 8px;
+  font-size: 12px;
+}
+
+/* 编辑器容器融进纸张：工具栏浅灰一条，正文区留白更大 */
+.writing-paper .se-container {
+  border: 0;
+}
+
+.writing-paper .se-toolbar {
+  border: 1px solid #e6e8eb;
+  border-radius: 8px;
+  background: #f7f8f9;
+  padding: 4px 6px;
+}
+
+.writing-paper .se-wrapper {
+  margin-top: 10px;
+  border: 1px solid #e6e8eb;
+  border-radius: 8px;
+}
+
+.writing-paper .se-wrapper-inner {
+  padding: 22px 24px;
+  font-size: 16px;
+  line-height: 1.95;
+}

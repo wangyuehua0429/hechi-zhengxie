@@ -4,7 +4,7 @@
  * 其他栏目：首页正文各稿件模块的绑定维护 + 未进导航的栏目清单。
  *
  * @var list<array{row:array<string,mixed>, kind:string, scopeText:string, channels:list<string>, preview:array{tabs:list<array{title:string,count:int,titles:list<string>}>, titles:list<string>, count:int}}> $sections
- * @var array<string, string> $channelNames
+ * @var array{blocks:list<array{code:string,title:string,chips:list<array<string,mixed>>}>,standalone:list<array<string,mixed>>,total:int,marked:int} $indexGroups
  * @var list<array{key:string, title:string, channels:list<array<string,mixed>>}> $otherGroups
  */
 
@@ -16,32 +16,12 @@ $kindLabels = [
     'tabs'     => '分标签（每个子栏目一个标签）',
 ];
 
-// 顶部栏目索引：模块绑定的栏目跳到对应卡片，本页清单里的其他栏目跳到下面那一条；
-// 只在首页导航里、本页没有内容的栏目单独列出来，点开去它的稿件列表。
-$moduleAnchor = [];   // 栏目号 => 模块卡片锚点
-foreach ($sections as $section) {
-    foreach ($section['scopeChips'] as $chip) {
-        if (!isset($moduleAnchor[$chip['code']])) {
-            $moduleAnchor[$chip['code']] = 'section-' . (string) $section['row']['section_key'];
-        }
-    }
-}
-$listedAnchor = [];   // 栏目号 => 本页清单里的锚点
-foreach ($otherGroups as $group) {
-    foreach ($group['channels'] as $channel) {
-        $type = (string) $channel['type_code'];
-        if (!isset($moduleAnchor[$type]) && !isset($listedAnchor[$type])) {
-            $listedAnchor[$type] = (string) $channel['inner_name'];
-        }
-    }
-}
-$elsewhereChannels = [];   // 本页没有内容的栏目
-foreach ($channelNames as $type => $name) {
-    $type = (string) $type;
-    if (!isset($moduleAnchor[$type]) && !isset($listedAnchor[$type])) {
-        $elsewhereChannels[$type] = (string) $name;
-    }
-}
+// 顶部栏目索引里的一个 chip（控制器已算好落点与提示，这里只负责渲染）
+$renderChip = static function (array $chip): string {
+    $class = 'channel-chip' . (!empty($chip['marked']) ? ' channel-chip--module' : '');
+    return '<a class="' . $class . '" href="' . hechi_e((string) $chip['href']) . '" title="' . hechi_e((string) $chip['hint']) . '">'
+        . hechi_e((string) $chip['name']) . '</a>';
+};
 ?>
 <div class="page-head">
   <div class="page-title">
@@ -60,47 +40,35 @@ foreach ($channelNames as $type => $name) {
 <section class="card channel-index" id="channel-index">
   <div class="card-head">
     <h2>栏目索引</h2>
-    <span class="muted">
-      共 <?= count($moduleAnchor) + count($listedAnchor) + count($elsewhereChannels) ?> 个栏目，点名称跳到本页对应位置。
-    </span>
+    <span class="muted">共 <?= (int) $indexGroups['total'] ?> 个栏目，按一级栏目分组。</span>
   </div>
 
-  <div class="index-row">
-    <span class="index-label">首页模块绑定的栏目</span>
-    <span class="channel-nav">
-      <?php foreach ($sections as $section): ?>
-        <?php foreach ($section['scopeChips'] as $chip): ?>
-          <a class="channel-chip" href="#<?= hechi_e($moduleAnchor[$chip['code']]) ?>"
-             title="跳到「<?= hechi_e((string) $section['row']['label']) ?>」模块"><?= hechi_e($chip['name']) ?>
-            <span class="muted"><?= hechi_e($chip['code']) ?></span></a>
-        <?php endforeach; ?>
+  <p class="index-legend">
+    <span class="index-dot" aria-hidden="true"></span>
+    表示这个栏目正被首页模块使用（共 <?= (int) $indexGroups['marked'] ?> 个），鼠标停在上面能看到是哪个模块；
+    点栏目名跳到对应位置。
+  </p>
+
+  <?php if ($indexGroups['blocks'] !== []): ?>
+    <div class="index-groups">
+      <?php foreach ($indexGroups['blocks'] as $block): ?>
+        <div class="index-group">
+          <div class="index-group-title" title="一级栏目 <?= hechi_e((string) $block['code']) ?>"><?= hechi_e((string) $block['title']) ?></div>
+          <div class="channel-nav">
+            <?php foreach ($block['chips'] as $chip): ?><?= $renderChip($chip) ?><?php endforeach; ?>
+          </div>
+        </div>
       <?php endforeach; ?>
-    </span>
-  </div>
-
-  <?php if ($listedAnchor !== []): ?>
-    <div class="index-row">
-      <span class="index-label">未进首页导航的栏目</span>
-      <span class="channel-nav">
-        <?php foreach ($listedAnchor as $type => $name): ?>
-          <a class="channel-chip" href="#ch-<?= hechi_e((string) $type) ?>"><?= hechi_e($name) ?>
-            <span class="muted"><?= hechi_e((string) $type) ?></span></a>
-        <?php endforeach; ?>
-      </span>
     </div>
   <?php endif; ?>
 
-  <?php if ($elsewhereChannels !== []): ?>
+  <?php if ($indexGroups['standalone'] !== []): ?>
     <div class="index-row">
-      <span class="index-label">只在首页导航里</span>
+      <span class="index-label">独立栏目</span>
       <span class="channel-nav">
-        <?php foreach ($elsewhereChannels as $type => $name): ?>
-          <a class="channel-chip" href="/admin/articles?channel=<?= hechi_e((string) $type) ?>"
-             title="这个栏目不在本页显示稿件，点开进它的稿件列表"><?= hechi_e($name) ?>
-            <span class="muted"><?= hechi_e((string) $type) ?></span></a>
-        <?php endforeach; ?>
+        <?php foreach ($indexGroups['standalone'] as $chip): ?><?= $renderChip($chip) ?><?php endforeach; ?>
       </span>
-      <span class="row-meta">这些栏目的稿件不进首页模块，本页不显示，点名称直接进稿件列表。</span>
+      <span class="row-meta">这些栏目本身就是一级栏目，下面没有子栏目。</span>
     </div>
   <?php endif; ?>
 </section>
@@ -123,6 +91,7 @@ foreach ($channelNames as $type => $name) {
         <?php if ((string) $section['firstChannel'] !== ''): ?>
           <a class="btn btn-sm btn-ghost" href="/admin/articles?channel=<?= hechi_e((string) $section['firstChannel']) ?>">进稿件管理</a>
         <?php endif; ?>
+        <a class="btn btn-sm btn-ghost" href="#channel-index" title="回到页面顶部的栏目索引">回到索引</a>
       </div>
     </div>
 
@@ -201,14 +170,16 @@ foreach ($channelNames as $type => $name) {
                 </td>
                 <td class="col-actions">
                   <div class="row-actions">
-                    <form method="post" action="/admin/article/<?= $id ?>/order" class="inline">
+                    <form method="post" action="/admin/article/<?= $id ?>/order" class="inline"
+                          data-confirm="把「<?= hechi_e((string) $row['title']) ?>」在本栏目上移一位？该栏目与首页模块的排序会立刻跟着变。">
                       <?= $csrf ?>
                       <input type="hidden" name="channel" value="<?= hechi_e($channel) ?>">
                       <input type="hidden" name="back" value="<?= hechi_e($back) ?>">
                       <input type="hidden" name="dir" value="up">
                       <button type="submit" class="btn btn-sm btn-icon" aria-label="把「<?= hechi_e((string) $row['title']) ?>」在本栏目上移一位">↑</button>
                     </form>
-                    <form method="post" action="/admin/article/<?= $id ?>/order" class="inline">
+                    <form method="post" action="/admin/article/<?= $id ?>/order" class="inline"
+                          data-confirm="把「<?= hechi_e((string) $row['title']) ?>」在本栏目下移一位？该栏目与首页模块的排序会立刻跟着变。">
                       <?= $csrf ?>
                       <input type="hidden" name="channel" value="<?= hechi_e($channel) ?>">
                       <input type="hidden" name="back" value="<?= hechi_e($back) ?>">
@@ -310,8 +281,8 @@ foreach ($channelNames as $type => $name) {
         <?php foreach ($group['channels'] as $channel): ?>
           <?php $type = (string) $channel['type_code']; ?>
           <li id="ch-<?= hechi_e($type) ?>">
-            <a href="/admin/articles?channel=<?= hechi_e($type) ?>"><?= hechi_e((string) $channel['inner_name']) ?></a>
-            <span class="muted"><?= hechi_e($type) ?> · <?= (int) $channel['article_count'] ?> 篇</span>
+            <a href="/admin/articles?channel=<?= hechi_e($type) ?>" title="栏目 <?= hechi_e($type) ?>"><?= hechi_e((string) $channel['inner_name']) ?></a>
+            <span class="muted"><?= (int) $channel['article_count'] ?> 篇</span>
           </li>
         <?php endforeach; ?>
       </ul>

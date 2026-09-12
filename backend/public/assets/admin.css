@@ -934,6 +934,29 @@ html:not(.js) .bulk-col { display: none; }
 .other-channels { display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; margin: 0; padding: 0; }
 .other-channels li { font-size: 14px; }
 
+/* 长页面回到顶部：固定在左下角，脚本滚过一屏后才显示（没有脚本时不渲染） */
+.to-top {
+  position: fixed;
+  left: 16px;
+  bottom: 20px;
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border: 1px solid var(--field-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--brand);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .14);
+  transition: border-color .15s ease, background-color .15s ease;
+}
+.to-top:hover, .to-top:focus-visible { border-color: var(--brand); background: #fdf3f3; }
+
 /* 其他栏目页顶部的栏目索引：一行一类，点栏目名跳到本页对应位置 */
 .channel-index .index-row { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; margin-bottom: 8px; }
 .channel-index .index-label {
@@ -945,6 +968,47 @@ html:not(.js) .bulk-col { display: none; }
 .channel-index .channel-nav { flex: 1 1 320px; }
 /* 说明文字单独占一行，别跟栏目挤在同一行右侧 */
 .channel-index .row-meta { flex: 1 1 100%; margin-top: 2px; }
+/* 一级栏目分组：有子栏目的 5 组各占一个块，宽屏一排 3—4 个，窄屏自然堆成一列 */
+.index-legend {
+  margin: 0 0 10px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.index-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--brand);
+  vertical-align: middle;
+}
+.index-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin-bottom: 10px;
+}
+.index-group {
+  flex: 1 1 300px;
+  min-width: 240px;
+  max-width: 420px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fafbfc;
+}
+.index-group-title { margin-bottom: 6px; font-size: 14px; font-weight: 700; color: #444; }
+.index-group .channel-nav { display: flex; flex-wrap: wrap; gap: 6px 4px; }
+/* 被首页模块使用的栏目：名字前点一个红点，悬停提示写着是哪个模块 */
+.channel-chip--module::before {
+  content: "";
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand);
+}
 /* 跳过去以后给目标卡片一条边线提示，和旁边的卡片区分开 */
 .card:target { border-color: var(--brand); }
 .other-channels li:target { font-weight: 700; }

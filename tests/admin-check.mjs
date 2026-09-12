@@ -889,8 +889,9 @@ async function main() {
 
     // ---- 编辑页结构：分区卡片 + 右侧栏 + 正文预览
     const editPage = await client.get("/admin/article/62246");
-    check("编辑页分成基本信息、发布设置、摘要与正文三块",
-      editPage.text.includes("基本信息") && editPage.text.includes("发布设置") && editPage.text.includes("摘要与正文"));
+    check("编辑页只剩写作窗一张卡（基本信息、发布设置已并入／删除）",
+      editPage.text.includes("摘要与正文") && editPage.text.includes("writing-paper")
+        && !editPage.text.includes("基本信息") && !editPage.text.includes("发布设置"));
     check("编辑页右侧栏放稿库流转、稿件信息与附件",
       editPage.text.includes('class="edit-side"') && editPage.text.includes("稿库流转") &&
       editPage.text.includes("稿件信息") && editPage.text.includes("正文插图"));
@@ -976,6 +977,11 @@ async function main() {
       navPage.text.includes(">用户管理<") &&
       navPage.text.includes(">操作日志<") &&
       !navPage.text.includes(">用户与角色<"));
+    // 长页面回到顶部：外壳里有入口（默认 hidden，脚本滚过一屏才让它出现）
+    check("后台外壳带「回到顶部」入口且默认隐藏",
+      /<button[^>]*class="to-top"[^>]*data-to-top[^>]*hidden>/.test(navPage.text) &&
+      navPage.text.includes("回到顶部"),
+      (navPage.text.match(/<button[^>]*data-to-top[^>]*>/) || [""])[0]);
     check("「首页管理」是默认展开的树形分组，四个子项都在里面",
       /<details class="sidenav-group[^"]*" open>/.test(navPage.text) &&
       navPage.text.includes('href="/admin/nav"') &&
@@ -1144,14 +1150,41 @@ async function main() {
       "标题/条数/更多链接三个框的值");
     check("其他栏目页列出未进首页导航的栏目",
       sectionsPage.text.includes("未进首页导航的栏目") && sectionsPage.text.includes("/admin/articles?channel="));
-    // 顶部栏目索引：模块绑定的跳到卡片，其余跳到页面下方清单；锚点必须都落在本页元素上
-    const indexAnchors = [...sectionsPage.text.matchAll(/class="channel-chip" href="(#[^"]+)"/g)].map((m) => m[1]);
-    const indexChips = [...sectionsPage.text.matchAll(/class="channel-chip" href="([^"]+)"/g)].map((m) => m[1]);
+    // 顶部栏目索引：按一级栏目分组，模块绑定的跳到卡片，没进导航的跳到页面下方清单；
+    // 页内锚点必须都落在本页元素上
+    const indexChipTags = [...sectionsPage.text.matchAll(
+      /<a class="channel-chip[^"]*" href="([^"]+)" title="([^"]*)">([\s\S]*?)<\/a>/g
+    )];
+    const indexChips = indexChipTags.map((m) => m[1]);
+    const indexAnchors = indexChips.filter((h) => h.startsWith("#"));
     const pageIds = new Set([...sectionsPage.text.matchAll(/ id="([^"]+)"/g)].map((m) => m[1]));
     const dangling = indexAnchors.filter((h) => !pageIds.has(h.slice(1)));
     check("其他栏目页顶部列出全部 43 个栏目，页内锚点都能跳到对应位置",
       indexChips.length === 43 && indexAnchors.length >= 30 && dangling.length === 0,
       "索引 " + indexChips.length + " 个（页内 " + indexAnchors.length + "，落空 " + dangling.length + "）");
+
+    // 分组口径：有子栏目的 5 个一级栏目各一个组块，其余 20 个独立栏目合成一行；
+    // 被首页模块使用的栏目带红点标记，悬停提示写明是哪个模块
+    const indexBlocks = [...sectionsPage.text.matchAll(/<div class="index-group-title"[^>]*>([^<]*)</g)]
+      .map((m) => m[1].trim());
+    const markedChips = indexChipTags.filter((m) => m[0].includes("channel-chip--module"));
+    check("栏目索引按一级栏目分组，并标出被首页模块使用的栏目",
+      indexBlocks.length === 5 &&
+      ["政协动态", "政协会议", "政协提案", "党派团体", "政协艺苑"].every((t) => indexBlocks.includes(t)) &&
+      sectionsPage.text.includes("独立栏目") &&
+      markedChips.length === 24 &&
+      markedChips.every((m) => m[2].includes("喂给")),
+      "组块 " + indexBlocks.join("／") + "；标记 " + markedChips.length + " 个");
+    check("每个模块卡片都能跳回顶部索引",
+      (sectionsPage.text.match(/href="#channel-index"/g) || []).length === 13,
+      "实际 " + (sectionsPage.text.match(/href="#channel-index"/g) || []).length + " 处");
+    // 栏目号不再印在页面上：chip、一级栏目组头、页底清单都收进悬停提示
+    check("栏目编号不直接显示，改成悬停提示",
+      indexChipTags.length === 43 &&
+      indexChipTags.every((m) => /^栏目 [a-z0-9]+/i.test(m[2]) && !/<span/.test(m[3])) &&
+      (sectionsPage.text.match(/<div class="index-group-title" title="一级栏目 [a-z0-9]+">/gi) || []).length === 5 &&
+      !/<span class="muted">\d+ · \d+ 篇<\/span>/.test(sectionsPage.text),
+      "例：" + indexChipTags.slice(0, 2).map((m) => m[2]).join(" ｜ "));
 
     const resized = await client.post("/admin/section/notice", {
       _token: csrfToken(sectionsPage.text),
@@ -1281,6 +1314,22 @@ async function main() {
       " 处 / 轮播 " + countOf(confirmSlidesPage.text, "data-confirm") +
       " 处 / 模块 " + countOf(sectionsPage.text, "data-confirm") +
       " 处 / 横幅 " + countOf(bannersPage.text, "data-confirm") + " 处");
+
+    // 上移／下移也是点了就换前台顺序，同样要带确认
+    const formsMatching = (text, re) => [...text.matchAll(re)].map((m) => m[0]);
+    const moveForms = {
+      nav: formsMatching(navPage.text, /<form[^>]*\/admin\/nav\/\d+\/move"[^>]*>/g),
+      slides: formsMatching(confirmSlidesPage.text, /<form[^>]*\/admin\/slides\/\d+\/move"[^>]*>/g),
+      sections: formsMatching(sectionsPage.text, /<form[^>]*\/admin\/article\/\d+\/order"[^>]*>/g)
+    };
+    const allMoveConfirmed = (forms) =>
+      forms.length > 0 && forms.every((tag) => tag.includes("data-confirm"));
+    check("上移／下移的按钮也都会先确认",
+      allMoveConfirmed(moveForms.nav) &&
+      allMoveConfirmed(moveForms.slides) &&
+      allMoveConfirmed(moveForms.sections),
+      "导航 " + moveForms.nav.length + " 处 / 轮播 " + moveForms.slides.length +
+      " 处 / 模块 " + moveForms.sections.length + " 处");
 
     const homeLogs = await client.get("/admin/logs");
     check("首页四类的改动都写进操作日志",

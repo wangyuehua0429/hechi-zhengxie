@@ -8,6 +8,9 @@
 | `api-check.mjs` | 后端接口与静态化发布器 | 本机有 PHP（`brew install php`） |
 | `admin-check.mjs` | 后台管理界面（登录／新建／编辑／上传／删除／发布／批量流转／栏目排序／首页四大类） | 本机有 PHP |
 | `order-e2e.mjs` | 四类排序的端到端串联（后台 ↑↓ → 前台接口顺序） | 本机有 PHP |
+| `sanitizer-check.php` | 正文清洗白名单（HtmlPurifier 的行为） | 本机有 PHP |
+| `sanitize-check.mjs` | 正文清洗端到端：保存 → 接口 → 静态页，以及后台安全响应头 | 本机有 PHP |
+| `editor-check.mjs` | 正文富文本编辑器（挂载、取值同步、图片上传、站内地址还原） | 本机有 PHP |
 
 ## 前端页面回归检查（check-pages.mjs）
 
@@ -141,3 +144,31 @@ node tests/admin-check.mjs --keep   # 保留临时库与发布产物
 > 每次改后台界面后，`admin-check.mjs` 里的断言（类名、按钮文案、表单字段名）就是这批界面的契约；改模板时若动了这些，同一个提交里要同步改断言。
 
 检查全程对**临时库**操作，并把改动还原，不影响开发库。
+
+## 正文清洗检查（sanitizer-check.php / sanitize-check.mjs）
+
+正文全链路清洗（`backend/src/Content/HtmlSanitizer.php`）分两层检查，改白名单或改调用点时两个都要跑：
+
+```bash
+php tests/sanitizer-check.php     # 32 项：白名单行为，不依赖库与服务
+node tests/sanitize-check.mjs     # 31 项：端到端（临时库 + PHP 服务）
+```
+
+`sanitizer-check.php` 覆盖：八种载荷（`<script>`／`onerror`／`javascript:`／`svg onload`／`data:`／`iframe`／`<style>`／内联事件）被剥离；允许的标签与属性保留；内联样式只留 `text-align` 等排版属性；相对路径不被绝对化；绝对外链自动补 `target="_blank"` 与 `rel="noopener noreferrer"`；存量 `video` 结构保留且协议与事件仍被剥离；`figure` 不产生 PHP 警告；清洗幂等；定义缓存写进 `backend/storage/htmlpurifier` 而不是 vendor 目录。
+
+`sanitize-check.mjs` 覆盖：入口清洗（保存时就拿掉载荷）、出口兜底（接口与静态页）、**直接往库里塞载荷模拟历史脏数据后接口与静态页仍然干净**、允许的标记不被误伤，以及后台安全响应头（`X-Content-Type-Options: nosniff`、CSP 不含 `'unsafe-inline'`、登录页内联脚本的 sha256 哈希与 CSP 一致）。
+
+> 改 `backend/templates/admin/login.php` 里的内联脚本后，必须同步更新 `backend/src/Http/HtmlResponse.php` 里的 `script-src` 哈希；`sanitize-check.mjs` 最后那条断言会核对两者一致，不一致就红。
+
+## 正文富文本编辑器检查（editor-check.mjs）
+
+正文编辑器（SunEditor 3.3.3，本地自托管在 `backend/public/assets/editor/`）的端到端检查，用临时库与真浏览器跑：
+
+```bash
+node tests/editor-check.mjs          # 28 项
+node tests/editor-check.mjs --keep   # 保留临时库便于排查
+```
+
+覆盖：编辑器资源只在编辑页与新建页加载、列表页零影响；编辑器挂载后 textarea 隐藏但仍是提交字段；编辑器改动同步回 textarea 与提交后服务端真的存下编辑器内容；**禁用 JS 时退回 textarea**；源码／富文本切换；素材上传接口（`POST /admin/media/image` 与 `/admin/media/video`，字段名 `file-0`，可选 `article`，返回 `{"result":[{url,name,size}]}`，缺 CSRF 令牌 400）；**新建页没有稿件号也能上传（先落 `/uploads/pending/`），保存时自动认领到 `/uploads/<新稿件号>/` 并登记图集**；**粘贴 base64 图片自动上传**（编辑页与新建页都验）；视频上传与 `<video>` 保存后保留；**站内绝对地址在保存时还原成根相对路径**（含编辑器按后台地址解析出的 `/admin/...` 前缀），外站链接保持原样。
+
+> 编辑器当前的实现细节：SunEditor 3 的容器是异步渲染、并且插在挂载点旁边（挂载点自己会被隐藏），就绪信号是挂载点上的 `data-editor-ready="1"`；事件回调走 `events: { onChange, onInput }`，参数是 `{data}` 不是字符串。改接法时留意这两点。

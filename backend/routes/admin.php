@@ -103,6 +103,8 @@ return static function (Router $router, Db $db, Config $config): void {
     $router->post('/admin/article/{id}/attachment', [$articleController, 'uploadAttachment']);
     $router->post('/admin/article/{id}/attachment/{aid}/delete', [$articleController, 'deleteAttachment']);
     $router->post('/admin/article/{id}/image', [$articleController, 'uploadImage']);
+    $router->post('/admin/media/image', [$articleController, 'uploadImageMedia']);
+    $router->post('/admin/media/video', [$articleController, 'uploadVideoMedia']);
 
     $router->get('/admin/channels', [$channelController, 'index']);
     $router->post('/admin/channel/{type}/move', [$channelController, 'move']);

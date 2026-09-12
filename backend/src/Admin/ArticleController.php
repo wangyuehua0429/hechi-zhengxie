@@ -7,7 +7,9 @@ namespace HechiZx\Admin;
 use HechiZx\Http\HtmlResponse;
 use HechiZx\Http\RedirectResponse;
 use HechiZx\Http\Request;
+use HechiZx\Http\Response;
 use HechiZx\Content\ArticleWorkflow;
+use HechiZx\Content\HtmlSanitizer;
 use HechiZx\Content\Permissions;
 use HechiZx\Repository\ArticleRepository;
 use HechiZx\Repository\ChannelRepository;
@@ -31,6 +33,7 @@ final class ArticleController extends AdminController
     private const MAX_UPLOAD_BYTES = 33554432;   // 32 MB，与 deploy/php/php.ini 的 upload_max_filesize 对齐
     private const FILE_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'rar', 'txt'];
     private const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+    private const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg', 'mov', 'm4v'];
 
     public function __construct(
         Auth $auth,
@@ -221,6 +224,7 @@ final class ArticleController extends AdminController
             'actions' => $this->allowedActions((string) $article['status']),
             'transitions' => ArticleWorkflow::transitions(),
             'saved'   => $request->query('saved') === '1',
+            'pageHead' => $this->editorHead(),
         ], '编辑稿件 · ' . $article['title']);
     }
 
@@ -269,6 +273,7 @@ final class ArticleController extends AdminController
             'defaultChannel' => $defaultChannel,
             // 新建默认「已发布」：编辑写完点保存就是要发出去，草稿/下线仍可手选
             'defaultStatus'  => 'published',
+            'pageHead'       => $this->editorHead(),
         ], '新建稿件');
     }
 
@@ -303,12 +308,14 @@ final class ArticleController extends AdminController
         }
         $userId = (int) ($this->user()['user_id'] ?? 0);
         $isTop = $request->post('is_top') === '1' ? 1 : 0;
+        $content = $this->normalizeContent((string) ($_POST['content_html'] ?? ''));
         $id = $this->articles->create([
             'channel_type' => $channelType,
             'title'        => $title,
             'subtitle'     => $request->post('subtitle'),
-            'summary'      => $request->post('summary'),
-            'content_html' => $this->normalizeContent((string) ($_POST['content_html'] ?? '')),
+            // 摘要不在稿件里维护：只有推荐到首页轮换头条时，在「首页管理」里写（存在轮播表上）
+            'summary'      => '',
+            'content_html' => $content,
             'source'       => $request->post('source'),
             'author'       => $request->post('author'),
             'editor'       => $request->post('editor'),
@@ -319,6 +326,12 @@ final class ArticleController extends AdminController
         ]);
         if ($isTop === 1) {
             $this->articles->setChannelTop($id, $channelType, 1);
+        }
+
+        // 新建页上传的图片／视频先落在 pending，这里迁到稿件目录并登记图集
+        $adopted = $this->adoptPendingMedia($id, $content);
+        if ($adopted !== $content) {
+            $this->articles->adminUpdate((string) $id, ['content_html' => $adopted]);
         }
 
         $this->log('article.create', 'article', (string) $id, ['title' => $title, 'status' => $status, 'channel' => $channelType]);
@@ -732,6 +745,158 @@ final class ArticleController extends AdminController
     }
 
     /**
+     * 编辑器插图（图片）。表单里带 article 时直接落到该稿件目录，否则落 pending（新建页）。
+     *
+     * @param array<string, string> $args
+     * @return array<string, mixed>
+     */
+    public function uploadImageMedia(Request $request, array $args): array
+    {
+        return $this->storeMedia($request, 'image');
+    }
+
+    /**
+     * 编辑器插入视频。返回与图片相同的契约形状。
+     *
+     * @param array<string, string> $args
+     * @return array<string, mixed>
+     */
+    public function uploadVideoMedia(Request $request, array $args): array
+    {
+        return $this->storeMedia($request, 'video');
+    }
+
+    /**
+     * 编辑器用的素材上传（JSON）。
+     *
+     * 与 302 表单接口 /admin/article/{id}/image 并存：那个把图追加到正文末尾，
+     * 这里供编辑器在光标处插图，返回 SunEditor 约定的形状：
+     * {"result":[{"url":"…","name":"…","size":123}]}
+     *
+     * @return array<string, mixed>
+     */
+    private function storeMedia(Request $request, string $kind): array
+    {
+        if ($this->requireLogin() !== null) {
+            Response::error('unauthorized', '请先登录。', 401);
+            exit;
+        }
+        $token = $request->post('_token');
+        if (($token === null || $token === '') && isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+            $token = (string) $_SERVER['HTTP_X_CSRF_TOKEN'];
+        }
+        if (!Csrf::check($token)) {
+            Response::error('csrf_failed', '页面已过期，请刷新后重试。', 400);
+            exit;
+        }
+
+        // 新建页还没有稿件号：article 传空即落 pending，保存时认领
+        $articleId = (int) ($request->post('article') ?? 0);
+        $article = $articleId > 0 ? $this->articles->adminFind((string) $articleId) : null;
+        if ($articleId > 0 && $article === null) {
+            Response::error('not_found', '稿件不存在。', 404);
+            exit;
+        }
+
+        // SunEditor 的 FileManager 用 file-0、file-1… 作为字段名，这里也接受 file
+        $file = $_FILES['file-0'] ?? $_FILES['file'] ?? null;
+        if ($file === null) {
+            foreach ($_FILES as $candidate) {
+                $file = $candidate;
+                break;
+            }
+        }
+        if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            Response::error('no_file', '没有选择文件。', 400);
+            exit;
+        }
+
+        $label = $kind === 'video' ? '视频' : '图片';
+        try {
+            $stored = $this->storeUpload($file, $articleId, $kind === 'video' ? self::VIDEO_EXTENSIONS : self::IMAGE_EXTENSIONS);
+        } catch (\RuntimeException $e) {
+            Response::error('upload_failed', $label . '上传失败：' . $e->getMessage(), 400);
+            exit;
+        }
+
+        if ($article !== null) {
+            if ($kind === 'image') {
+                $this->articles->addImage($articleId, $stored['url']);
+            }
+            $tag = $kind === 'video'
+                ? '<video src="' . $stored['url'] . '" controls></video>'
+                : '<img src="' . $stored['url'] . '" alt="">';
+            $this->articles->syncBodyAssets($articleId, (string) $article['content_html'] . $tag);
+            $this->log('media.upload', 'article', (string) $articleId, ['kind' => $kind, 'url' => $stored['url']]);
+        }
+
+        return [
+            'result' => [[
+                'url'  => $stored['url'],
+                'name' => $stored['name'],
+                'size' => (int) $stored['size'],
+            ]],
+        ];
+    }
+
+    /**
+     * 认领新建页上传的素材：把 /uploads/pending/ 下的文件迁到稿件目录，
+     * 并把正文里的图片登记进图集（视频只迁文件，不进图集）。
+     *
+     * 迁移失败（文件已不在、重命名失败）时保留原地址，不让保存失败。
+     */
+    private function adoptPendingMedia(int $articleId, string $contentHtml): string
+    {
+        if (!str_contains($contentHtml, '/uploads/pending/')) {
+            return $contentHtml;
+        }
+        $dir = $this->articleUploadDir($articleId);
+        if (!is_dir($dir) && !mkdir($dir, 0775, true)) {
+            return $contentHtml;
+        }
+        $uploads = rtrim($this->uploadsDir, '/');
+
+        $contentHtml = (string) preg_replace_callback(
+            '~/uploads/pending/([A-Za-z0-9._-]+)~',
+            static function (array $m) use ($uploads, $dir, $articleId): string {
+                $source = $uploads . '/pending/' . $m[1];
+                if (!is_file($source)) {
+                    return $m[0];
+                }
+                $target = $dir . '/' . $m[1];
+                if (!is_file($target) && !@rename($source, $target)) {
+                    return $m[0];
+                }
+                return '/uploads/' . $articleId . '/' . $m[1];
+            },
+            $contentHtml
+        );
+
+        preg_match_all('~/uploads/' . $articleId . '/[A-Za-z0-9._-]+\.(?:jpg|jpeg|png|gif|webp)~i', $contentHtml, $matches);
+        $existing = $this->articles->images($articleId);
+        foreach (array_unique($matches[0]) as $url) {
+            if (!in_array($url, $existing, true)) {
+                $this->articles->addImage($articleId, $url);
+            }
+        }
+
+        return $contentHtml;
+    }
+
+    /**
+     * 编辑页专用资源：编辑器只在编辑／新建页加载，列表页与其它页零影响。
+     */
+    private function editorHead(): string
+    {
+        return '<link rel="stylesheet" href="/assets/editor/suneditor.min.css">'
+            . '<link rel="stylesheet" href="/assets/editor/suneditor-contents.min.css">'
+            . '<link rel="stylesheet" href="/assets/editor/admin-editor.css">'
+            . '<script src="/assets/editor/suneditor.min.js" defer></script>'
+            . '<script src="/assets/editor/lang/zh_cn.js" defer></script>'
+            . '<script src="/assets/editor/admin-editor.js" defer></script>';
+    }
+
+    /**
      * 落盘并返回附件信息；失败抛 RuntimeException（消息可直接给用户看）。
      *
      * @param array<string, mixed> $file
@@ -763,7 +928,9 @@ final class ArticleController extends AdminController
             throw new \RuntimeException('临时文件不可用');
         }
 
-        $dir = $this->articleUploadDir($articleId);
+        // 新建页还没有稿件号，素材先落在 pending 桶，保存时再由 adoptPendingMedia() 认领
+        $bucket = $articleId > 0 ? (string) $articleId : 'pending';
+        $dir = rtrim($this->uploadsDir, '/') . '/' . $bucket;
         if (!is_dir($dir) && !mkdir($dir, 0775, true)) {
             throw new \RuntimeException('无法创建上传目录');
         }
@@ -777,7 +944,7 @@ final class ArticleController extends AdminController
 
         return [
             'name' => mb_substr(preg_replace('/[\x00-\x1F]/u', '', basename($original)) ?: $original, 0, 120),
-            'url'  => '/uploads/' . $articleId . '/' . $storedName,
+            'url'  => '/uploads/' . $bucket . '/' . $storedName,
             'ext'  => $ext,
             'size' => $size,
             'path' => $target,
@@ -872,23 +1039,31 @@ final class ArticleController extends AdminController
         $fields = [
             'title'        => $title,
             'subtitle'     => $request->post('subtitle'),
-            'summary'      => $request->post('summary'),
-            'content_html' => $this->normalizeContent((string) ($_POST['content_html'] ?? '')),
+            // 新建页上传过的素材如果还挂在 pending 桶，保存时一并认领
+            'content_html' => $this->adoptPendingMedia(
+                (int) $id,
+                $this->normalizeContent((string) ($_POST['content_html'] ?? ''))
+            ),
             'source'       => $request->post('source'),
             'author'       => $request->post('author'),
             'editor'       => $request->post('editor'),
-            'is_top'       => $request->post('is_top') === '1' ? 1 : 0,
             'updated_by'   => $userId,
         ];
         if ($publishedAt !== null) {
             $fields['published_at'] = $publishedAt;
+        }
+        // 编辑页已无置顶复选框
+        // 表单没提交就不动它，置顶改在首页管理维护
+        if ($request->post('is_top') !== null) {
+            $fields['is_top'] = $request->post('is_top') === '1' ? 1 : 0;
         }
 
         $this->articles->adminUpdate($id, $fields);
         // 「置顶」按栏目生效：首页对应模块与该栏目列表共用这一套顺序
         // 只在勾选状态真的变了时才写，免得「编辑一条旧稿」顺手把它的栏目内顺序重置掉
         $channelType = (string) $article['channel_type'];
-        if ((int) $fields['is_top'] !== $this->articles->channelTop((int) $id, $channelType)) {
+        $channelTopNow = $this->articles->channelTop((int) $id, $channelType);
+        if (array_key_exists('is_top', $fields) && (int) $fields['is_top'] !== $channelTopNow) {
             $this->articles->setChannelTop((int) $id, $channelType, (int) $fields['is_top']);
         }
         $this->articles->syncBodyAssets((int) $id, $fields['content_html']);
@@ -974,13 +1149,17 @@ final class ArticleController extends AdminController
 
     /**
      * 正文规范化：编辑直接敲纯文本时自动分段，避免详情页出来一整坨没有段落间距的文字。
-     * 已经带 HTML 标签的正文原样保留（旧库正文是 <div>/<p> 结构）。
+     * 已经带 HTML 标签的正文过一遍白名单清洗（旧库正文是 <div>/<p> 结构，允许 div）；
+     * 这是正文进入数据库的唯一入口，store／update／插图追加都走这里。
      */
     private function normalizeContent(string $content): string
     {
         $trimmed = trim($content);
-        if ($trimmed === '' || preg_match('/<[a-z][^>]*>/i', $trimmed) === 1) {
+        if ($trimmed === '') {
             return $trimmed;
+        }
+        if (preg_match('/<[a-z][^>]*>/i', $trimmed) === 1) {
+            return $this->restoreSiteUrls(HtmlSanitizer::clean($trimmed));
         }
 
         $paragraphs = preg_split('/\n\s*\n/', $trimmed) ?: [];
@@ -993,6 +1172,37 @@ final class ArticleController extends AdminController
             $html[] = '<p>' . str_replace("\n", '<br>', htmlspecialchars($paragraph, ENT_QUOTES, 'UTF-8')) . '</p>';
         }
         return implode("\n", $html);
+    }
+
+    /**
+     * 把"本站绝对地址"还原成根相对路径。
+     *
+     * 富文本编辑器从 DOM 取值时，浏览器会把相对地址解析成绝对地址：正文里原本的
+     * `images/channel/x.jpg` 会被写成 `http://<后台域名>/admin/images/channel/x.jpg`
+     * （相对路径按后台编辑页的地址解析，所以还多出一段 `/admin`）。不还原的话，
+     * 旧稿重存一次就把后台域名写进正文，前台静态页会破图。
+     *
+     * 只处理属于本站的地址（配置里的站点域名与当前请求域名），外站链接原样保留。
+     */
+    private function restoreSiteUrls(string $html): string
+    {
+        $hosts = [trim((string) hechi_config('site.domain', '')), trim((string) ($_SERVER['HTTP_HOST'] ?? ''))];
+        $hosts = array_values(array_unique(array_filter($hosts, static fn(string $host): bool => $host !== '')));
+        if ($hosts === []) {
+            return $html;
+        }
+
+        $escaped = implode('|', array_map(static fn(string $host): string => preg_quote($host, '~'), $hosts));
+        $pattern = '~\b(src|href)="https?://(?:' . $escaped . ')(/[^"]*)"~i';
+
+        return (string) preg_replace_callback($pattern, static function (array $m): string {
+            $path = (string) $m[2];
+            // 相对地址是按后台编辑页解析的，会多出 /admin 这一段
+            if (str_starts_with($path, '/admin/')) {
+                $path = substr($path, strlen('/admin'));
+            }
+            return $m[1] . '="' . $path . '"';
+        }, $html);
     }
 
     private function statusLabel(string $status): string

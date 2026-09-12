@@ -94,7 +94,12 @@ abstract class AdminController
      */
     protected function guard(Request $request, string $message = '页面已过期，请返回重新提交。'): ?HtmlResponse
     {
-        if (!Csrf::check($request->post('_token'))) {
+        // 表单走隐藏字段；编辑器这类 XHR 上传走 X-CSRF-Token 头（同一份会话令牌，同样走 hash_equals 比对）
+        $token = $request->post('_token');
+        if (($token === null || $token === '') && isset($_SERVER['HTTP_X_CSRF_TOKEN'])) {
+            $token = (string) $_SERVER['HTTP_X_CSRF_TOKEN'];
+        }
+        if (!Csrf::check($token)) {
             return $this->view->page('admin/message', [
                 'current' => '',
                 'heading' => '提交被拒绝',

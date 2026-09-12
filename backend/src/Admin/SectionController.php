@@ -54,7 +54,6 @@ final class SectionController extends AdminController
                 'kind'    => $this->scopeKind($row),
                 'scopeText' => $this->scopeText($row),
                 'channels' => $this->scopeChannelNames($row),
-                'scopeChips' => $this->scopeChips($row),
                 'firstChannel' => $this->firstScopeChannel($row),
                 'preview' => $this->previewOf($blocks[$key] ?? null),
                 // 库内稿件（可排序／置顶的那些），按标签分组
@@ -62,11 +61,13 @@ final class SectionController extends AdminController
             ];
         }
 
+        $otherGroups = $this->otherChannelGroups();
+
         return $this->view->page('admin/sections', [
             'current'       => 'sections',
             'sections'      => $sections,
-            'channelNames'  => $this->channelNames(),
-            'otherGroups'   => $this->otherChannelGroups(),
+            'indexGroups'   => $this->indexGroups($sections, $otherGroups),
+            'otherGroups'   => $otherGroups,
         ], '其他栏目');
     }
 
@@ -258,53 +259,147 @@ final class SectionController extends AdminController
     }
 
     /**
-     * 模块绑定的栏目拆成「栏目号 + 显示名」，页面顶部的栏目索引用它做跳转链接。
+     * 顶部栏目索引：按一级栏目分组（与「全部栏目」页同一口径），并标出被首页模块使用的栏目。
      *
-     * 分标签模块用标签名（如「市政协动态」）而不是栏目名，跟卡片里的标签一致；
-     * 一级栏目用「党派团体（含全部子栏目）」这样的写法，说明子栏目也算在内。
+     * chip 的落点沿用原来的三种：被模块绑定的跳到该模块卡片，没进首页导航的跳到页面下方的
+     * 栏目清单，其余进该栏目的稿件列表。
+     *
+     * @param list<array<string, mixed>> $sections
+     * @param list<array{key:string,title:string,channels:list<array<string,mixed>>}> $otherGroups
+     * @return array{blocks:list<array{code:string,title:string,chips:list<array<string,mixed>>}>,standalone:list<array<string,mixed>>,total:int,marked:int}
+     */
+    private function indexGroups(array $sections, array $otherGroups): array
+    {
+        $groups = $this->channels->navGroups();
+        $codesOfGroup = [];
+        foreach ($groups as $group) {
+            $codesOfGroup[(string) $group['key']] = array_map(
+                static fn (array $channel): string => (string) $channel['type_code'],
+                $group['channels']
+            );
+        }
+
+        // 每个栏目被哪些首页模块用着；「一级栏目（含全部子栏目）」绑定算上这一组的全部栏目
+        $moduleOf = [];
+        $anchorOf = [];
+        foreach ($sections as $section) {
+            $key = (string) $section['row']['section_key'];
+            $label = trim((string) $section['row']['label']);
+            $label = $label !== '' ? $label : $key;
+            foreach ($this->scopeCodes($section['row'], $codesOfGroup) as $code) {
+                if (!isset($moduleOf[$code])) {
+                    $moduleOf[$code] = [];
+                }
+                if (!in_array($label, $moduleOf[$code], true)) {
+                    $moduleOf[$code][] = $label;
+                }
+                $anchorOf[$code] = $anchorOf[$code] ?? 'section-' . $key;
+            }
+        }
+
+        // 没进首页导航的栏目在本页下方有清单，chip 直接跳到那一条
+        $listed = [];
+        foreach ($otherGroups as $group) {
+            foreach ($group['channels'] as $channel) {
+                $listed[(string) $channel['type_code']] = true;
+            }
+        }
+
+        $toChip = static function (array $channel) use ($moduleOf, $anchorOf, $listed): array {
+            $code = (string) $channel['type_code'];
+            $modules = $moduleOf[$code] ?? [];
+            if ($modules !== []) {
+                $href = '#' . (string) $anchorOf[$code];
+                $hint = '喂给「' . implode('」「', $modules) . '」模块，点它跳到该模块';
+            } elseif (isset($listed[$code])) {
+                $href = '#ch-' . $code;
+                $hint = '这个栏目没进首页导航，点它跳到本页下方的栏目清单';
+            } else {
+                $href = '/admin/articles?channel=' . $code;
+                $hint = '这个栏目不在本页显示稿件，点开进它的稿件列表';
+            }
+            return [
+                'code'   => $code,
+                'name'   => (string) $channel['inner_name'],
+                'href'   => $href,
+                'marked' => $modules !== [],
+                // 栏目号不直接印在页面上，收进悬停提示
+                'hint'   => '栏目 ' . $code . ' · ' . $hint,
+            ];
+        };
+
+        $blocks = [];
+        $standalone = [];
+        $marked = 0;
+        foreach ($groups as $group) {
+            $chips = array_map($toChip, $group['channels']);
+            foreach ($chips as $chip) {
+                if ($chip['marked']) {
+                    $marked++;
+                }
+            }
+            if (count($chips) > 1) {
+                $blocks[] = [
+                    'code'  => (string) $group['key'],
+                    'title' => (string) $group['title'],
+                    'chips' => $chips,
+                ];
+                continue;
+            }
+            foreach ($chips as $chip) {
+                $standalone[] = $chip;
+            }
+        }
+
+        $total = count($standalone);
+        foreach ($blocks as $block) {
+            $total += count($block['chips']);
+        }
+
+        return ['blocks' => $blocks, 'standalone' => $standalone, 'total' => $total, 'marked' => $marked];
+    }
+
+    /**
+     * 模块绑定的栏目号；「一级栏目」绑定展开成这一组的全部栏目。
      *
      * @param array<string, mixed> $row
-     * @return list<array{code:string,name:string}>
+     * @param array<string, list<string>> $codesOfGroup
+     * @return list<string>
      */
-    private function scopeChips(array $row): array
+    private function scopeCodes(array $row, array $codesOfGroup): array
     {
-        $names = $this->channelNames();
         $scope = Json::decode((string) $row['scope_json'], []);
         if (!is_array($scope)) {
             return [];
         }
 
-        $out = [];
         if (isset($scope['tabs'])) {
+            $codes = [];
             foreach ((array) $scope['tabs'] as $tab) {
-                $channel = (string) ($tab['channel'] ?? '');
-                if ($channel === '') {
-                    continue;
+                $code = (string) ($tab['channel'] ?? '');
+                if ($code !== '') {
+                    $codes[] = $code;
                 }
-                $label = trim((string) ($tab['label'] ?? ''));
-                $out[] = ['code' => $channel, 'name' => $label !== '' ? $label : ($names[$channel] ?? $channel)];
             }
-            return $out;
+            return array_values(array_unique($codes));
         }
 
         if (isset($scope['parent'])) {
             $parent = (string) $scope['parent'];
-            if ($parent !== '') {
-                // 用模块标题而不是栏目的 inner_name：601 的 inner_name 是「民盟河池市委员会」，
-                // 拿来当「党派团体（含全部子栏目）」这个名字会让人误以为只指民盟。
-                $label = trim((string) ($row['label'] ?? ''));
-                $out[] = ['code' => $parent, 'name' => ($label !== '' ? $label : ($names[$parent] ?? $parent)) . '（含全部子栏目）'];
+            if ($parent === '') {
+                return [];
             }
-            return $out;
+            return $codesOfGroup[$parent] ?? [$parent];
         }
 
+        $codes = [];
         foreach ((array) ($scope['channels'] ?? []) as $channel) {
-            $type = (string) $channel;
-            if ($type !== '') {
-                $out[] = ['code' => $type, 'name' => $names[$type] ?? $type];
+            $code = (string) $channel;
+            if ($code !== '') {
+                $codes[] = $code;
             }
         }
-        return $out;
+        return array_values(array_unique($codes));
     }
 
     /**

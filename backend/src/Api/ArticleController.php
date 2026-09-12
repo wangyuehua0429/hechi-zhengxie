@@ -6,6 +6,7 @@ namespace HechiZx\Api;
 
 use HechiZx\Http\ApiException;
 use HechiZx\Http\Request;
+use HechiZx\Content\HtmlSanitizer;
 use HechiZx\Repository\ArticleRepository;
 
 /**
@@ -51,6 +52,8 @@ final class ArticleController
         if ($article === null) {
             throw ApiException::notFound('未找到稿件 ' . $args['id']);
         }
+        // 出口兜底：库里可能还有编辑器上线之前写入的正文，输出前统一过白名单
+        $article['content'] = HtmlSanitizer::clean((string) ($article['content'] ?? ''));
         return ['article' => $article];
     }
 
