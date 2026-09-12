@@ -9,8 +9,8 @@
 - **内页模板全集**：`channel.html`（二级栏目页）与 `detail.html`（信息详情页）按 `list`／`leaders`／`about`／`county`／`gallery`／`video`／`topic`／`interactive` 八类版式实现（`about` 暂无栏目使用），配套样例数据 43 个栏目页、70 篇详情，图片全部本地化。
 - **站头与链接映射**：内页站头收窄为全幅约三分之一，首页进出内页带收缩／展开动画；`js/site-links.js` 把旧站栏目与稿件地址改写为新版内页，首页与内页共用同一份映射。
 - **数据来源**：当前用 `frontend/home/data/` 下的静态快照（`home.json`／`channel.json`／`article.json`／`channel-index.json`）复用现网内容；后端就绪后以 REST API 平替该数据源，页面结构与渲染逻辑不变（详见 [frontend/home/README.md](frontend/home/README.md)）。
-- **后端最小骨架（2026-09-11 新增）**：`backend/` 已从空骨架变为可运行的 PHP 轻量 CMS——MySQL／SQLite 双方言建表脚本（17 张表）、内容 REST 接口（`health`／`home`／`channels`／`channel-index`／`articles`／`article`／`attachments`／`search`，只出已发布且公开的内容）、静态化发布器（数据快照 + 全文静态页 + sitemap）、把阶段 A 快照灌库的 seed 脚本。本机以 SQLite 实测：接口对拍 39 项全通过（`node tests/api-check.mjs`）。
-- **后台管理界面（2026-09-11 新增）**：`/admin` 可登录操作——概览、稿件列表（栏目用导航条，顺序与前台一致）、新建/编辑/删除稿件（新建默认“已发布”，纯文本正文自动分段）、附件与正文插图上传、栏目管理、一键发布；会话 Cookie + CSRF + `password_hash`，登录与改动写操作日志。实测 133 项检查全通过（`node tests/admin-check.mjs`）。尚未做：富文本编辑器、栏目新建与删除、角色权限细分、301 生成、编校微服务（`services/proofreader/` 仍为空骨架）。
+- **后端最小骨架（2026-09-11 新增）**：`backend/` 已从空骨架变为可运行的 PHP 轻量 CMS——MySQL／SQLite 双方言建表脚本（17 张表）、内容 REST 接口（`health`／`home`／`channels`／`channel-index`／`articles`／`article`／`attachments`／`search`，只出已发布且公开的内容）、静态化发布器（数据快照 + 全文静态页 + sitemap）、把阶段 A 快照灌库的 seed 脚本。本机以 SQLite 实测：接口对拍 47 项全通过（`node tests/api-check.mjs`）。
+- **后台管理界面（2026-09-11 新增）**：`/admin` 可登录操作——概览、稿件列表（栏目用导航条，顺序与前台一致）、新建/编辑/删除稿件（新建默认“已发布”，纯文本正文自动分段）、附件与正文插图上传、栏目管理、一键发布；会话 Cookie + CSRF + `password_hash`，登录与改动写操作日志。实测 204 项检查全通过（`node tests/admin-check.mjs`）。尚未做：富文本编辑器、栏目新建与删除、301 生成、编校微服务（`services/proofreader/` 仍为空骨架）。
 - **稿件管理与栏目管理界面重构（2026-09-11 新增）**：稿件列表把稿库、栏目、关键词、排序、每页条数收进一块筛选面板，标题即编辑入口，新增**批量提交／审核通过／退回／撤回／重新发布／恢复**与分页跳转；稿件编辑页改成“左表单 + 右状态栏”两栏，保存条吸底，正文可预览并显示字数；栏目管理改为**按一级栏目分组**，组内可直接上移／下移并支持检索。新增零依赖的 `assets/admin.js` 做渐进增强（不加载脚本时全部操作仍可用）。改动理由、逐项清单与验证见 [docs/后台稿件与栏目管理重构说明（2026-09-11）.md](docs/后台稿件与栏目管理重构说明（2026-09-11）.md)。
 - **后台按首页四大类组织（2026-09-11 新增）**：侧栏为“概览 / 首页管理（树形，默认展开）/ 稿件管理 / 用户管理 / 操作日志”，四大类收在“首页管理”下（导航栏目、头条轮换、其他栏目、站内横幅），分别对应首页的顶部导航条（18 个入口）、首屏轮播、正文 13 个内容模块与 7 处横幅位。首页内容模块由**静态快照改为按绑定栏目实时组装**（置顶在前 → 栏目内排序值 → 发布时间，不足时用快照兜底），编辑发稿即上首页；稿件编辑页的“置顶”改为**按栏目置顶**，首页模块与栏目页列表共用一套顺序；新增权限码 `home.manage` 与迁移 `003_home_sections.sql`。改动清单、数据模型与验证见 [docs/后台首页四大类管理说明.md](docs/后台首页四大类管理说明.md)。
 - **前后端已接通（2026-09-11 新增）**：前端取数统一走 `frontend/home/js/data-source.js`——**优先 `/api/v1`，接口不可用时自动回退 `data/*.json`**，地址栏 `?api=1`／`?api=0` 可强制切换；本地 `php -S 127.0.0.1:8080 -t backend/public backend/public/router.php` 一个进程同时提供站点页面、接口与后台（同源，无跨域）。实测：接口模式 20 例、静态模式 19 例全通过（`node tests/check-pages.mjs [--via-api]`）。
@@ -38,7 +38,7 @@ node tests/check-pages.mjs
 
 ```bash
 php backend/bin/migrate.php && php backend/bin/seed.php     # 首次准备
-node tests/api-check.mjs                                    # 41 项接口检查
+node tests/api-check.mjs                                    # 47 项接口检查
 php -S 127.0.0.1:8080 -t backend/public backend/public/router.php   # 起服务（站点 + 接口 + 后台）
 ```
 
