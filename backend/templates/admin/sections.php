@@ -6,6 +6,9 @@
  * @var list<array{row:array<string,mixed>, kind:string, scopeText:string, channels:list<string>, preview:array{tabs:list<array{title:string,count:int,titles:list<string>}>, titles:list<string>, count:int}}> $sections
  * @var array{blocks:list<array{code:string,title:string,chips:list<array<string,mixed>>}>,standalone:list<array<string,mixed>>,total:int,marked:int} $indexGroups
  * @var list<array{key:string, title:string, channels:list<array<string,mixed>>}> $otherGroups
+ * @var list<string> $badgePresets 首页徽标的预设文字
+ * @var string $badgeCustomKey 下拉里「自定义…」那一项的取值
+ * @var int $badgeMaxLength 徽标文字长度上限
  */
 
 declare(strict_types=1);
@@ -159,7 +162,7 @@ $renderChip = static function (array $chip): string {
                     <?php endif; ?>
                   </td>
                 <?php endif; ?>
-                <td>
+                <td class="section-title">
                   <a class="title-link" href="/admin/article/<?= $id ?>"><?= hechi_e((string) $row['title']) ?></a>
                   <span class="row-meta">#<?= $id ?> · <?= hechi_e((string) $row['date']) ?></span>
                 </td>
@@ -167,6 +170,12 @@ $renderChip = static function (array $chip): string {
                 <td class="nowrap">
                   <span class="tag tag-published">已发布</span>
                   <?php if ((int) $row['is_top'] === 1): ?><span class="tag tag-top">已置顶</span><?php endif; ?>
+                  <?php if ((int) ($row['is_highlight'] ?? 0) === 1): ?><span class="tag tag-highlight">已高亮</span><?php endif; ?>
+                  <?php /* 仓储给这一层的字段名是 badge（不是库里的 badge_text） */ ?>
+                  <?php $badge = trim((string) ($row['badge'] ?? '')); ?>
+                  <?php if ($badge !== ''): ?>
+                    <span class="tag tag-badge">徽标：<?= hechi_e($badge) ?></span>
+                  <?php endif; ?>
                 </td>
                 <td class="col-actions">
                   <div class="row-actions">
@@ -200,22 +209,51 @@ $renderChip = static function (array $chip): string {
                       <?= $csrf ?>
                       <input type="hidden" name="channel" value="<?= hechi_e($channel) ?>">
                       <input type="hidden" name="back" value="<?= hechi_e($back) ?>">
-                      <input type="hidden" name="badge" value="<?= hechi_e((string) ($row['badge_text'] ?? '')) ?>">
+                      <input type="hidden" name="badge" value="<?= hechi_e((string) ($row['badge'] ?? '')) ?>">
                       <input type="hidden" name="highlight" value="<?= (int) ($row['is_highlight'] ?? 0) === 1 ? '0' : '1' ?>">
                       <button type="submit" class="btn btn-sm"
                               data-confirm="<?= (int) ($row['is_highlight'] ?? 0) === 1
                                 ? '取消高亮「' . hechi_e((string) $row['title']) . '」？首页标题会恢复常规颜色。'
                                 : '高亮「' . hechi_e((string) $row['title']) . '」？首页标题会显示为正红加粗。' ?>"><?= (int) ($row['is_highlight'] ?? 0) === 1 ? '取消高亮' : '高亮' ?></button>
                     </form>
-                    <form method="post" action="/admin/article/<?= $id ?>/flags" class="inline">
+                    <?php
+                    // 徽标：下拉给预设，另外留一个自定义文本框。文本框不默认隐藏——
+                    // 没有脚本时它就是唯一入口；有脚本时由 admin.js 按下拉选择显隐。
+                    $badgeIsCustom = $badge !== '' && !in_array($badge, $badgePresets, true);
+                    ?>
+                    <form method="post" action="/admin/article/<?= $id ?>/flags" class="inline badge-form" data-badge-form>
                       <?= $csrf ?>
                       <input type="hidden" name="channel" value="<?= hechi_e($channel) ?>">
                       <input type="hidden" name="back" value="<?= hechi_e($back) ?>">
                       <input type="hidden" name="highlight" value="<?= (int) ($row['is_highlight'] ?? 0) ?>">
-                      <input type="text" name="badge" value="<?= hechi_e((string) ($row['badge_text'] ?? '')) ?>"
-                             placeholder="徽标" size="5" aria-label="徽标文字，如：最新">
-                      <button type="submit" class="btn btn-sm">存徽标</button>
+                      <select name="badge_preset" data-badge-preset aria-label="徽标文字（可选预设或自定义）">
+                        <option value="">不显示徽标</option>
+                        <?php foreach ($badgePresets as $preset): ?>
+                          <option value="<?= hechi_e($preset) ?>"<?= $badge === $preset ? ' selected' : '' ?>><?= hechi_e($preset) ?></option>
+                        <?php endforeach; ?>
+                        <option value="<?= hechi_e($badgeCustomKey) ?>"<?= $badgeIsCustom ? ' selected' : '' ?>>自定义…</option>
+                      </select>
+                      <input type="text" name="badge" class="badge-custom" data-badge-custom
+                             value="<?= $badgeIsCustom ? hechi_e($badge) : '' ?>"
+                             maxlength="<?= (int) $badgeMaxLength ?>" size="6"
+                             placeholder="自定义徽标"
+                             aria-label="自定义徽标文字（最多 <?= (int) $badgeMaxLength ?> 个字）">
+                      <button type="submit" class="btn btn-sm"
+                              data-confirm="保存「<?= hechi_e((string) $row['title']) ?>」在本栏目与首页模块的徽标？首页该条标题后面的小标记会立刻跟着变。">存徽标</button>
                     </form>
+                    <?php if ($badge !== ''): ?>
+                      <form method="post" action="/admin/article/<?= $id ?>/flags" class="inline">
+                        <?= $csrf ?>
+                        <input type="hidden" name="channel" value="<?= hechi_e($channel) ?>">
+                        <input type="hidden" name="back" value="<?= hechi_e($back) ?>">
+                        <input type="hidden" name="highlight" value="<?= (int) ($row['is_highlight'] ?? 0) ?>">
+                        <input type="hidden" name="badge_preset" value="">
+                        <input type="hidden" name="badge" value="">
+                        <button type="submit" class="btn btn-sm btn-ghost"
+                                data-confirm="删除「<?= hechi_e((string) $row['title']) ?>」的徽标「<?= hechi_e($badge) ?>」？首页这条标题后面就只显示标题了。"
+                                aria-label="删除徽标「<?= hechi_e($badge) ?>」">删徽标</button>
+                      </form>
+                    <?php endif; ?>
                     <a class="btn btn-sm btn-ghost" href="/admin/article/<?= $id ?>">编辑</a>
                     <a class="btn btn-sm btn-ghost" href="/article/<?= $id ?>.html" target="_blank" rel="noopener">预览</a>
                     <button type="button" class="btn btn-sm btn-ghost" data-copy-link="/article/<?= $id ?>.html">复制链接</button>

@@ -11,6 +11,7 @@
  *    首页管理里会改前台的提交（下线／删除／隐藏／置顶／改绑定／换图等）先弹一次确认。
  * 7. 长页面滚过一屏后，左下角出现「回到顶部」（模板默认 hidden，没有脚本就不显示）。
  * 8. 站内横幅选了图片文件后，先在页面上方的预览框里显示这张图（本地预览，点「保存」才生效）。
+ * 9. 首页徽标的下拉选「自定义…」时才显示文本框，选预设或「不显示徽标」时把文本框禁掉。
  *
  * 所有逻辑都用 data-* 钩子，模板改名不影响；没有匹配元素时静默跳过。
  */
@@ -423,5 +424,27 @@
       });
       reader.readAsDataURL(file);
     });
+  });
+
+  /* ------------------------- 9. 徽标：下拉与自定义输入联动 */
+  // 下拉给预设，选「自定义…」才用文本框。没有脚本时文本框一直可见（也能用），
+  // 有脚本时把不用的那个禁掉——disabled 的字段不会提交，避免自定义的旧值压过刚选的预设。
+  document.querySelectorAll("[data-badge-form]").forEach((form) => {
+    const select = form.querySelector("[data-badge-preset]");
+    const custom = form.querySelector("[data-badge-custom]");
+    if (!select || !custom) return;
+
+    const sync = () => {
+      const useCustom = select.value === "__custom__";
+      custom.hidden = !useCustom;
+      custom.disabled = !useCustom;
+    };
+
+    select.addEventListener("change", () => {
+      const wasHidden = custom.hidden;
+      sync();
+      if (wasHidden && !custom.hidden) custom.focus();
+    });
+    sync();
   });
 })();

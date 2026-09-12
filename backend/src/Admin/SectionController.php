@@ -68,6 +68,9 @@ final class SectionController extends AdminController
             'sections'      => $sections,
             'indexGroups'   => $this->indexGroups($sections, $otherGroups),
             'otherGroups'   => $otherGroups,
+            'badgePresets'  => ArticleController::BADGE_PRESETS,
+            'badgeCustomKey' => ArticleController::BADGE_CUSTOM_KEY,
+            'badgeMaxLength' => ArticleController::BADGE_MAX_LENGTH,
         ], '其他栏目');
     }
 

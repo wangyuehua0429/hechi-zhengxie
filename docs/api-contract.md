@@ -1,7 +1,7 @@
 # 河池政协网 · 内容与资源 API 契约（v1）
 
 > 编制日期：2026 年 9 月 11 日
-> 状态：契约先行，待阶段 C 后端实现后按实际联调结果修订
+> 状态：契约先行，后端已按本契约实现只读部分；2026-09-12 修订第 5 节的图片大小上限（图片 2 MB／附件 32 MB）
 > 依据：`frontend/home/data/` 下四份静态快照（`home.json`／`channel.json`／`article.json`／`channel-index.json`）的**实际字段**，以及《河池政协网开发思路与技术栈方案》的接口先行要求
 
 ## 1. 定位与原则
@@ -185,7 +185,10 @@
 | 类型 | 允许扩展名 | 大小上限 | 说明 |
 | --- | --- | --- | --- |
 | 附件 | pdf／doc(x)／xls(x)／ppt(x)／zip／rar／txt | 32 MB | 详情页“附件下载”区展示 |
-| 正文插图 | jpg／jpeg／png／gif／webp | 32 MB | 上传后追加到正文末尾，并登记为图集图片（≥2 张出灯箱） |
+| 正文插图 | jpg／jpeg／png／gif／webp | **2 MB** | 上传后追加到正文末尾，并登记为图集图片（≥2 张出灯箱）；编辑器内插图同上限 |
+| 视频 | mp4／webm／ogg／mov／m4v | 32 MB | 编辑器内插入 `<video>`，走 `POST /admin/media/video` |
+
+2026-09-12 起**图片一律 ≤ 2 MB**（站内横幅、头条轮换大图、正文插图、编辑器插图同一口径），超限时接口返回的提示是“图片超过服务器允许的上传大小（2 MB）”，不再只有 PHP 的错误码。编辑器两个上传接口（`/admin/media/image`、`/admin/media/video`）为 JSON 契约：字段名 `file-0`，可选 `article` 传稿件号，返回 `{"result":[{"url","name","size"}]}`，CSRF 走 `X-CSRF-Token` 头；新建页没有稿件号时先落 `/uploads/pending/`，保存稿件时迁入 `uploads/{稿件号}/`。
 
 删除稿件时，该稿件目录下的上传文件一并清除；上传目录不入 git（见根 `.gitignore`）。
 

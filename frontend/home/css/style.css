@@ -246,8 +246,11 @@ html.mast-folded .masthead-layers .mast-slogan { opacity: 0; visibility: hidden;
 }
 .container > .banner-single { margin-top: var(--card-gap); }
 .banner-single img { width: 100%; height: auto; display: block; filter: saturate(0.86); }
-/* 后台把某个横幅位下线后，前台整块不占位（[hidden] 会被上面的 display:block 盖掉） */
-.banner-single[hidden], .banner-strip a[hidden] { display: none !important; }
+/* 统一约定：带 hidden 属性的一律不显示、不占位。
+   浏览器默认的 [hidden] 只是优先级最低的 display:none，会被样式表里的 display:block／flex／grid
+   直接盖掉——横幅、三列模块（.grid-3）、两栏容器都靠 hidden 收块，被盖掉之后它们仍占一个
+   flex/grid 项，容器 gap 会变成双份（22 + 0 + 22），页面就会出现莫名的空档。 */
+[hidden] { display: none !important; }
 .card-body .banner-single { margin: 14px 0 0; border-radius: var(--radius); }
 /* 首屏条幅：按原图比例（355×76）显示，不再纵向拉伸填满剩余高度 */
 .hero-main .banner-strip { margin: auto 0 0; flex: 0 0 auto; }
@@ -342,6 +345,8 @@ body[data-font="large"] .news-list li { padding: 11px 0; }
 
 /* 首屏头条：轮换图 +（标题/摘要）成组，右侧领导 */
 .hero { display: grid; grid-template-columns: 1fr 400px; gap: var(--card-gap); margin-top: 14px; margin-bottom: var(--card-gap); align-items: stretch; }
+/* 首屏轮播与两条条幅都被撤下时只剩领导卡，并成一栏铺满 */
+.hero--single { grid-template-columns: 1fr; }
 .hero-main { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
 .hero-side { min-width: 0; display: flex; flex-direction: column; }
 .hero-side .section-card { flex: 1; margin-bottom: 0; }
@@ -479,6 +484,8 @@ body[data-font="large"] .news-list li { padding: 11px 0; }
 
 /* 两栏主体 */
 .content-grid { display: grid; grid-template-columns: 1fr 400px; gap: var(--card-gap); }
+/* 某一栏整体被撤下后并成一栏（不留一条空竖带；见 main.js 的 collapseEmptyBlocks） */
+.content-grid--single { grid-template-columns: 1fr; }
 .main-col, .side-col { min-width: 0; }
 .main-col { display: flex; flex-direction: column; }
 .side-col { display: flex; flex-direction: column; }
@@ -486,6 +493,19 @@ body[data-font="large"] .news-list li { padding: 11px 0; }
 .side-col .section-card:last-child {
   display: flex; flex-direction: column; flex: 1; min-height: 0; margin-bottom: 0;
 }
+
+/* ============ 首页区块间距：单一来源、固定值 ============
+   区块之间的距离统一由容器给（纵向 flex + gap = --card-gap），模块自己不再各写一份
+   上下外边距，横幅的上下外边距也为 0。这样后台把某个横幅位下线时，少的只是一个 flex
+   项，其余间距不受影响——之前“三列模块顶到 content-grid 上”就是因为那段间距挂在横幅
+   自己的 margin-bottom 上。用两级类名提高优先级，免得被上面的 .section-card／.grid-3／
+   .hero 覆盖；第一条用 page-container 双类，后两条限定在 content-grid 的两栏里。
+   例外：卡内横幅（.card-body .banner-single，body-4）保留自己的 14px 上边距。 */
+.container.page-container { display: flex; flex-direction: column; gap: var(--card-gap); }
+.container.page-container > * { margin-top: 0; margin-bottom: 0; }
+.container.page-container > .hero { margin-top: 14px; }
+.content-grid > .main-col, .content-grid > .side-col { gap: var(--card-gap); }
+.content-grid > .main-col > *, .content-grid > .side-col > * { margin-top: 0; margin-bottom: 0; }
 
 /* 图片网格 */
 .image-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
@@ -521,7 +541,9 @@ body[data-font="large"] .news-list li { padding: 11px 0; }
 .image-flow:hover .flow-title { color: var(--primary); }
 
 /* 三列 */
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--card-gap); margin-bottom: var(--card-gap); }
+/* 三列模块：用 auto-fit 而不是 repeat(3)——某个模块被后台撤下后，空轨道会被收掉，
+   剩下的自动加宽铺满整行（见 main.js 的 toggleModule／collapseEmptyBlocks）。 */
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--card-gap); margin-bottom: var(--card-gap); }
 .grid-3 .section-card { margin-bottom: 0; }
 
 /* 委员之窗 */
@@ -691,7 +713,7 @@ body.high-contrast .news-list li:last-child { border-bottom: 1px dashed #000; }
 @media (max-width: 1080px) {
   .content-grid { grid-template-columns: 1fr; }
   .hero { grid-template-columns: 1fr; }
-  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
 }
 @media (max-width: 860px) {
   .site-header { position: relative; }

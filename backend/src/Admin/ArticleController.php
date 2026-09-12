@@ -36,6 +36,20 @@ final class ArticleController extends AdminController
     private const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
     private const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg', 'mov', 'm4v'];
 
+    /**
+     * 首页徽标的预设文字（「其他栏目」页的下拉菜单）。
+     *
+     * 徽标是跟在首页列表标题后面的小标记，选预设比每次手打省事；下拉里另有「自定义…」
+     * 一档，收自定义文字。长度上限 {@see self::BADGE_MAX_LENGTH} 个字。
+     */
+    public const BADGE_PRESETS = ['最新', '热点', '重磅', '独家', '图解', '视频', '直播', '预告'];
+
+    /** 下拉里代表「自定义…」的那一项的取值（不是真正的徽标文字） */
+    public const BADGE_CUSTOM_KEY = '__custom__';
+
+    /** 徽标文字长度上限：小标记要跟在小标题后面，长了会把列表挤乱 */
+    public const BADGE_MAX_LENGTH = 6;
+
     public function __construct(
         Auth $auth,
         View $view,
@@ -634,7 +648,22 @@ final class ArticleController extends AdminController
         }
 
         $highlight = $request->post('highlight') === '1' ? 1 : 0;
-        $badge = trim((string) $request->post('badge'));
+
+        // 徽标：下拉选预设，或选「自定义…」后由文本框给值。文本框有值时以它为准，
+        // 这样不带脚本也能用——不选下拉、直接在文本框里打字就是自定义。
+        $preset = trim((string) $request->post('badge_preset'));
+        $custom = trim((string) $request->post('badge'));
+        if ($preset === self::BADGE_CUSTOM_KEY) {
+            $preset = '';
+        }
+        $badge = $custom !== '' ? $custom : $preset;
+        $badge = (string) preg_replace('/[\x00-\x1F\x7F]/u', '', $badge);
+        if (mb_strlen($badge) > self::BADGE_MAX_LENGTH) {
+            Flash::set('error', '徽标最多 ' . self::BADGE_MAX_LENGTH . ' 个字，当前是 '
+                . mb_strlen($badge) . ' 个字：' . $badge);
+            return new RedirectResponse($back);
+        }
+
         $this->articles->setChannelFlags($id, $channel, $highlight, $badge);
         $this->log('article.flags', 'article', (string) $id, ['channel' => $channel, 'highlight' => $highlight, 'badge' => $badge]);
         Flash::set('ok', '已更新「' . $this->channelLabel($channel) . '」里的显示：'

@@ -55,6 +55,9 @@ final class HomeRepository
                 continue;
             }
             if ((string) $section['status'] !== 'published') {
+                // 后台显式下线的模块：连快照兜底一起撤掉，前台整块不显示。
+                // （快照兜底只服务于“库里没有这个模块配置”的情况，不能把下线覆盖掉。）
+                unset($blocks[$key]);
                 continue;
             }
             $blocks[$key] = $this->buildSection($section, $blocks[$key] ?? null);
@@ -64,6 +67,11 @@ final class HomeRepository
             $slides = $this->homeSlides();
             if ($slides !== []) {
                 $blocks['slides'] = $slides;
+            } elseif ($this->homeTablesReady() && $this->slideRows() !== []) {
+                // 库里配过头条、但此刻一条都没有上线：给空数组，让前台把轮播收起来。
+                // 不能回落到快照里那 6 条样例——那是“没跑 003 迁移”时的兜底，
+                // 一旦回落，后台的“下线”就等于没生效。
+                $blocks['slides'] = [];
             }
         }
         // 没跑 003 迁移时不返回 banners 键，前端保持 index.html 里写死的兜底内容

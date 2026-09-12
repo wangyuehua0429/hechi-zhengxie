@@ -701,6 +701,12 @@ html:not(.js) .bulk-col { display: none; }
 .sort-link { color: var(--ink); }
 .sort-mark { margin-left: 3px; color: var(--brand); }
 .tag-top { background: #fdeeec; color: #a5301f; }
+.tag-highlight { background: #faeeee; color: var(--brand); }
+.tag-badge { background: #ffecec; color: #e60012; }
+.badge-form { display: inline-flex; align-items: center; gap: 4px; }
+.badge-form select { height: 30px; padding: 0 6px; font-size: 13px; }
+.badge-custom { width: 7.2em; }
+.badge-custom[hidden] { display: none; }
 .warn-text { color: #a5301f; }
 .list-meta { margin: 0 0 8px; }
 .empty-title { display: block; font-size: 15px; color: var(--ink); }
@@ -928,7 +934,12 @@ html:not(.js) .bulk-col { display: none; }
 .section-tab-title { margin: 14px 0 6px; font-size: 15px; }
 .section-table { margin: 0 0 10px; }
 .section-table td { vertical-align: middle; }
-.section-table .row-actions { flex-wrap: nowrap; }
+/* 稿件列给个下限，别被右边的操作挤成一字一行；操作栏允许换行——
+   加了下拉的徽标表单之后，一行放不下十个控件（2026-09-12）。 */
+.section-table .section-title { min-width: 260px; }
+.section-table .row-actions { flex-wrap: wrap; }
+.section-table .row-actions > * { flex: 0 0 auto; }
+.section-table .col-actions { width: 420px; }
 .other-group { margin-bottom: 12px; }
 .other-group-title { margin: 8px 0 4px; font-weight: 700; }
 .other-channels { display: flex; flex-wrap: wrap; gap: 6px 18px; list-style: none; margin: 0; padding: 0; }

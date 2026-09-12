@@ -1217,6 +1217,54 @@ async function main() {
       status: "published",
       more_url: "https://www.gxhczx.gov.cn/news_list.php?id=302"
     });
+    // 模块下线：前台接口里这一键要消失（此前会被快照样例兜底填回来，等于下线不生效）
+    const noticeOff = await client.post("/admin/section/notice", {
+      _token: csrfToken((await client.get("/admin/sections")).text),
+      label: "公告通知",
+      kind: "channels",
+      scope: "302",
+      page_size: "4",
+      status: "offline",
+      more_url: "https://www.gxhczx.gov.cn/news_list.php?id=302"
+    });
+    const homeWhileOff = (await client.get("/api/v1/home", { json: true })).body?.home || {};
+    check("模块下线后首页接口不再返回该模块（不回退快照）",
+      noticeOff.status === 302 && !("notice" in homeWhileOff) && "sxNews" in homeWhileOff,
+      "notice 在：" + ("notice" in homeWhileOff));
+    await client.post("/admin/section/notice", {
+      _token: csrfToken((await client.get("/admin/sections")).text),
+      label: "公告通知",
+      kind: "channels",
+      scope: "302",
+      page_size: "4",
+      status: "published",
+      more_url: "https://www.gxhczx.gov.cn/news_list.php?id=302"
+    });
+    check("模块重新上线后接口里又有该模块",
+      "notice" in ((await client.get("/api/v1/home", { json: true })).body?.home || {}));
+
+    // 头条轮换全部下线：接口给空数组（前台据此收起轮播），不回退快照里的 6 条样例
+    const slideRowsBefore = await client.get("/admin/slides");
+    const slideItems = [...slideRowsBefore.text.matchAll(/\/admin\/slides\/(\d+)\/status/g)].map((m) => m[1]);
+    for (const sid of slideItems) {
+      await client.post("/admin/slides/" + sid + "/status", {
+        _token: csrfToken((await client.get("/admin/slides")).text),
+        status: "offline"
+      });
+    }
+    const slidesOff = (await client.get("/api/v1/home", { json: true })).body?.home?.slides;
+    check("轮播全部下线时接口返回空数组，不退快照",
+      Array.isArray(slidesOff) && slidesOff.length === 0,
+      "slides=" + JSON.stringify(slidesOff));
+    for (const sid of slideItems) {
+      await client.post("/admin/slides/" + sid + "/status", {
+        _token: csrfToken((await client.get("/admin/slides")).text),
+        status: "published"
+      });
+    }
+    check("轮播重新上线后接口里又有条目",
+      (((await client.get("/api/v1/home", { json: true })).body?.home?.slides) || []).length === slideItems.length);
+
     check("首页模块改动可以还原",
       /公告通知[\s\S]{0,800}?首页显示 4 条/.test((await client.get("/admin/sections")).text));
 
@@ -1272,13 +1320,67 @@ async function main() {
         ?.map((i) => String(i.id)) || [];
       check("取消置顶后回到原顺序（按发布时间）", noticeRestored.join(",") === noticeIds.join(","),
         noticeRestored.join(","));
+
+      // ---- 徽标：下拉预设 + 自定义输入 + 保存后状态列显示、可改可删
+      check("模块表格里有徽标的下拉预设与自定义输入",
+        sectionsWithRows.text.includes('name="badge_preset"') &&
+        sectionsWithRows.text.includes('data-badge-custom') &&
+        sectionsWithRows.text.includes("自定义…") &&
+        sectionsWithRows.text.includes(">最新<") &&
+        sectionsWithRows.text.includes('data-badge-form'));
+
+      const badgeTarget = noticeIds[1];
+      const badgeSave = (fields) => client.post("/admin/article/" + badgeTarget + "/flags", {
+        _token: csrfToken(sectionsWithRows.text),
+        channel: "302",
+        back: "/admin/sections",
+        highlight: "0",
+        ...fields
+      });
+      const badgePage = async () => (await client.get("/admin/sections")).text;
+      const homeBadge = async () => ((await client.get("/api/v1/home", { json: true })).body?.home?.notice || [])
+        .find((i) => String(i.id) === badgeTarget)?.badge || "";
+
+      const presetSaved = await badgeSave({ badge_preset: "最新", badge: "" });
+      const presetPage = await badgePage();
+      check("存预设徽标后状态列显示徽标、前台也拿到同一文字",
+        presetSaved.status === 302 &&
+        presetPage.includes("徽标：最新") &&
+        (await homeBadge()) === "最新",
+        "status=" + presetSaved.status +
+        " 页面含徽标=" + presetPage.includes("徽标：最新") +
+        " 前台=" + JSON.stringify(await homeBadge()) +
+        " flash=" + JSON.stringify((/class="flash[^"]*"[^>]*>([\s\S]{0,120})/.exec(presetPage) || [])[1] || ""));
+
+      const customSaved = await badgeSave({ badge_preset: "__custom__", badge: "独家解读" });
+      const customPage = await badgePage();
+      check("改成自定义徽标后显示也跟着变",
+        customSaved.status === 302 &&
+        customPage.includes("徽标：独家解读") &&
+        (await homeBadge()) === "独家解读",
+        "status=" + customSaved.status +
+        " 页面含徽标=" + customPage.includes("徽标：独家解读") +
+        " 前台=" + JSON.stringify(await homeBadge()));
+
+      const tooLong = await badgeSave({ badge_preset: "__custom__", badge: "七个字太长的徽标" });
+      check("超过 6 个字的徽标被挡下，原值不变",
+        tooLong.status === 302 &&
+        (await badgePage()).includes("徽标最多 6 个字") &&
+        (await homeBadge()) === "独家解读");
+
+      const badgeDeleted = await badgeSave({ badge_preset: "", badge: "" });
+      check("删除徽标后状态列与前台都不再显示",
+        badgeDeleted.status === 302 &&
+        !(await badgePage()).includes("徽标：独家解读") &&
+        (await homeBadge()) === "");
     }
 
     const bannersPage = await client.get("/admin/banners");
     check("站内横幅页列出 7 个固定槽位",
       bannersPage.status === 200 && (bannersPage.text.match(/槽位 <code>/g) || []).length === 7);
     check("横幅页给出每个位置的位置说明",
-      bannersPage.text.includes("首屏专题条幅 · 左") && bannersPage.text.includes("页面底部通栏"));
+      bannersPage.text.includes("首屏专题条幅 · 左") &&
+      bannersPage.text.includes("三列模块上方（乡村振兴委员行，通栏）"));
     check("横幅页每个位置给出比例与出图建议",
       (bannersPage.text.match(/出图建议：/g) || []).length === 7 &&
       bannersPage.text.includes("355:76") &&

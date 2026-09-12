@@ -56,6 +56,89 @@
   }, true);
 
   /* ---------- 通用渲染 ---------- */
+
+  /* ---------- 撤下与空数据的自适应 ----------
+     后台把横幅下线、或模块绑定的栏目里暂时没有已发布稿件时，前台不留空白块：
+     内容为空的模块整卡折起，间距由容器统一的 gap 给，后面的板块自动上移。
+     这里只改 hidden，版式与间距都交给 CSS（见 style.css 的“首页区块间距”）。 */
+  function itemCount(list) { return Array.isArray(list) ? list.length : 0; }
+
+  function toggleModule(target, hasContent) {
+    const node = typeof target === "string" ? el(target) : target;
+    const card = node && node.closest ? node.closest(".section-card") : null;
+    if (card) card.hidden = !hasContent;
+    return !!hasContent;
+  }
+
+  // 填列表 + 空列表时把整卡折起（模块自己带“暂无更新内容”占位会留下一块空白）
+  function fillList(listId, items, dated) {
+    const node = el(listId);
+    if (!node) return;
+    node.innerHTML = listHtml(items || [], dated);
+    toggleModule(node, itemCount(items) > 0);
+  }
+
+  function visibleChildCount(root, selector) {
+    if (!root) return 0;
+    return Array.prototype.filter.call(root.querySelectorAll(selector), function (n) {
+      return !n.hidden && n.offsetHeight > 0;
+    }).length;
+  }
+
+  function columnHasContent(col) {
+    return Array.prototype.some.call(col.children, function (child) {
+      return !child.hidden && child.offsetHeight > 0;
+    });
+  }
+
+  /**
+   * 全部渲染完之后的收尾：把“整块都空了”的容器也收起来。
+   * 1) 首屏轮播为空 → 收起轮播框；轮播与两条首屏条幅都没了 → 首屏并成一栏（不留空竖带）；
+   * 2) 两栏主体里某一栏整体为空 → 该栏收起，正文并成一栏；
+   * 3) 政协视频卡：视频列表与卡内横幅都为空才整卡收起。
+   */
+  function collapseEmptyBlocks() {
+    const hero = document.querySelector(".hero");
+    const heroMain = hero && hero.querySelector(".hero-main");
+    const carousel = el("heroCarousel");
+    if (carousel && carousel.querySelectorAll(".carousel-slide").length === 0) carousel.hidden = true;
+    if (hero && heroMain) {
+      const carouselOn = !!(carousel && !carousel.hidden);
+      const stripOn = visibleChildCount(heroMain, ".banner-strip a") > 0;
+      heroMain.hidden = !carouselOn && !stripOn;
+      const sideOn = !!(el("leadersCard") && !el("leadersCard").hidden);
+      hero.classList.toggle("hero--single", heroMain.hidden || !sideOn);
+    }
+
+    const grid = document.querySelector(".content-grid");
+    if (grid) {
+      const cols = [".main-col", ".side-col"]
+        .map(function (sel) { return grid.querySelector(sel); })
+        .filter(Boolean);
+      cols.forEach(function (col) { col.hidden = !columnHasContent(col); });
+      const alive = cols.filter(function (col) { return !col.hidden; }).length;
+      grid.classList.toggle("content-grid--single", alive < 2);
+    }
+
+    const videoCard = el("videoCard");
+    if (videoCard) {
+      const listEmpty = !el("videoList") || el("videoList").querySelectorAll("li").length === 0;
+      const bannerOn = visibleChildCount(videoCard, ".banner-single") > 0;
+      videoCard.hidden = listEmpty && !bannerOn;
+    }
+
+    // 零高度的容器仍然算一个 flex/grid 项，会把容器的 gap 变成双份（22 + 0 + 22），
+    // 所以把“里面一个可见子项都没有”的容器也收起来。
+    [".hero", ".hero-main", ".banner-strip", ".content-grid", ".grid-3"].forEach(function (sel) {
+      document.querySelectorAll(sel).forEach(function (wrap) {
+        const has = Array.prototype.some.call(wrap.children, function (child) {
+          return !child.hidden && child.offsetHeight > 0;
+        });
+        if (!has) wrap.hidden = true;
+      });
+    });
+  }
+
   function renderDate() {
     const d = new Date();
     const week = ["星期日","星期一","星期二","星期三","星期四","星期五","星期六"];
@@ -322,6 +405,13 @@
   function renderLeaders(leaders) {
     const body = el("leadersBody");
     if (!body) return;
+    // 领导数据整块为空时收起这张卡，别留一个只有标题的空框
+    if (!leaders || !leaders.chairman) {
+      body.innerHTML = "";
+      toggleModule(body, false);
+      return;
+    }
+    toggleModule(body, true);
     let html = '<div class="leaders-box">';
     // 主席（固定展示）
     html += '<div class="leader-chair">' +
@@ -402,9 +492,14 @@
     const listEl = el(listId);
     const moreEl = moreId ? el(moreId) : null;
     if (!tabsEl || !listEl) return;
-    const tabs = data.tabs || [];
+    const tabs = ((data && data.tabs) || []).map(function (t) {
+      return { title: t.title, url: t.url, items: Array.isArray(t.items) ? t.items : [] };
+    });
     function renderList(tab) {
-      listEl.innerHTML = listHtml(tab.items || [], dated);
+      // 单个标签为空时给一行说明（同一张卡里别的标签可能有稿，不能把整卡折起来）
+      listEl.innerHTML = tab.items.length
+        ? listHtml(tab.items, dated)
+        : '<li class="empty-item">本标签暂无内容</li>';
       if (moreEl) moreEl.href = link(tab.url);
     }
     function activate(btn, i) {
@@ -424,6 +519,8 @@
       if (onHover) btn.addEventListener("mouseenter", function () { activate(btn, i); });
     });
     if (tabs[0]) renderList(tabs[0]);
+    // 所有标签都没有稿件 → 整个模块撤下
+    toggleModule(listEl, tabs.some(function (t) { return t.items.length > 0; }));
   }
 
   function renderZXDT(zxdt) { renderTabbedSection(zxdt, "zxdtTabs", "zxdtList", "zxdtMore", true, true); }
@@ -432,30 +529,43 @@
   function renderImageGrid(containerId, items, limit) {
     const grid = el(containerId);
     if (!grid) return;
-    const arrange = (limit ? items.slice(0, limit) : items);
+    const arrange = (limit ? items.slice(0, limit) : items) || [];
     grid.innerHTML = arrange.map(function (it) {
       const url = link(it.url);
       return '<figure class="image-card"><a href="' + esc(url) + '"' + ext(url) + '>' +
         '<img src="' + esc(abs(it.img)) + '" alt="' + esc(it.title) + '" loading="lazy">' +
         '<figcaption>' + esc(it.title) + '</figcaption></a></figure>';
     }).join("");
+    toggleModule(grid, arrange.length > 0);
   }
 
   function renderImageMarquee(containerId, items) {
     const box = el(containerId);
     if (!box) return;
-    const one = items.map(function (it) {
+    const one = (items || []).map(function (it) {
       const url = link(it.url);
       return '<a class="image-flow" href="' + esc(url) + '"' + ext(url) + ' title="' + esc(it.title) + '">' +
         '<img src="' + esc(abs(it.img)) + '" alt="' + esc(it.title) + '" loading="lazy">' +
         '<span class="flow-title">' + esc(it.title) + '</span></a>';
     }).join("");
     box.innerHTML = one;
+    toggleModule(box, itemCount(items) > 0);
   }
 
   function renderMember(mw) {
     const body = el("memberBody");
     if (!body) return;
+    const data = mw || {};
+    const featured = Array.isArray(data.featured) ? data.featured : [];
+    const gallery = Array.isArray(data.gallery) ? data.gallery : [];
+    const list = Array.isArray(data.list) ? data.list : [];
+    if (featured.length + gallery.length + list.length === 0) {
+      body.innerHTML = "";
+      toggleModule(body, false);
+      return;
+    }
+    toggleModule(body, true);
+    mw = { featured: featured, gallery: gallery, list: list };
     const f = mw.featured[0] || null;
     // 大图 + 4张小图 拼成一组
     let html = '<div class="member-media">';
@@ -570,10 +680,11 @@
   function renderRanking(list) {
     const ol = el("rankingList");
     if (!ol) return;
-    ol.innerHTML = list.map(function (r) {
+    ol.innerHTML = (list || []).map(function (r) {
       return '<li><span class="rank-name">' + esc(r.name) + '</span>' +
         '<span class="rank-count">来稿' + esc(r.count) + '</span></li>';
     }).join("");
+    toggleModule(ol, itemCount(list) > 0);
   }
 
   function initRankingYear() {
@@ -584,7 +695,7 @@
   function renderTopic(items) {
     const strip = el("topicStrip");
     if (!strip) return;
-    strip.innerHTML = items.map(function (it) {
+    strip.innerHTML = (items || []).map(function (it) {
       const url = link(it.url);
       return '<a class="topic-item" href="' + esc(url) + '"' + ext(url) + '>' +
         '<img src="' + esc(abs(it.img)) + '" alt="' + esc(it.title) + '" loading="lazy"></a>';
@@ -595,6 +706,7 @@
       ? window.SITE_LINKS.channels.topic : "";
     if (more && topicChannel) more.href = topicChannel;
     else if (more && items[0]) more.href = link(items[0].url);
+    toggleModule(strip, itemCount(items) > 0);
   }
 
   /**
@@ -625,8 +737,17 @@
   function renderLinks(links) {
     const box = el("linksGroups");
     if (!box) return;
-    const keys = Object.keys(links.groups);
-    let html = '<div class="links-logos">' + links.logos.map(function (l) {
+    const data = links || {};
+    const logos = Array.isArray(data.logos) ? data.logos : [];
+    const groups = data.groups && typeof data.groups === "object" ? data.groups : {};
+    const keys = Object.keys(groups);
+    if (logos.length === 0 && keys.length === 0) {
+      box.innerHTML = "";
+      toggleModule(box, false);
+      return;
+    }
+    toggleModule(box, true);
+    let html = '<div class="links-logos">' + logos.map(function (l) {
       return '<a href="' + esc(abs(l.url)) + '" target="_blank" rel="noopener" title="' + esc(l.title) + '">' +
         '<img src="' + esc(abs(l.img)) + '" alt="' + esc(l.title) + '" loading="lazy"></a>';
     }).join("") + '</div>';
@@ -635,7 +756,7 @@
       keys.map(function (k) {
         return '<select class="links-select" aria-label="' + esc(k) + '">' +
           '<option value="" disabled selected>' + esc(k) + '</option>' +
-          links.groups[k].map(function (pair) {
+          (groups[k] || []).map(function (pair) {
             return '<option value="' + esc(abs(pair[1])) + '">' + esc(pair[0]) + '</option>';
           }).join("") +
           '</select>';
@@ -803,7 +924,7 @@
 
       // 政协动态 / 会议 tab 链接 + 列表
       renderZXDT(d.zxdt);
-      el("sxList").innerHTML = listHtml(d.sxNews, true);
+      fillList("sxList", d.sxNews, true);
       renderZXMeeting(d.zxMeeting);
       renderImageMarquee("imageMarquee", d.imageNews);
 
@@ -822,9 +943,9 @@
       initRankingYear();
 
       // 三列
-      el("zwhList").innerHTML = listHtml(d.zwhWork, false);
-      el("partyList").innerHTML = listHtml(d.partyGroups, false);
-      el("theoryList").innerHTML = listHtml(d.theory, false);
+      fillList("zwhList", d.zwhWork);
+      fillList("partyList", d.partyGroups);
+      fillList("theoryList", d.theory);
 
       renderMember(d.memberWindow);
       renderCounty(d.countyZx);
@@ -833,6 +954,8 @@
       renderImageMarquee("sceneryGrid", d.scenery);
       renderBanners(d.banners);
       renderLinks(d.links);
+      // 撤下／空数据后的收尾：整栏、首屏、视频卡都空了就折起来
+      collapseEmptyBlocks();
       // index.html 里静态写死的旧站「更多」与横幅入口，统一改指新版内页
       document.querySelectorAll("a.more, a.banner-single").forEach(function (a) {
         const href = a.getAttribute("href") || "";
@@ -853,9 +976,9 @@
   function fillBox(prefix, items) {
     const list = el(prefix + "List");
     if (list) {
-      list.innerHTML = items && items.length
-        ? listHtml(items, false)
-        : '<li class="empty-item">暂无更新内容</li>';
+      // 侧栏这几块空了就整卡折起（原来放一行“暂无更新内容”，会留下一个空框）
+      list.innerHTML = items && items.length ? listHtml(items, false) : "";
+      toggleModule(list, itemCount(items) > 0);
     }
   }
 
@@ -863,14 +986,16 @@
   function renderVideos(items) {
     const list = el("videoList");
     if (!list) return;
-    list.innerHTML = items && items.length
-      ? items.slice(0, 2).map(function (v) {
+    const rows = Array.isArray(items) ? items : [];
+    list.innerHTML = rows.length
+        ? rows.slice(0, 2).map(function (v) {
           const url = link(v.url);
           return '<li class="video-item"><a href="' + esc(url) + '"' + ext(url) + ' title="' + esc(v.title) + '">' +
             '<img class="video-thumb" src="' + esc(abs(v.img)) + '" alt="' + esc(v.title) + '" loading="lazy">' +
             '<span class="video-title">' + esc(v.title) + '</span></a></li>';
         }).join("")
-      : '<li class="empty-item">暂无更新内容</li>';
+      : "";
+    // 视频空不空决定整卡去留时要连卡内横幅一起看，所以放到 init 末尾统一判
   }
 
   function setMore(id, url) {
