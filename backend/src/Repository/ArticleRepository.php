@@ -506,9 +506,11 @@ final class ArticleRepository
         $this->db->execute(
             'INSERT INTO cms_article
                (site_id, channel_type, title, subtitle, summary, content_html, source, author, editor,
+                orig_kicker, orig_title, orig_subtitle,
                 published_at, views, status, public_scope, is_top, has_body, created_by, updated_by, created_at, updated_at)
              VALUES
                (:site, :channel, :title, :subtitle, :summary, :content, :source, :author, :editor,
+                :orig_kicker, :orig_title, :orig_subtitle,
                 :published_at, :views, :status, :scope, :is_top, :has_body, :created_by, :updated_by, :t, :t)',
             [
                 'site'         => $this->siteId,
@@ -520,6 +522,9 @@ final class ArticleRepository
                 'source'       => (string) ($fields['source'] ?? ''),
                 'author'       => (string) ($fields['author'] ?? ''),
                 'editor'       => (string) ($fields['editor'] ?? ''),
+                'orig_kicker'  => (string) ($fields['orig_kicker'] ?? ''),
+                'orig_title'   => (string) ($fields['orig_title'] ?? ''),
+                'orig_subtitle' => (string) ($fields['orig_subtitle'] ?? ''),
                 'published_at' => (string) ($fields['published_at'] ?? $now),
                 'views'        => '0',
                 'status'       => (string) ($fields['status'] ?? 'draft'),
@@ -535,6 +540,25 @@ final class ArticleRepository
         $id = (int) $this->db->pdo()->lastInsertId();
         $this->linkChannel($id, (string) ($fields['channel_type'] ?? ''), 0, 1);
         return $id;
+    }
+
+    /**
+     * 首页模块用的高亮与徽标：与置顶同层，挂在栏目归属上，
+     * 同一篇稿在不同栏目可以分别设置。
+     */
+    public function setChannelFlags(int $articleId, string $channelType, int $isHighlight, string $badge): void
+    {
+        $this->db->execute(
+            'UPDATE cms_article_channel SET is_highlight = :h, badge_text = :b
+             WHERE site_id = :site AND channel_type = :channel AND article_id = :id',
+            [
+                'h'      => $isHighlight,
+                'b'      => mb_substr($badge, 0, 16, 'UTF-8'),
+                'site'   => $this->siteId,
+                'channel' => $channelType,
+                'id'     => $articleId,
+            ]
+        );
     }
 
     /**

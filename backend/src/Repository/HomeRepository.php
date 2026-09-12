@@ -366,7 +366,8 @@ final class HomeRepository
                 $params['ch' . $index] = $type;
             }
             $rows = $this->db->select(
-                'SELECT a.*, ac.channel_type AS link_channel, ac.is_top AS link_top, ac.sort_no AS link_sort
+                'SELECT a.*, ac.channel_type AS link_channel, ac.is_top AS link_top, ac.sort_no AS link_sort,
+                        ac.is_highlight, ac.badge_text
                  FROM cms_article_channel ac
                  JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
                  WHERE ac.site_id = :site AND a.status = :status AND a.public_scope = :scope
@@ -383,7 +384,11 @@ final class HomeRepository
                 if (count($items) >= $limit) {
                     continue;
                 }
-                $items[] = ChannelRepository::mapListItem($row);
+                $item = ChannelRepository::mapListItem($row);
+                // 首页模块的展示标记：首页管理里设置的高亮（正红加粗）与徽标
+                $item['is_highlight'] = (int) ($row['is_highlight'] ?? 0);
+                $item['badge'] = (string) ($row['badge_text'] ?? '');
+                $items[] = $item;
             }
         }
 
@@ -542,7 +547,8 @@ final class HomeRepository
         }
         $rows = $this->db->select(
             'SELECT a.article_id, a.title, a.thumb, a.published_at, a.channel_type AS primary_channel,
-                    ac.channel_type AS link_channel, ac.is_top, ac.sort_no
+                    ac.channel_type AS link_channel, ac.is_top, ac.sort_no,
+                    ac.is_highlight, ac.badge_text
              FROM cms_article_channel ac
              JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
              WHERE ac.site_id = :site AND a.status = :status AND a.public_scope = :scope
@@ -573,6 +579,8 @@ final class HomeRepository
                 'channel'      => $channel,
                 'channel_name' => $this->channelName($channel),
                 'is_top'       => (int) $row['is_top'],
+                'is_highlight' => (int) ($row['is_highlight'] ?? 0),
+                'badge'        => (string) ($row['badge_text'] ?? ''),
             ];
         }
         return $out;

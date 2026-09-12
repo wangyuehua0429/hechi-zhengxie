@@ -133,3 +133,22 @@
   font-size: 16px;
   line-height: 1.95;
 }
+
+/* 原标题三项：与作者行同一片留白，输入框保持表单样式 */
+.writing-orig {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 0 0 18px;
+  flex-wrap: wrap;
+}
+
+.writing-orig .muted {
+  flex: none;
+  font-size: 12px;
+}
+
+.writing-orig input {
+  flex: 1;
+  min-width: 120px;
+}

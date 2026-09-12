@@ -127,6 +127,12 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
                    placeholder="来源（如：广西政协报）" aria-label="来源">
           </div>
           <label class="writing-top"><input type="checkbox" name="is_top" value="1"<?= (int) ($channelTop ?? $article['is_top'] ?? 0) === 1 ? ' checked' : '' ?>> 在本栏目置顶（首页对应模块也跟着排前）</label>
+          <div class="writing-orig">
+            <span class="muted">原标题（填写后按加粗三行拼在正文最前，不进网页标题与首页）</span>
+            <input type="text" name="orig_kicker" value="<?= hechi_e($article['orig_kicker'] ?? '') ?>" placeholder="引题">
+            <input type="text" name="orig_title" value="<?= hechi_e($article['orig_title'] ?? '') ?>" placeholder="主标题">
+            <input type="text" name="orig_subtitle" value="<?= hechi_e($article['orig_subtitle'] ?? '') ?>" placeholder="副题">
+          </div>
           <p class="writing-hint muted">正文（可直接插图与 mp4／webm 视频；粘贴网页或 Word 内容时图片自动上传）</p>
           <textarea name="content_html" rows="18" class="mono"><?= hechi_e($article['content_html'] ?? '') ?></textarea>
           <div class="editor-mount" data-editor-mount hidden></div>

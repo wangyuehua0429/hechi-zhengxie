@@ -182,6 +182,23 @@
     previewToggle.setAttribute("aria-expanded", "false");
   }
 
+  /* ---------------------------------------------- 3.5 复制正式链接 */
+  document.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-copy-link]");
+    if (!button) return;
+    const url = new URL(button.getAttribute("data-copy-link"), window.location.origin).href;
+    const done = () => {
+      const original = button.textContent;
+      button.textContent = "已复制";
+      window.setTimeout(() => { button.textContent = original; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done).catch(() => window.prompt("复制这个链接：", url));
+      return;
+    }
+    window.prompt("复制这个链接：", url);
+  });
+
   /* ------------------------------------------------ 4. 快捷键与未保存提醒 */
   const articleForm = document.getElementById("article-form");
   if (articleForm) {

@@ -308,7 +308,7 @@ final class ArticleController extends AdminController
         }
         $userId = (int) ($this->user()['user_id'] ?? 0);
         $isTop = $request->post('is_top') === '1' ? 1 : 0;
-        $content = $this->normalizeContent((string) ($_POST['content_html'] ?? ''));
+        $content = $this->normalizeContent($this->prependOrigTitle((string) ($_POST['content_html'] ?? ''), $request));
         $id = $this->articles->create([
             'channel_type' => $channelType,
             'title'        => $title,
@@ -323,6 +323,9 @@ final class ArticleController extends AdminController
             'status'       => $status,
             'is_top'       => $isTop,
             'created_by'   => $userId,
+            'orig_kicker'   => trim((string) $request->post('orig_kicker')),
+            'orig_title'    => trim((string) $request->post('orig_title')),
+            'orig_subtitle' => trim((string) $request->post('orig_subtitle')),
         ]);
         if ($isTop === 1) {
             $this->articles->setChannelTop($id, $channelType, 1);
@@ -595,6 +598,52 @@ final class ArticleController extends AdminController
      *
      * @param array<string, string> $args
      */
+    /**
+     * 首页模块用的高亮与徽标（与置顶同层，同样只对已发布稿件生效）。
+     */
+    public function flags(Request $request, array $args): HtmlResponse|RedirectResponse
+    {
+        if ($redirect = $this->requireLogin()) {
+            return $redirect;
+        }
+        if ($denied = $this->guard($request)) {
+            return $denied;
+        }
+        if ($denied = $this->requirePermission(Permissions::ARTICLE_EDIT)) {
+            return $denied;
+        }
+
+        $id = (int) $args['id'];
+        $article = $this->articles->adminFind((string) $id);
+        if ($article === null) {
+            Flash::set('error', '稿件不存在。');
+            return new RedirectResponse('/admin/articles');
+        }
+
+        $channel = $this->actionChannel($request, $id, (string) $article['channel_type']);
+        $back = $this->backUrl($request, '/admin/article/' . $id);
+        if (!$this->auth->canChannel($channel)) {
+            Flash::set('error', '当前账号不在该稿件所属栏目的数据范围内。');
+            return new RedirectResponse($back);
+        }
+        if ((string) $article['status'] !== ArticleWorkflow::PUBLISHED) {
+            Flash::set('error', '只有「已发布」的稿件能设置高亮与徽标，当前是：'
+                . ArticleWorkflow::label((string) $article['status']) . '。');
+            return new RedirectResponse($back);
+        }
+
+        $highlight = $request->post('highlight') === '1' ? 1 : 0;
+        $badge = trim((string) $request->post('badge'));
+        $this->articles->setChannelFlags($id, $channel, $highlight, $badge);
+        $this->log('article.flags', 'article', (string) $id, ['channel' => $channel, 'highlight' => $highlight, 'badge' => $badge]);
+        Flash::set('ok', '已更新「' . $this->channelLabel($channel) . '」里的显示：'
+            . ($highlight === 1 ? '标题高亮' : '不高亮')
+            . ($badge !== '' ? '，徽标「' . $badge . '」' : '，无徽标')
+            . '：' . (string) $article['title']);
+
+        return new RedirectResponse($back);
+    }
+
     public function top(Request $request, array $args): HtmlResponse|RedirectResponse
     {
         if ($redirect = $this->requireLogin()) {
@@ -1042,8 +1091,11 @@ final class ArticleController extends AdminController
             // 新建页上传过的素材如果还挂在 pending 桶，保存时一并认领
             'content_html' => $this->adoptPendingMedia(
                 (int) $id,
-                $this->normalizeContent((string) ($_POST['content_html'] ?? ''))
+                $this->normalizeContent($this->prependOrigTitle((string) ($_POST['content_html'] ?? ''), $request))
             ),
+            'orig_kicker'   => trim((string) $request->post('orig_kicker')),
+            'orig_title'    => trim((string) $request->post('orig_title')),
+            'orig_subtitle' => trim((string) $request->post('orig_subtitle')),
             'source'       => $request->post('source'),
             'author'       => $request->post('author'),
             'editor'       => $request->post('editor'),
@@ -1172,6 +1224,26 @@ final class ArticleController extends AdminController
             $html[] = '<p>' . str_replace("\n", '<br>', htmlspecialchars($paragraph, ENT_QUOTES, 'UTF-8')) . '</p>';
         }
         return implode("\n", $html);
+    }
+
+    /**
+     * 原标题块（引题／主标题／副题）拼在正文最前：同字体同字号，只加粗。
+     * 三项都空就不拼；单独存三列，便于编辑页回显再改。
+     */
+    private function prependOrigTitle(string $contentHtml, Request $request): string
+    {
+        $lines = [];
+        foreach ([
+            trim((string) $request->post('orig_kicker')),
+            trim((string) $request->post('orig_title')),
+            trim((string) $request->post('orig_subtitle')),
+        ] as $text) {
+            if ($text !== '') {
+                $lines[] = '<p><strong>' . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . '</strong></p>';
+            }
+        }
+
+        return $lines === [] ? $contentHtml : implode('', $lines) . $contentHtml;
     }
 
     /**

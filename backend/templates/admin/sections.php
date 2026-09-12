@@ -196,7 +196,29 @@ $renderChip = static function (array $chip): string {
                                 ? '取消置顶「' . hechi_e((string) $row['title']) . '」？它会从该栏目和首页模块的最前面落回按时间排序的位置。'
                                 : '置顶「' . hechi_e((string) $row['title']) . '」？它会排到该栏目和首页模块的最前面。' ?>"><?= (int) $row['is_top'] === 1 ? '取消置顶' : '置顶' ?></button>
                     </form>
+                    <form method="post" action="/admin/article/<?= $id ?>/flags" class="inline">
+                      <?= $csrf ?>
+                      <input type="hidden" name="channel" value="<?= hechi_e($channel) ?>">
+                      <input type="hidden" name="back" value="<?= hechi_e($back) ?>">
+                      <input type="hidden" name="badge" value="<?= hechi_e((string) ($row['badge_text'] ?? '')) ?>">
+                      <input type="hidden" name="highlight" value="<?= (int) ($row['is_highlight'] ?? 0) === 1 ? '0' : '1' ?>">
+                      <button type="submit" class="btn btn-sm"
+                              data-confirm="<?= (int) ($row['is_highlight'] ?? 0) === 1
+                                ? '取消高亮「' . hechi_e((string) $row['title']) . '」？首页标题会恢复常规颜色。'
+                                : '高亮「' . hechi_e((string) $row['title']) . '」？首页标题会显示为正红加粗。' ?>"><?= (int) ($row['is_highlight'] ?? 0) === 1 ? '取消高亮' : '高亮' ?></button>
+                    </form>
+                    <form method="post" action="/admin/article/<?= $id ?>/flags" class="inline">
+                      <?= $csrf ?>
+                      <input type="hidden" name="channel" value="<?= hechi_e($channel) ?>">
+                      <input type="hidden" name="back" value="<?= hechi_e($back) ?>">
+                      <input type="hidden" name="highlight" value="<?= (int) ($row['is_highlight'] ?? 0) ?>">
+                      <input type="text" name="badge" value="<?= hechi_e((string) ($row['badge_text'] ?? '')) ?>"
+                             placeholder="徽标" size="5" aria-label="徽标文字，如：最新">
+                      <button type="submit" class="btn btn-sm">存徽标</button>
+                    </form>
                     <a class="btn btn-sm btn-ghost" href="/admin/article/<?= $id ?>">编辑</a>
+                    <a class="btn btn-sm btn-ghost" href="/article/<?= $id ?>.html" target="_blank" rel="noopener">预览</a>
+                    <button type="button" class="btn btn-sm btn-ghost" data-copy-link="/article/<?= $id ?>.html">复制链接</button>
                     <a class="btn btn-sm btn-ghost" href="/detail.html?id=<?= $id ?>" target="_blank" rel="noopener">前台</a>
                   </div>
                 </td>

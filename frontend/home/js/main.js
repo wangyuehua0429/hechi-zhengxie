@@ -379,8 +379,11 @@
     return items.map(function (it) {
       const time = (dated && it.date) ? '<time datetime="' + esc(it.date.slice(0,10)) + '">' + esc(it.date) + '</time>' : "";
       const url = link(it.url);
-      return '<li><a href="' + esc(url) + '"' + ext(url) + ' title="' + esc(it.title) + '">' +
-        esc(it.title) + '</a>' + time + '</li>';
+      // 首页模块的「高亮」与「徽标」在首页管理里设置（与置顶同层，按栏目生效）
+      var badge = it.badge ? '<i class="item-badge">' + esc(it.badge) + '</i>' : '';
+      return '<li' + (it.is_highlight ? ' class="is-highlight"' : '') + '>' +
+        '<a href="' + esc(url) + '"' + ext(url) + ' title="' + esc(it.title) + '">' +
+        esc(it.title) + '</a>' + badge + time + '</li>';
     }).join("");
   }
 

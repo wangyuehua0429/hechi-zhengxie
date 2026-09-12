@@ -509,6 +509,54 @@ async function main() {
       !summary.includes("这是第一段") && !summary.includes("应当成为摘要"),
       summary);
 
+    // 原标题三项：加粗三行拼在正文最前，且不改网页标题
+    const origToken = csrfToken((await client.get("/admin/article/" + SAMPLE_ID)).text);
+    await client.post("/admin/article/" + SAMPLE_ID, {
+      _token: origToken,
+      title: "原标题检查",
+      content_html: "<p>正文第一段。</p>",
+      orig_kicker: "引题层",
+      orig_title: "主标题层",
+      orig_subtitle: "副题层",
+    });
+    const withOrig = await client.get("/api/v1/article/" + SAMPLE_ID, { json: true });
+    const origBody = String(withOrig.body?.article?.content ?? "");
+    check("原标题：三项按加粗三行拼在正文最前，网页标题不受影响",
+      origBody.startsWith("<p><strong>引题层</strong></p><p><strong>主标题层</strong></p>")
+        && origBody.includes("<p><strong>副题层</strong></p>") && origBody.includes("正文第一段")
+        && withOrig.body?.article?.title === "原标题检查",
+      origBody.slice(0, 160));
+
+    // 首页管理三件套（置顶／高亮／徽标同层）：高亮与徽标写 `cms_article_channel`，随模块输出给前台
+    const flagsToken = csrfToken((await client.get("/admin/article/" + SAMPLE_ID)).text);
+    const flagsSaved = await client.post("/admin/article/" + SAMPLE_ID + "/flags", {
+      _token: flagsToken, channel: "904", back: "/admin/sections?section=zxdt", highlight: "1", badge: "最新",
+    });
+    check("首页管理：高亮与徽标可保存", flagsSaved.status === 302, "状态 " + flagsSaved.status);
+
+    const homeBody = (await client.get("/api/v1/home", { json: true })).body?.home ?? {};
+    const homeItems = [];
+    for (const tab of (homeBody.zxdt?.tabs ?? [])) {
+      for (const item of (tab.items ?? [])) homeItems.push(item);
+    }
+    const mine = homeItems.find((x) => String(x.id) === SAMPLE_ID);
+    check("首页管理：首页模块输出带高亮与徽标",
+      !!mine && Number(mine.is_highlight) === 1 && mine.badge === "最新",
+      JSON.stringify(mine ?? homeItems[0] ?? null));
+
+    const flagsMissing = await client.post("/admin/article/999999/flags", {
+      _token: flagsToken, channel: "904", back: "/admin/sections?section=zxdt", highlight: "1", badge: "x",
+    });
+    check("首页管理：不存在的稿件被拒绝", flagsMissing.status === 302, "状态 " + flagsMissing.status);
+
+    // 预览与复制链接：已发布走 /article/{id}.html 正式静态页
+    const listHtml2 = (await client.get("/admin/articles")).text;
+    const sectionsHtml = (await client.get("/admin/sections?section=zxdt")).text;
+    check("稿件列表：已发布稿件带预览与复制链接",
+      /href="\/article\/\d+\.html"/.test(listHtml2) && listHtml2.includes("data-copy-link"), "列表页没找到");
+    check("首页管理：模块稿件带预览与复制链接",
+      sectionsHtml.includes("data-copy-link") && /target="_blank"/.test(sectionsHtml), "其他栏目页没找到");
+
     const styleToken = csrfToken((await client.get("/admin/article/" + SAMPLE_ID)).text);
     await client.post("/admin/article/" + SAMPLE_ID, {
       _token: styleToken,

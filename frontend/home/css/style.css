@@ -775,3 +775,18 @@ body.high-contrast .news-list li:last-child { border-bottom: 1px dashed #000; }
   html.mast-expanding .masthead-layers .mast-logo,
   html.mast-expanding .mast-shift { transition: none; }
 }
+
+/* 首页模块：首页管理里设置的标题高亮与徽标（正红加粗 + 小标记） */
+li.is-highlight > a { color: #ff0000; font-weight: 700; }
+.item-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: #ffecec;
+  color: #e60012;
+  font-size: 12px;
+  font-style: normal;
+  line-height: 18px;
+  vertical-align: 1px;
+}

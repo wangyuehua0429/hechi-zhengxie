@@ -293,6 +293,14 @@ if ((string) $filters['keyword'] !== '') {
               </form>
             <?php endif; ?>
             <a class="btn btn-sm" href="/admin/article/<?= $id ?>">编辑</a>
+            <?php $official = '/article/' . $id . '.html'; $isPublished = (string) $item['status'] === 'published'; ?>
+            <?php if ($isPublished): ?>
+              <a class="btn btn-sm btn-ghost" href="<?= hechi_e($official) ?>" target="_blank" rel="noopener">预览</a>
+              <button type="button" class="btn btn-sm btn-ghost" data-copy-link="<?= hechi_e($official) ?>">复制链接</button>
+            <?php else: ?>
+              <span class="btn btn-sm is-disabled" aria-disabled="true" title="发布后可预览">预览</span>
+              <span class="btn btn-sm is-disabled" aria-disabled="true" title="发布后可复制链接">复制链接</span>
+            <?php endif; ?>
             <?php foreach (($item['flow_rules'] ?? []) as $action => $rule): ?>
               <?php if ((string) $action === 'delete'): ?>
                 <a class="btn btn-sm btn-danger-outline" href="/admin/article/<?= $id ?>/delete"><?= hechi_e((string) $rule['label']) ?></a>

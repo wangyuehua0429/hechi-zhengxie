@@ -93,6 +93,7 @@ return static function (Router $router, Db $db, Config $config): void {
     $router->post('/admin/articles/bulk', [$articleController, 'bulk']);
     $router->post('/admin/article/{id}/order', [$articleController, 'order']);
     $router->post('/admin/article/{id}/top', [$articleController, 'top']);
+    $router->post('/admin/article/{id}/flags', [$articleController, 'flags']);
     $router->get('/admin/article/new', [$articleController, 'createForm']);
     $router->post('/admin/article/create', [$articleController, 'store']);
     $router->get('/admin/article/{id}', [$articleController, 'edit']);
