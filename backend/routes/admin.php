@@ -16,6 +16,7 @@ use HechiZx\Admin\DashboardController;
 use HechiZx\Admin\HealthController;
 use HechiZx\Admin\LogController;
 use HechiZx\Admin\NavController;
+use HechiZx\Admin\NoticeController;
 use HechiZx\Admin\PublishController;
 use HechiZx\Admin\RoleController;
 use HechiZx\Admin\SectionController;
@@ -68,6 +69,7 @@ return static function (Router $router, Db $db, Config $config): void {
     );
     $channelController = new ChannelController($auth, $view, $db, $siteId, $channels);
     $navController = new NavController($auth, $view, $db, $siteId, $home, $channels);
+    $noticeController = new NoticeController($auth, $view, $db, $siteId, $home);
     $slideController = new SlideController($auth, $view, $db, $siteId, $home, $articles, $uploadsDir);
     $sectionController = new SectionController($auth, $view, $db, $siteId, $home, $channels);
     $bannerController = new BannerController($auth, $view, $db, $siteId, $home, $uploadsDir);
@@ -123,6 +125,9 @@ return static function (Router $router, Db $db, Config $config): void {
     $router->get('/admin/nav', [$navController, 'index']);
     $router->post('/admin/nav/{index}/move', [$navController, 'move']);
     $router->post('/admin/nav/{index}', [$navController, 'update']);
+
+    $router->get('/admin/notice', [$noticeController, 'edit']);
+    $router->post('/admin/notice', [$noticeController, 'update']);
 
     $router->get('/admin/slides', [$slideController, 'index']);
     $router->post('/admin/slides/create', [$slideController, 'create']);

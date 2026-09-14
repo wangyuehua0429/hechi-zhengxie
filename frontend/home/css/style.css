@@ -260,6 +260,14 @@ html.mast-folded .masthead-layers .mast-slogan { opacity: 0; visibility: hidden;
   border: none; background: var(--primary); color: #fff; padding: 6px 16px;
   cursor: pointer; font-size: 0.9em;
 }
+/* 公告停用（后台「滚动公告」页勾选）后：滚条连图标整条收掉，只留搜索框。
+   搜索框仍贴右（右边缘与显示态在同一处），宽度从 341px 放宽到 560px——向左长出来；
+   横栏高度不变（同一行里本来就数搜索框最高），所以页面不会“跳”。
+   第一条规则不能省：横栏是 flex，滚条没了以后剩下唯一的子项会默认贴左。
+   窄屏（≤640px）本来就是竖排、搜索框占满整行，收掉滚条只是少一行。 */
+.run-bar-inner.is-search-only { justify-content: flex-end; }
+.run-bar-inner.is-search-only .run-search { width: min(560px, 100%); }
+.run-bar-inner.is-search-only .run-search input[type="text"] { flex: 1 1 auto; min-width: 0; }
 
 /* ============ 通用区块 ============ */
 .section-card {

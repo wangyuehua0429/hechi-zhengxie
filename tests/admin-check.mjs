@@ -1257,9 +1257,10 @@ async function main() {
       /<button[^>]*class="to-top"[^>]*data-to-top[^>]*hidden>/.test(navPage.text) &&
       navPage.text.includes("回到顶部"),
       (navPage.text.match(/<button[^>]*data-to-top[^>]*>/) || [""])[0]);
-    check("「首页管理」是默认展开的树形分组，四个子项都在里面",
+    check("「首页管理」是默认展开的树形分组，子项都在里面",
       /<details class="sidenav-group[^"]*" open>/.test(navPage.text) &&
       navPage.text.includes('href="/admin/nav"') &&
+      navPage.text.includes('href="/admin/notice"') &&
       navPage.text.includes('href="/admin/slides"') &&
       navPage.text.includes('href="/admin/sections"') &&
       navPage.text.includes('href="/admin/banners"'));
@@ -1307,6 +1308,78 @@ async function main() {
     });
     check("取消隐藏后恢复显示",
       !/name="hidden" value="1" checked/.test((await client.get("/admin/nav")).text));
+
+    // ---- 滚动公告：首页搜索框左侧那条滚动要闻（2026-09-14 补的维护入口）
+    const marqueeOf = async () => (await client.get("/api/v1/home", { json: true })).body?.home?.meta?.marquee || "";
+    const marqueeField = (html) => ((html.match(/name="marquee"[^>]*>([\s\S]*?)<\/textarea>/) || [])[1] || "").trim();
+    const noticePage = await client.get("/admin/notice");
+    const marqueeBefore = marqueeField(noticePage.text);
+    check("滚动公告页可访问并带出当前公告",
+      noticePage.status === 200 && marqueeBefore !== "" && marqueeBefore === (await marqueeOf()),
+      "当前 " + marqueeBefore.length + " 字");
+    check("滚动公告挂在「首页管理」树里，面包屑也带上这一层",
+      /href="\/admin\/notice" class="active" aria-current="page"/.test(noticePage.text) &&
+      /<nav class="breadcrumb"[\s\S]*?<a href="\/admin\/nav">首页管理<\/a>[\s\S]*?<span class="crumb-current">滚动公告<\/span>[\s\S]*?<\/nav>/
+        .test(noticePage.text));
+    check("滚动公告页给出前台效果预览与字数",
+      noticePage.text.includes("前台效果") && noticePage.text.includes("notice-preview") &&
+      noticePage.text.includes("最多 500 字"));
+
+    const noticeSaved = await client.post("/admin/notice", {
+      _token: csrfToken(noticePage.text),
+      marquee: "检查脚本写入的滚动公告"
+    });
+    check("保存公告后前台接口立刻更新",
+      noticeSaved.status === 302 && (await marqueeOf()) === "检查脚本写入的滚动公告",
+      "接口读到：" + (await marqueeOf()));
+    check("保存后回到公告页能看到新文字",
+      marqueeField((await client.get("/admin/notice")).text) === "检查脚本写入的滚动公告");
+
+    const noticeSpaced = await client.post("/admin/notice", {
+      _token: csrfToken((await client.get("/admin/notice")).text),
+      marquee: "第一行\n\n   第二行"
+    });
+    check("公告里的换行与连续空格被收成单个空格",
+      noticeSpaced.status === 302 && (await marqueeOf()) === "第一行 第二行",
+      "接口读到：" + (await marqueeOf()));
+
+    const noticeTooLong = await client.post("/admin/notice", {
+      _token: csrfToken((await client.get("/admin/notice")).text),
+      marquee: "长".repeat(501)
+    });
+    check("超过 500 字的公告被挡下并提示，原值不变",
+      noticeTooLong.status === 302 &&
+      (await client.get("/admin/notice")).text.includes("公告最多 500 个字") &&
+      (await marqueeOf()) === "第一行 第二行",
+      "接口读到长度 " + (await marqueeOf()).length);
+    check("公告保存缺 CSRF 令牌被拒绝",
+      (await client.post("/admin/notice", { marquee: "无令牌写入" })).status === 400 &&
+      (await marqueeOf()) === "第一行 第二行");
+
+    // 停用：前台整条滚条（含图标）不显示，搜索框保留并居中（前台按 meta.marqueeHidden 判断）
+    const marqueeOff = await client.post("/admin/notice", {
+      _token: csrfToken((await client.get("/admin/notice")).text),
+      marquee: "第一行 第二行",
+      hidden: "1"
+    });
+    const marqueeMetaOff = (await client.get("/api/v1/home", { json: true })).body?.home?.meta || {};
+    check("勾选停用后接口带上 marqueeHidden，公告文字仍保留",
+      marqueeOff.status === 302 && marqueeMetaOff.marqueeHidden === true && marqueeMetaOff.marquee === "第一行 第二行",
+      JSON.stringify({ hidden: marqueeMetaOff.marqueeHidden, marquee: marqueeMetaOff.marquee }));
+    const marqueePageOff = await client.get("/admin/notice");
+    check("停用状态在公告页回显（勾选框 + 已停用标签 + 预览说明）",
+      /name="hidden" value="1" checked/.test(marqueePageOff.text) &&
+      marqueePageOff.text.includes("已停用") &&
+      marqueePageOff.text.includes("只剩搜索框"));
+
+    const noticeRestored = await client.post("/admin/notice", {
+      _token: csrfToken((await client.get("/admin/notice")).text),
+      marquee: marqueeBefore
+    });
+    check("取消停用并还原成检查前的文字（marqueeHidden 字段去掉）",
+      noticeRestored.status === 302 && (await marqueeOf()) === marqueeBefore &&
+      !("marqueeHidden" in ((await client.get("/api/v1/home", { json: true })).body?.home?.meta || {})) &&
+      !/name="hidden" value="1" checked/.test((await client.get("/admin/notice")).text));
 
     const slidesPage = await client.get("/admin/slides");
     const slideTitles = (html) => [...html.matchAll(/name="title" value="([^"]*)"/g)].map((m) => m[1]);

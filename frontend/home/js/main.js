@@ -147,8 +147,15 @@
     if (node) node.textContent = str;
   }
 
-  function renderMarquee(text) {
+  /* 滚动公告：文字为空时显示「暂无要闻」；后台勾了「停用」时整条滚条（含喇叭图标）收掉，
+     横栏里只剩搜索框，并加 is-search-only 让搜索框仍贴右、宽度放宽（见 css/style.css）。
+     停用只影响这一条，不改变横栏高度——同一行里本来就是搜索框最高。 */
+  function renderMarquee(text, hidden) {
     const t = el("marqueeTrack");
+    const bar = document.querySelector(".run-bar-inner");
+    const wrap = document.querySelector(".run-marquee");
+    if (wrap) wrap.hidden = hidden === true;
+    if (bar) bar.classList.toggle("is-search-only", hidden === true);
     if (!t) return;
     t.innerHTML = text
       ? '<span>' + esc(text) + '</span><span>' + esc(text) + '</span>'
@@ -925,7 +932,7 @@
       const d = await window.SITE_DATA.home();
       await linksReady;   // 取完数据再等映射，两者已经并行
       state.data = d;
-      renderMarquee(d.meta.marquee);
+      renderMarquee(d.meta.marquee, d.meta.marqueeHidden === true);
       renderNav(d.nav);
       renderCarousel(d.slides);
       renderLeaders(d.leaders);

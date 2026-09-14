@@ -1182,3 +1182,19 @@ kbd {
 .health-banner-note { display: block; color: inherit; opacity: .9; font-size: 14px; }
 /* 值里带路径：长路径要能换行，别把卡片撑破 */
 .health-banner code, .meta-list dd code { word-break: break-all; }
+
+/* 滚动公告页（admin/notice.php）：前台滚条的静态预览 */
+.notice-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  color: var(--ink);
+  background: var(--brand-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  line-height: 1.8;
+}
+.notice-preview-icon { flex: none; display: inline-flex; color: var(--brand); }
+.notice-preview-text { min-width: 0; word-break: break-word; }
+.notice-preview.is-empty .notice-preview-text { color: var(--muted); }

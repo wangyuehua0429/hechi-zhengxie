@@ -36,6 +36,7 @@ $navItems = ['dashboard' => ['label' => '概览', 'url' => '/admin', 'icon' => '
 
 $homeChildren = [
     'nav'     => ['label' => '导航栏目', 'url' => '/admin/nav'],
+    'notice'  => ['label' => '滚动公告', 'url' => '/admin/notice'],
     'slides'  => ['label' => '头条轮换', 'url' => '/admin/slides'],
     'sections' => ['label' => '其他栏目', 'url' => '/admin/sections'],
     'banners' => ['label' => '站内横幅', 'url' => '/admin/banners'],
@@ -72,6 +73,7 @@ $sections = [
     'articles'  => ['label' => '稿件管理', 'url' => '/admin/articles'],
     'channels'  => ['label' => '全部栏目', 'url' => '/admin/channels', 'parent' => $homeCrumb],
     'nav'       => ['label' => '导航栏目', 'url' => '/admin/nav', 'parent' => $homeCrumb],
+    'notice'    => ['label' => '滚动公告', 'url' => '/admin/notice', 'parent' => $homeCrumb],
     'slides'    => ['label' => '头条轮换', 'url' => '/admin/slides', 'parent' => $homeCrumb],
     'sections'  => ['label' => '其他栏目', 'url' => '/admin/sections', 'parent' => $homeCrumb],
     'banners'   => ['label' => '站内横幅', 'url' => '/admin/banners', 'parent' => $homeCrumb],
