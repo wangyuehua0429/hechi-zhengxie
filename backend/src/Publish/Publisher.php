@@ -71,6 +71,7 @@ final class Publisher
         $articles = $this->articlesWithBody();
 
         $entries = [];
+        $keep = [];   // 本轮真正产出的静态页，发布收尾时用它清掉不再产出的旧文件
         // 栏目页地址统一由 StaticPaths 决定：slug 重复的一级栏目会补上栏目号，
         // 保证 43 个栏目 43 个路径，不互相覆盖（301 映射表也用同一份结果）。
         $channelPaths = StaticPaths::channelPaths($channels);
@@ -84,6 +85,7 @@ final class Publisher
             'canonical'   => '/',
         ]));
         $entries[] = ['loc' => '/', 'priority' => '1.0'];
+        $keep[] = 'index.html';
 
         // 栏目页
         foreach ($channels as $channel) {
@@ -97,6 +99,7 @@ final class Publisher
                 'canonical'   => $channelPath,
             ]));
             $entries[] = ['loc' => $channelPath, 'priority' => '0.8'];
+            $keep[] = $path;
         }
 
         // 详情页
@@ -110,14 +113,61 @@ final class Publisher
                 'canonical'   => '/article/' . $article['id'] . '.html',
             ]));
             $entries[] = ['loc' => '/article/' . $article['id'] . '.html', 'priority' => '0.6'];
+            $keep[] = $path;
         }
 
         $this->write('sitemap.xml', $this->sitemap($entries));
+        $keep[] = 'sitemap.xml';
+
+        // 清掉这一轮不再产出的静态页：稿件转 archive、栏目改名或下线后，
+        // 旧文件如果留着，Nginx 会继续直出，等于绕过了“归档不出静态页”的口径。
+        // 只动自己管的 article/*.html 与 channel/*/index.html，不碰输出目录里的其它东西。
+        $pruned = $this->prune($keep);
 
         return [
             'html_pages' => count($entries),
             'sitemap'    => 1,
+            'pruned'     => $pruned,
         ];
+    }
+
+    /**
+     * @param list<string> $keep 相对输出目录的路径
+     */
+    private function prune(array $keep): int
+    {
+        $root = rtrim($this->outDir, '/');
+        $keepSet = array_flip($keep);
+        $removed = 0;
+        foreach (['article', 'channel'] as $dir) {
+            $base = $root . '/' . $dir;
+            if (!is_dir($base)) {
+                continue;
+            }
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($base, \FilesystemIterator::SKIP_DOTS),
+                \RecursiveIteratorIterator::CHILD_FIRST
+            );
+            foreach ($iterator as $item) {
+                /** @var \SplFileInfo $item */
+                $relative = substr($item->getPathname(), strlen($root) + 1);
+                if ($item->isDir()) {
+                    @rmdir($item->getPathname());   // 只删空目录
+                    continue;
+                }
+                $name = $item->getFilename();
+                $managed = $dir === 'article'
+                    ? (bool) preg_match('/^\d+\.html$/', $name)
+                    : $name === 'index.html';
+                if (!$managed || isset($keepSet[$relative])) {
+                    continue;
+                }
+                if (@unlink($item->getPathname())) {
+                    $removed++;
+                }
+            }
+        }
+        return $removed;
     }
 
     public function outDir(): string

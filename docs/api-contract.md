@@ -98,6 +98,8 @@
 
 > 其中 `zxdt`／`sxNews`／`zxMeeting`／`notice`／`bookCity`／`antiGang`／`zwhWork`／`partyGroups`／`theory`／`imageNews`／`scenery`／`memberWindow`／`countyZx` 的列表由后台“其他栏目”里配置的绑定栏目**实时从稿件表组装**（置顶在前、再按栏目内顺序、再按发布时间），不足条数时用 `cms_home_block` 的同名快照兜底；其余键仍来自快照。`slides` 改由 `cms_home_slide` 提供。
 
+> `slides[].url` 一律是**站内地址**（2026-09-12 起）：引用了稿件的条目返回 `detail.html?id=<稿件号>`；外链条目里若填的是旧站稿件地址（`news_view.php?id=`、`cq_view.php?id=`、`html/news-view-<id>.html`）且这篇已在新库公开发布，也会自动改写成新站详情页，只有真正的外部链接（或尚未入库的稿件）保持原样，避免点开落到空页。
+
 响应：`{"home": { ... }}`
 
 > 首页各模块的字段说明见 `frontend/home/README.md` 的“数据契约”一节，此处不重复。
@@ -141,14 +143,14 @@
   "articles": [ArticleListItem],
   "page": 1,
   "size": 20,
-  "total": 464,
-  "pages": 24
+  "total": 530,
+  "pages": 27
 }
 ```
 
 > `total` 是**当前公开条数**（实时统计，不含草稿与归档），与栏目页列表能翻到的条数一致：
-> 迁移后 904 栏目公开 464 篇（旧库已审 825 篇，其中 361 篇超出公开年限进 `archive` 只留后台），
-> 所以 `total` 是 464、`pages` 是 24；原型期样例库只有 24 条时 `total` 即为 24。
+> 迁移后（2026-09-05 全量备份口径）904 栏目共 927 篇，其中公开 530 篇、超出公开年限进 `archive` 382 篇、
+> 草稿 15 篇，所以 `total` 是 530、`pages` 是 27；原型期样例库只有 24 条时 `total` 即为 24。
 > 栏目页列表用本接口真分页，每页 20 条（2026-09-12 之前前端只对首屏取的 50 条做本地分页）。
 
 ### 4.6 `GET /api/v1/article/{id}`

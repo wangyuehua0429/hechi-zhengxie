@@ -65,6 +65,7 @@ $lines[] = $dryRun ? '（试运行：未写库）' : '（已写库）';
 $lines[] = '';
 $lines[] = sprintf('映射条数        %d', $stat['total']);
 $lines[] = sprintf('新增 / 更新 / 不变   %d / %d / %d', $stat['inserted'], $stat['updated'], $stat['unchanged']);
+$lines[] = sprintf('清掉的失效映射  %d（这一轮不再登记的旧地址，例如稿件转归档）', $stat['removed']);
 
 $byNote = [];
 foreach ($exact as $row) {

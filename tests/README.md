@@ -11,8 +11,8 @@
 | `sanitizer-check.php` | 正文清洗白名单（HtmlPurifier 的行为） | 33 | 本机有 PHP |
 | `sanitize-check.mjs` | 正文清洗端到端：保存 → 接口 → 静态页，以及后台安全响应头 | 31 | 本机有 PHP |
 | `editor-check.mjs` | 正文富文本编辑器（挂载、取值同步、图片上传、站内地址还原） | 55 | 本机有 PHP |
-| `redirect-check.mjs` | 旧地址 301 映射与栏目静态页路径（发布器路径唯一性、目标产物校验、运行期 301、入口层 301、部署配置、归档不出页不登记 301） | 48 | 本机有 PHP |
-| `migrate-check.mjs` | 旧库迁移两段式（口径筛选、清洗与媒体改写、入库、幂等、离线核对，用 fixture，不联网） | 36 | 本机有 PHP 与 python3 |
+| `redirect-check.mjs` | 旧地址 301 映射与栏目静态页路径（发布器路径唯一性、目标产物校验、运行期 301、入口层 301、部署配置、归档不出页不登记 301、发布清理旧页、失效映射清理） | 54 | 本机有 PHP |
+| `migrate-check.mjs` | 旧库迁移两段式（口径筛选、清洗与媒体改写、入库、幂等、离线核对、多行 INSERT／gzip、删除同步与转归档，用 fixture，不联网） | 44 | 本机有 PHP 与 python3 |
 
 ## 前端页面回归检查（check-pages.mjs）
 
@@ -187,7 +187,7 @@ node tests/editor-check.mjs --keep   # 保留临时库便于排查
 ## 旧地址 301 检查（redirect-check.mjs）
 
 ```bash
-node tests/redirect-check.mjs          # 48 项
+node tests/redirect-check.mjs          # 54 项
 node tests/redirect-check.mjs --keep   # 保留临时库、发布产物与临时旧站样本
 ```
 
@@ -198,6 +198,7 @@ node tests/redirect-check.mjs --keep   # 保留临时库、发布产物与临时
 - **目标产物校验**：`--check=` 报告“全部命中”，即没有任何 301 指向不存在的静态页。
 - **旧站目录对照**：用临时假旧站（两个已登记稿件、一个未迁移稿件、一个多出来的 `zl` 目录）验证 `report.txt` 会列出未登记地址。
 - **幂等**：重复执行只报“不变”，不新增记录。
+- **失效映射清理**：把一篇已登记 301 的稿件改成 `archive` 后重跑，三条旧地址映射被清掉（`清掉的失效映射` 行给出条数）、旧地址回到 404，`--check` 仍报全部命中；改回 `public` 再跑，映射重新登记。
 - **运行期（本地路由）**：`/news_list.php?id=904` 与 `/news_view.php?id=62180` 返回 301 且 `Location` 正确，跟随跳转后落到静态页并含标题；`q=33`（县区子站）与未登记地址照旧 404；`POST` 到旧脚本不会被改成 301；命中后 `sys_url_redirect.hits` 累加。
 - **入口层（部署时的路径）**：另起一个把请求全部交给 `backend/public/index.php` 的服务，验证生产入口同样返回 301、未登记地址 404，且 `/api/v1/health` 不受 301 逻辑影响。
 - **部署配置**：`deploy/nginx/default.conf` 不再挂着取不到 `$1` 的旧 301 规则，且引用了生成的 `redirects/nginx-301.conf`、直出 `/channel/`。
@@ -207,7 +208,7 @@ node tests/redirect-check.mjs --keep   # 保留临时库、发布产物与临时
 ## 旧库迁移检查（migrate-check.mjs）
 
 ```bash
-node tests/migrate-check.mjs          # 36 项
+node tests/migrate-check.mjs          # 44 项
 node tests/migrate-check.mjs --keep   # 保留临时目录便于排查
 ```
 
@@ -218,5 +219,7 @@ node tests/migrate-check.mjs --keep   # 保留临时目录便于排查
 - **离线核对**：`fetch_media.py --verify` 按清单检查本地文件是否到位（服务器拷贝场景，不联网），缺的留 `pending` 并写明原因。
 - **入库**：`--dry-run` 不写库且给出报告；`--commit` 写入状态／公开范围／栏目主归属／图集／附件，次要表合并进首页整块，互动条目按年限进 `archive`，并写操作日志、回滚清单与报告。
 - **幂等与拦截**：连跑两次条数不变；栏目不存在的条目被挡下且退出码非 0。
+- **多行 INSERT 与 gzip**：同一批稿件写成“一条语句一行、一行多个元组”并 gzip 压缩（宝塔每日备份的格式），解析结果与单行导出逐项一致；`--expect-rows`／`--expect-max-id` 对不上时退出码非 0。
+- **删除同步**：`--deleted-from` 拿更早的导出做基准，产出 `deleted_ids.txt` 与分类小计；`--archive-ids` 把清单里已在库的稿件转 `archive`（不动标题与审核状态），写出 `archived_ids.txt`，重复执行不再改动。
 
 > 口径、基线数字与验收指标见 [../docs/旧库迁移说明.md](../docs/旧库迁移说明.md)；改 `legacy_extract.py`／`legacy_import.php` 的规则要同步改这份文档与脚本断言。

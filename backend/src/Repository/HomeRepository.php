@@ -633,6 +633,10 @@ final class HomeRepository
                 $summary = $summary !== '' ? $summary : (string) $article['summary'];
                 $image = $image !== '' ? $image : $this->firstImage($article);
                 $link = $link !== '' ? $link : 'detail.html?id=' . $articleId;
+            } else {
+                // 外链条目里若是旧站稿件地址（news_view.php?id= / html/news-view-<id>.html），
+                // 且这篇已在新库公开发布，就改指新站详情页，网站内部不再跳回旧站
+                $link = $this->localArticleUrl($link);
             }
 
             $slides[] = [
@@ -643,6 +647,30 @@ final class HomeRepository
             ];
         }
         return $slides;
+    }
+
+    /**
+     * 旧站稿件地址 → 新站详情页地址。对不上（稿件还没入库、或本来就是真外站）时原样返回，
+     * 避免把轮播指向一个打不开的空页。
+     */
+    private function localArticleUrl(string $url): string
+    {
+        if ($url === '') {
+            return '';
+        }
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if ($host !== '' && !in_array($host, ['gxhczx.gov.cn', 'www.gxhczx.gov.cn'], true)) {
+            return $url;
+        }
+        $id = 0;
+        if (preg_match('~(?:news_view|cq_view)\.php\?[^"\'#]*?\bid=(\d+)~', $url, $match) === 1
+            || preg_match('~news-view-(\d+)\.html~', $url, $match) === 1) {
+            $id = (int) $match[1];
+        }
+        if ($id <= 0) {
+            return $url;
+        }
+        return $this->publishedArticle($id) !== null ? 'detail.html?id=' . $id : $url;
     }
 
     /** @return array<string, mixed>|null */

@@ -172,14 +172,23 @@ final class RedirectMap
     }
 
     /**
-     * 把精确映射写进 sys_url_redirect（按 old_path 增改，保留 hits 计数）。
+     * 把精确映射写进 sys_url_redirect（按 old_path 增改，保留 hits 计数），
+     * 并清掉这一轮不再登记的旧地址——稿件转归档、栏目下线之后，旧记录必须一起撤掉，
+     * 否则旧地址会 301 到一个已经不存在的页面（口径：宁可 404，不要指到空地址）。
      *
-     * @return array{inserted:int, updated:int, unchanged:int, total:int}
+     * @return array{inserted:int, updated:int, unchanged:int, removed:int, total:int}
      */
     public function sync(bool $dryRun = false): array
     {
         $exact = $this->exact();
-        $stat = ['inserted' => 0, 'updated' => 0, 'unchanged' => 0, 'total' => count($exact)];
+        $stale = $this->staleKeys($exact);
+        $stat = [
+            'inserted' => 0,
+            'updated' => 0,
+            'unchanged' => 0,
+            'removed' => count($stale),
+            'total' => count($exact),
+        ];
         if ($dryRun) {
             foreach ($exact as $old => $row) {
                 $current = $this->db->selectOne(
@@ -198,6 +207,18 @@ final class RedirectMap
         }
 
         $now = $this->db->now();
+        foreach (array_chunk($stale, 200) as $chunk) {
+            $params = [];
+            $placeholders = [];
+            foreach ($chunk as $index => $old) {
+                $placeholders[] = ':s' . $index;
+                $params['s' . $index] = $old;
+            }
+            $this->db->execute(
+                'DELETE FROM sys_url_redirect WHERE old_path IN (' . implode(', ', $placeholders) . ')',
+                $params
+            );
+        }
         foreach ($exact as $old => $row) {
             $current = $this->db->selectOne(
                 'SELECT new_path FROM sys_url_redirect WHERE old_path = :old',
@@ -223,6 +244,24 @@ final class RedirectMap
             $stat['updated']++;
         }
         return $stat;
+    }
+
+    /**
+     * 库里存在、但这一轮不再登记的旧地址。
+     *
+     * @param array<string, array{target:string, note:string}> $exact
+     * @return list<string>
+     */
+    private function staleKeys(array $exact): array
+    {
+        $stale = [];
+        foreach ($this->db->select('SELECT old_path FROM sys_url_redirect') as $row) {
+            $old = (string) $row['old_path'];
+            if (!isset($exact[$old])) {
+                $stale[] = $old;
+            }
+        }
+        return $stale;
     }
 
     /**
@@ -316,9 +355,19 @@ final class RedirectMap
     public function missingTargets(string $publishDir): array
     {
         $publishDir = rtrim($publishDir, '/');
+        // 校验真正会生效的那份表（而不是内存里刚算出来的清单）：库里若残留上一轮的
+        // 旧记录（例如稿件转归档后没重跑同步），这里也要报出来
+        $rows = $this->db->select('SELECT old_path, new_path FROM sys_url_redirect ORDER BY old_path ASC');
+        if ($rows === []) {
+            $rows = [];
+            foreach ($this->exact() as $old => $row) {
+                $rows[] = ['old_path' => $old, 'new_path' => $row['target']];
+            }
+        }
         $missing = [];
-        foreach ($this->exact() as $old => $row) {
-            $target = $row['target'];
+        foreach ($rows as $row) {
+            $old = (string) $row['old_path'];
+            $target = (string) $row['new_path'];
             $file = $publishDir . ($target === '/' ? '/index.html' : (rtrim($target, '/') . (str_ends_with($target, '/') ? '/index.html' : '')));
             if (!is_file($file)) {
                 $missing[] = ['old_path' => $old, 'target' => $target, 'reason' => '发布目录里没有 ' . $file];

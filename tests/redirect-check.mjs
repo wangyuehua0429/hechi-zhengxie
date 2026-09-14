@@ -141,6 +141,20 @@ async function main() {
     const sitemap2 = existsSync(path.join(publishDir, "sitemap.xml"))
       ? readFileSync(path.join(publishDir, "sitemap.xml"), "utf8") : "";
     check("归档稿件：不进 sitemap", !sitemap2.includes("/article/" + archiveId + ".html"));
+    phpEval(php, env,
+      "require 'backend/src/bootstrap.php'; $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+      + ` $db->execute("UPDATE cms_article SET public_scope = 'public' WHERE article_id = ${archiveId}");`);
+    runPhp(php, "backend/bin/publish.php", env, ["--out=" + publishDir, "--html-only"]);
+    check("稿件转为公开后重新发布会产出静态页",
+      existsSync(path.join(publishDir, "article", archiveId + ".html")));
+    phpEval(php, env,
+      "require 'backend/src/bootstrap.php'; $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+      + ` $db->execute("UPDATE cms_article SET public_scope = 'archive' WHERE article_id = ${archiveId}");`);
+    const pruned = runPhp(php, "backend/bin/publish.php", env, ["--out=" + publishDir, "--html-only"]);
+    check("再次归档后重新发布会清掉旧静态页（不留可直出的归档页）",
+      pruned.status === 0 && !existsSync(path.join(publishDir, "article", archiveId + ".html"))
+      && (pruned.stdout || "").includes("pruned"),
+      (pruned.stdout || "").trim().split("\n").slice(-2).join(" / "));
 
     // ---- 旧站目录对照用的临时样本（真旧站目录不在每次检查里扫描）
     mkdirSync(path.join(legacyDir, "html"), { recursive: true });
@@ -208,6 +222,36 @@ async function main() {
     check("重复执行只报「不变」，不产生新增",
       again.status === 0 && /新增 \/ 更新 \/ 不变\s+0 \/ 0 \/ \d+/.test(again.stdout || ""),
       (again.stdout || "").split("\n").find((l) => l.includes("不变")) || "");
+
+    // ---- 稿件转归档后重跑：失效的旧地址映射要被清掉，且 --check 仍全部命中
+    check("转归档前：该稿件登记了 301", lookup("/html/news-view-62180.html") === "/article/62180.html",
+      String(lookup("/html/news-view-62180.html")));
+    phpEval(php, env,
+      "require 'backend/src/bootstrap.php'; $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+      + " $db->execute(\"UPDATE cms_article SET public_scope = 'archive' WHERE article_id = 62180\");");
+    const regen = runPhp(php, "backend/bin/redirects.php", env, [
+      "--out=" + publishDir, "--check=" + publishDir,
+    ]);
+    const csvAfter = readFileSync(csvPath, "utf8").trim().split("\n").slice(1);
+    const lookupAfter = (oldPath) => {
+      const line = csvAfter.find((row) => row.startsWith(oldPath + ","));
+      return line ? line.split(",")[1] : null;
+    };
+    check("转归档后重跑：失效映射被清掉（旧地址回到 404）",
+      regen.status === 0 && lookupAfter("/html/news-view-62180.html") === null
+      && lookupAfter("/news_view.php?id=62180") === null
+      && /清掉的失效映射\s+[1-9]/.test(regen.stdout || ""),
+      (regen.stdout || "").split("\n").find((l) => l.includes("失效映射")) || "");
+    check("转归档后 --check 仍报全部命中（表里没有指向空地址的 301）",
+      (regen.stdout || "").includes("全部命中"),
+      (regen.stdout || "").split("\n").find((l) => l.includes("目标")) || "");
+    phpEval(php, env,
+      "require 'backend/src/bootstrap.php'; $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+      + " $db->execute(\"UPDATE cms_article SET public_scope = 'public' WHERE article_id = 62180\");");
+    runPhp(php, "backend/bin/redirects.php", env, ["--out=" + publishDir]);
+    check("改回公开后重跑：301 重新登记",
+      lookup("/html/news-view-62180.html") === "/article/62180.html",
+      String(lookup("/html/news-view-62180.html")));
 
     // ---- 运行期
     server = spawn(php, ["-S", "127.0.0.1:" + port, "-t", "backend/public", "backend/public/router.php"], {

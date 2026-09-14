@@ -16,12 +16,16 @@
 
 import argparse
 import csv
+import gzip
 import hashlib
 import html
 import json
 import os
 import re
 import sys
+import time
+import urllib.error
+import urllib.request
 from datetime import datetime, timedelta, timezone
 
 CST = timezone(timedelta(hours=8))
@@ -39,6 +43,8 @@ HUDONG_FIELDS = ['ID', 'Title', 'Title1', 'Pic', 'Word', 'Audit', 'Region', 'Hot
 # 栏目口径：Type → 旧库 Region（其余栏目默认主站 22）
 DEFAULT_REGION_MAP = {'902': '55', '903': '33'}
 MAIN_REGIONS = {'22', '55', '33'}
+# 县区 Region：1 金城江、2 宜州、3 罗城、4 环江、5 南丹、6 天峨、7 东兰、8 巴马、9 凤山、10 都安、11 大化
+COUNTY_REGIONS = {str(i) for i in range(1, 12)}
 
 # 公开年限切分点（关停日 2026-11-20 回溯 3 年）
 PUBLIC_CUTOFF = datetime(2023, 11, 20, 0, 0, 0, tzinfo=CST)
@@ -52,6 +58,14 @@ LEGACY_UPLOAD_PREFIX = 'uploads/legacy/'
 ROLE_MARKERS = ('主席', '秘书长', '主任', '党组')
 
 MANIFEST_HEADER = ['url', 'target', 'status', 'bytes', 'sha256', 'error']
+
+# 抓旧站页面用（ASCII UA；中文写进 UA 会让 urllib 抛 UnicodeEncodeError）
+USER_AGENT = 'hechi-zhengxie-migration/1.0 (+https://www.gxhczx.gov.cn)'
+NTITLE = re.compile(r'<div class="Ntitle">(.*?)</div>', re.S)
+NTIME = re.compile(r'<div class="Ntime">(.*?)</div>', re.S)
+NWORD_START = '<div class="Nword">'
+BREADCRUMB_TYPE = re.compile(r'news_list\.php\?id=(\d+)')
+BOX_WHERE = re.compile(r'<div class="box_where">(.*?)</div>', re.S)
 
 
 # ---------------------------------------------------------------- SQL 解析
@@ -107,25 +121,81 @@ def unescape(raw):
 
 
 def iter_rows(sql_path, table, fields):
-    """逐行读某张表的 INSERT，产出 dict（列数与表定义不一致时跳过并计数）。"""
+    """逐行读某张表的 INSERT，产出 dict（列数与表定义不一致时跳过并计数）。
+
+    支持两种导出格式：
+      * Navicat：一条语句一行、一行一个元组（4/28 那份导出）；
+      * mysqldump／宝塔每日备份：一条语句一行、一行多个元组 `(..),(..),…`（9/5 那份全量备份）。
+    文件后缀是 .gz 时自动按 gzip 解压读（宝塔备份是 .sql.gz）。
+    """
     prefix = 'INSERT INTO `%s`' % table
-    pattern = re.compile(r'^INSERT INTO `%s` VALUES \((.*)\);\s*$' % re.escape(table))
     skipped = 0
-    with open(sql_path, encoding='utf-8', errors='replace') as handle:
+    with open_sql(sql_path) as handle:
         for line in handle:
             if not line.startswith(prefix):
                 continue
-            match = pattern.match(line.strip())
-            if match is None:
+            head, _, body = line.partition(' VALUES ')
+            if not _:
                 skipped += 1
                 continue
-            values = parse_tuple(match.group(1))
-            if len(values) < len(fields):
-                skipped += 1
-                continue
-            yield {key: unescape(value) for key, value in zip(fields, values)}
+            for inner in split_tuples(body.rstrip().rstrip(';')):
+                values = parse_tuple(inner)
+                if len(values) != len(fields):
+                    skipped += 1
+                    continue
+                yield {key: unescape(value) for key, value in zip(fields, values)}
     if skipped:
         print('  警告：%s 有 %d 行没能解析，已跳过' % (table, skipped), file=sys.stderr)
+
+
+def open_sql(sql_path):
+    """打开旧库导出：.sql.gz 走 gzip，其余当纯文本。"""
+    if str(sql_path).lower().endswith('.gz'):
+        return gzip.open(sql_path, 'rt', encoding='utf-8', errors='replace')
+    return open(sql_path, encoding='utf-8', errors='replace')
+
+
+def split_tuples(body):
+    """把 `(..),(..),…` 拆成每个顶层元组的内部文本（引号里的括号不算）。"""
+    tuples, cur, in_quote, depth, i = [], [], False, 0, 0
+    while i < len(body):
+        ch = body[i]
+        if in_quote:
+            if ch == '\\' and i + 1 < len(body):
+                cur.append(body[i:i + 2])
+                i += 2
+                continue
+            if ch == "'":
+                if i + 1 < len(body) and body[i + 1] == "'":
+                    cur.append("''")
+                    i += 2
+                    continue
+                in_quote = False
+            cur.append(ch)
+            i += 1
+            continue
+        if ch == "'":
+            in_quote = True
+            cur.append(ch)
+            i += 1
+            continue
+        if ch == '(':
+            depth += 1
+            if depth == 1:
+                cur = []
+                i += 1
+                continue
+        elif ch == ')':
+            depth -= 1
+            if depth == 0:
+                tuples.append(''.join(cur))
+                cur = []
+                i += 1
+                continue
+        if depth > 0:
+            cur.append(ch)
+        i += 1
+    return tuples
 
 
 # ---------------------------------------------------------------- 文本清洗
@@ -279,6 +349,197 @@ def build_record(row, channel, manual_region_map):
     }
 
 
+def fetch_raw(url, timeout=15, retries=3):
+    """取旧站页面（现网）原文，失败抛异常。"""
+    last = None
+    for attempt in range(1, retries + 1):
+        try:
+            request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                payload = response.read()
+            return payload.decode('utf-8', errors='replace')
+        except Exception as exc:  # noqa: BLE001 - 网络异常统一重试
+            last = exc
+        if attempt < retries:
+            time.sleep(0.5 * attempt)
+    raise RuntimeError('抓取 %s 失败：%s' % (url, last))
+
+
+def fetch_html(url, timeout=15, retries=3):
+    """取旧站稿件页 HTML（现网），并确认确实是稿件页。"""
+    text = fetch_raw(url, timeout, retries)
+    if '<div class="Ntitle">' in text or NWORD_START in text:
+        return text
+    raise RuntimeError('%s 不像旧站稿件页（没有 Ntitle/Nword 容器）' % url)
+
+
+# 面包屑里没有栏目链接时的探测顺序（旧站 news_view.php 查 menu 表查不到 902—906，
+# 这几个栏目的稿件面包屑是空的，只能回列表页认领）
+PROBE_CHANNELS = ['904', '906', '306', '314', '902', '903', '302', '311', '308', '317']
+
+
+def probe_channel(news_id, channels, base, max_pages=3):
+    """在候选栏目的列表页里找这篇稿件，返回栏目号（找不到返回空串）。"""
+    needle_a = 'news_view.php?id=%s' % news_id
+    needle_b = 'news-view-%s.html' % news_id
+    for type_code in PROBE_CHANNELS:
+        if type_code not in channels:
+            continue
+        for page in range(1, max_pages + 1):
+            try:
+                text = fetch_raw('%s/news_list.php?id=%s&page=%d' % (base.rstrip('/'), type_code, page))
+            except Exception:  # noqa: BLE001 - 探测失败就换下一个栏目
+                break
+            if needle_a in text or needle_b in text:
+                return type_code
+    return ''
+
+
+def extract_old_article(news_id, raw):
+    """从旧站稿件页 HTML 里抽字段；栏目号只认面包屑里的（全文第一个 id 往往是导航项）。"""
+    title_match = NTITLE.search(raw)
+    time_match = NTIME.search(raw)
+    start = raw.find(NWORD_START)
+    body = raw[start + len(NWORD_START):]
+    cut = body.find('<!--')
+    if cut >= 0:
+        body = body[:cut]
+    body = re.sub(r'(?:\s*</div>\s*)+$', '', body)
+
+    meta = html.unescape(re.sub(r'<[^>]+>', '', time_match.group(1))) if time_match else ''
+    meta = meta.replace('\xa0', ' ')
+    title = html.unescape(re.sub(r'<[^>]+>', '', title_match.group(1))).strip() if title_match else ''
+    box = BOX_WHERE.search(raw)
+    types = BREADCRUMB_TYPE.findall(box.group(1)) if box else []
+    published = ''
+    match = re.search(r'时间：\s*(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})', meta)
+    if match:
+        published = match.group(1)
+
+    def field(label):
+        others = [x for x in ['阅读', '来源', '作者', '编辑', '时间'] if x != label]
+        hit = re.search(r'%s：\s*(.*?)(?=(?:%s)：|$)' % (label, '|'.join(others)), meta, re.S)
+        return hit.group(1).strip() if hit else ''
+
+    return {
+        'id': str(news_id),
+        'title': title,
+        'body': body,
+        'published_at': published,
+        'views': field('阅读'),
+        'source': clean_source(field('来源')),
+        'author': field('作者'),
+        'editor': field('编辑'),
+        'channel_type': types[-1] if types else '',
+    }
+
+
+def parse_old_article(news_id, site_root, base):
+    """解析旧站稿件页：优先本地静态页（省抓网），面包屑缺栏目链接时回落到现网页面。
+
+    本地那批 html/news-view-<id>.html 的面包屑只有"首页 >> 标题"，拿不到栏目号；
+    现网 news_view.php 的面包屑带着栏目链接（如 news_list.php?id=314），所以这种情况下抓现网。
+    """
+    local = os.path.join(site_root, 'html', 'news-view-%s.html' % news_id) if site_root else ''
+    if local and os.path.isfile(local) and os.path.getsize(local) > 500:
+        with open(local, encoding='utf-8', errors='replace') as handle:
+            parsed = extract_old_article(news_id, handle.read())
+        if parsed['channel_type']:
+            parsed['from'] = '本地静态页'
+            return parsed
+    parsed = extract_old_article(news_id, fetch_html('%s/news_view.php?id=%s' % (base.rstrip('/'), news_id)))
+    parsed['from'] = '旧站现网'
+    return parsed
+
+
+def extra_row(parsed):
+    """把解析结果转成 rd_news 形状，交给 build_record 走同一套口径。"""
+    stamp = 0
+    if parsed['published_at']:
+        stamp = int(datetime.strptime(parsed['published_at'], '%Y-%m-%d %H:%M:%S')
+                    .replace(tzinfo=CST).timestamp())
+    return {
+        'ID': parsed['id'], 'Title': parsed['title'], 'Title1': '', 'Title2': '',
+        'Pic': '', 'Word': parsed['body'], 'Audit': '1', 'Region': '22',
+        'Hot': '0', 'Top': '0', 'Type': parsed['channel_type'], 'Num': parsed['views'] or '0',
+        'Order': '0', 'Time': str(stamp), 'From': parsed['source'],
+        'Author': parsed['author'], 'Edit': parsed['editor'],
+    }
+
+
+def slides_missing_ids(db_path, channels):
+    """从轮播表里找出"指向旧站详情、但新库还没有"的稿件号（首页轮换图常见）。"""
+    import sqlite3
+    ids = []
+    if not db_path or not os.path.isfile(db_path):
+        return ids
+    con = sqlite3.connect(db_path)
+    rows = con.execute('SELECT article_id, link_url FROM cms_home_slide').fetchall()
+    have = {int(r[0]) for r in con.execute('SELECT article_id FROM cms_article')}
+    for article_id, link in rows:
+        if int(article_id or 0) > 0:
+            continue
+        match = re.search(r'news_view\.php\?[^"\']*?\bid=(\d+)', link or '') or re.search(r'news-view-(\d+)\.html', link or '')
+        if match and int(match.group(1)) not in have:
+            ids.append(match.group(1))
+    return sorted(set(ids), key=int)
+
+
+def classify_old_row(row, channels, region_map):
+    """旧库一行属于哪一类：public / archive / draft（范围内）或 unmapped / county / other（范围外）。"""
+    type_code = (row['Type'] or '').strip()
+    region = (row['Region'] or '').strip()
+    if type_code in channels and region == region_map.get(type_code, '22'):
+        if (row['Audit'] or '').strip() != '1':
+            return 'draft'
+        published = to_datetime(row['Time'])
+        return 'public' if (published is not None and published >= PUBLIC_CUTOFF) else 'archive'
+    if region in MAIN_REGIONS:
+        return 'unmapped'
+    if region in COUNTY_REGIONS:
+        return 'county'
+    return 'other'
+
+
+def sync_deleted(args, channels, region_map, out_dir, current_ids):
+    """--deleted-from：旧站已删稿件（基准导出有、本次导出没有）→ 清单 + 分类小计。
+
+    返回 (删除稿件号列表, 分类计数)。分类只说明这批稿件原本是哪一类，导入端统一按
+    "既存稿件转 archive" 处理（见 legacy_import.php 的 --archive-ids）。
+    """
+    old_rows = {}
+    for row in iter_rows(args.deleted_from, 'rd_news', NEWS_FIELDS):
+        old_rows[int(row['ID'] or 0)] = row
+    deleted_ids = sorted(set(old_rows) - set(current_ids))
+    buckets = {'public': 0, 'archive': 0, 'draft': 0, 'unmapped': 0, 'county': 0, 'other': 0}
+    for article_id in deleted_ids:
+        buckets[classify_old_row(old_rows[article_id], channels, region_map)] += 1
+
+    with open(os.path.join(out_dir, 'deleted_ids.txt'), 'w', encoding='utf-8') as handle:
+        if deleted_ids:
+            handle.write('\n'.join(str(i) for i in deleted_ids) + '\n')
+
+    lines = [
+        '删除同步（--deleted-from）',
+        '对比基准：' + args.deleted_from,
+        '旧站已删稿件：%d 篇' % len(deleted_ids),
+        '  范围内-前台可见（public）：%d 篇（入库后转 archive，前台下线）' % buckets['public'],
+        '  范围内-归档（archive）：%d 篇' % buckets['archive'],
+        '  范围内-草稿（draft）：%d 篇' % buckets['draft'],
+        '  主站未映射栏目：%d 篇（本来就没入库）' % buckets['unmapped'],
+        '  县区（Region 1-11）：%d 篇（本来就没入库）' % buckets['county'],
+        '  其他（Region 33/55 等）：%d 篇' % buckets['other'],
+        '',
+        '稿件号清单：deleted_ids.txt（%d 个），导入时用 --archive-ids 指向它' % len(deleted_ids),
+    ]
+    with open(os.path.join(out_dir, 'deleted_summary.txt'), 'w', encoding='utf-8') as handle:
+        handle.write('\n'.join(lines) + '\n')
+    print('  删除同步：旧站已删 %d 篇（public %d、archive %d、draft %d、未映射 %d、县区 %d、其他 %d）'
+          % (len(deleted_ids), buckets['public'], buckets['archive'], buckets['draft'],
+             buckets['unmapped'], buckets['county'], buckets['other']))
+    return deleted_ids, buckets
+
+
 def cmd_parse(args):
     channels = load_channels(args.channels)
     region_map = dict(DEFAULT_REGION_MAP)
@@ -290,9 +551,15 @@ def cmd_parse(args):
     per_channel = {}
     out_of_scope = 0
     old_total = 0
+    max_id = 0
+    all_ids = set()
+    extra_report = []
 
     for row in iter_rows(args.sql, 'rd_news', NEWS_FIELDS):
         old_total += 1
+        article_id = int(row['ID'] or 0)
+        max_id = max(max_id, article_id)
+        all_ids.add(article_id)
         type_code = (row['Type'] or '').strip()
         region = (row['Region'] or '').strip()
         channel = channels.get(type_code)
@@ -318,6 +585,57 @@ def cmd_parse(args):
             if url and url not in media:
                 target, url_path = local_target(url, len(media))
                 media[url] = {'target': target, 'url_path': url_path}
+
+    # 导出完整性自检：行数与最大稿件号对不上就停，避免拿半截库跑后面的流程
+    if args.expect_rows and old_total != args.expect_rows:
+        print('  自检失败：rd_news 实际 %d 行，期望 %d 行' % (old_total, args.expect_rows), file=sys.stderr)
+        return 2
+    if args.expect_max_id and max_id != args.expect_max_id:
+        print('  自检失败：rd_news 最大稿件号 %d，期望 %d' % (max_id, args.expect_max_id), file=sys.stderr)
+        return 2
+
+    # 补充稿件：旧站有、导出库里没有的（首页轮换图指向 8—9 月新稿就是这种情况）
+    extra_ids = [i.strip() for i in (args.extra_ids or '').split(',') if i.strip()]
+    if args.extra_from_slides:
+        discovered = slides_missing_ids(args.db, channels)
+        extra_ids = sorted(set(extra_ids) | set(discovered), key=int)
+        if discovered:
+            print('  从轮播表发现 %d 篇旧站有、新库没有的稿件：%s' % (len(discovered), '、'.join(discovered)))
+    for news_id in extra_ids:
+        try:
+            parsed = parse_old_article(news_id, args.site, args.base)
+        except Exception as exc:  # noqa: BLE001 - 单篇失败不影响整批
+            extra_report.append('%s 抓取失败：%s' % (news_id, exc))
+            continue
+        channel = channels.get(parsed['channel_type'])
+        if channel is None and not parsed['channel_type']:
+            probed = probe_channel(news_id, channels, args.base)
+            if probed:
+                parsed['channel_type'] = probed
+                channel = channels.get(probed)
+                parsed['from'] += '＋列表页认领'
+        if channel is None:
+            extra_report.append('%s 栏目号 %s 不在新站栏目里，跳过' % (news_id, parsed['channel_type'] or '空'))
+            continue
+        record = build_record(extra_row(parsed), channel, region_map)
+        record['meta'] = {'extra': True, 'from': parsed['from']}
+        articles.append(record)
+        in_scope_rows += 1
+        per_channel[channel['type']] = per_channel.get(channel['type'], 0) + 1
+        for url in [record['pic']] + media_urls(record['content_raw']):
+            if url and url not in media:
+                target, url_path = local_target(url, len(media))
+                media[url] = {'target': target, 'url_path': url_path}
+        extra_report.append('%s %s（栏目 %s，%s，%s）' % (
+            news_id, record['title'][:24], channel['type'], parsed['published_at'], parsed['from']))
+
+    # 删除同步：旧站删掉的稿件，本次导出里没有 → 清单交给导入端转 archive
+    deleted_ids, deleted_buckets = [], {}
+    if args.deleted_from:
+        if not os.path.isfile(args.deleted_from):
+            print('  找不到删除对比基准：%s' % args.deleted_from, file=sys.stderr)
+            return 1
+        deleted_ids, deleted_buckets = sync_deleted(args, channels, region_map, out_dir, all_ids)
 
     with open(os.path.join(out_dir, 'articles.jsonl'), 'w', encoding='utf-8') as handle:
         for record in articles:
@@ -363,15 +681,31 @@ def cmd_parse(args):
         'side_links': len(side['links']),
         'side_hudong': len(side['hudong']),
         'public_cutoff': PUBLIC_CUTOFF.strftime('%Y-%m-%d'),
+        'max_news_id': max_id,
+        'deleted_total': len(deleted_ids),
+        'deleted_public': deleted_buckets.get('public', 0),
+        'deleted_archive': deleted_buckets.get('archive', 0),
+        'deleted_draft': deleted_buckets.get('draft', 0),
+        'deleted_unmapped': deleted_buckets.get('unmapped', 0),
+        'deleted_county': deleted_buckets.get('county', 0),
+        'deleted_other': deleted_buckets.get('other', 0),
     }
     with open(os.path.join(out_dir, 'stats.json'), 'w', encoding='utf-8') as handle:
         json.dump(stats, handle, ensure_ascii=False, indent=2)
         handle.write('\n')
 
+    if extra_report:
+        with open(os.path.join(out_dir, 'extra_articles.txt'), 'w', encoding='utf-8') as handle:
+            handle.write('\n'.join(extra_report) + '\n')
+
     print('旧库 rd_news 共 %d 篇' % old_total)
+    print('  稿件号范围：最大 ID %d，AUTO_INCREMENT 参考值 %d'
+          % (max_id, max_id + 1))
     print('  本次迁移 %d 篇：published+public %d、published+archive %d、draft %d'
           % (stats['in_scope'], stats['published_public'], stats['published_archive'], stats['draft']))
     print('  未映射（主站口径）%d 篇，县区/口径外跳过 %d 篇' % (stats['unmapped_main'], stats['county_skipped']))
+    if deleted_ids:
+        print('  删除同步清单：deleted_ids.txt（%d 个稿件号）' % len(deleted_ids))
     print('  媒体 %d 个（站内 %d、外站 %d）；别名表 %d 个栏目'
           % (stats['media_urls'], stats['media_site'], stats['media_remote'], stats['channels_with_data']))
     print('  次要表：视频 %d、友情链接 %d、互动 %d' % (stats['side_videos'], stats['side_links'], stats['side_hudong']))
@@ -526,7 +860,8 @@ def main():
     sub = parser.add_subparsers(dest='command', required=True)
 
     common = argparse.ArgumentParser(add_help=False)
-    common.add_argument('--sql', required=True, help='旧库 SQL 导出文件（Navicat 导出）')
+    common.add_argument('--sql', required=True,
+                        help='旧库 SQL 导出文件（Navicat 单行 INSERT 或 mysqldump 多行 INSERT；.sql.gz 自动解压）')
     common.add_argument('--out', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out'),
                         help='中间产物目录，默认 tools/migrate/out')
 
@@ -534,6 +869,19 @@ def main():
     parse_cmd.add_argument('--channels', default='frontend/home/data/channel.json',
                            help='新站栏目快照（取其 type 作为同号栏目集合）')
     parse_cmd.add_argument('--skip-side-tables', action='store_true', help='不解析视频／链接／互动三张表')
+    parse_cmd.add_argument('--extra-ids', default='',
+                           help='额外补抓的旧站稿件号（逗号分隔，用于导出库里没有的新稿）')
+    parse_cmd.add_argument('--extra-from-slides', action='store_true',
+                           help='自动补抓"轮播表里指向旧站、但新库还没有"的稿件')
+    parse_cmd.add_argument('--db', default='backend/storage/hechi_zx.sqlite', help='--extra-from-slides 读哪个库')
+    parse_cmd.add_argument('--site', default='', help='旧站目录（有 html/news-view-<id>.html 时优先用它，省抓网）')
+    parse_cmd.add_argument('--base', default='http://www.gxhczx.gov.cn', help='旧站地址，本地静态页缺失时从这里抓')
+    parse_cmd.add_argument('--expect-rows', type=int, default=0,
+                           help='自检：rd_news 期望行数，对不上直接退出（0 表示不校验）')
+    parse_cmd.add_argument('--expect-max-id', type=int, default=0,
+                           help='自检：rd_news 期望最大稿件号，对不上直接退出（0 表示不校验）')
+    parse_cmd.add_argument('--deleted-from', default='',
+                           help='删除同步：拿一份更早的旧库导出做基准，产出 deleted_ids.txt（旧站已删稿件号）')
     parse_cmd.set_defaults(func=cmd_parse)
 
     render_cmd = sub.add_parser('render', help='articles.jsonl + 媒体清单 → articles.final.jsonl')

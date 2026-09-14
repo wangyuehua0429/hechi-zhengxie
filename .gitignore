@@ -52,8 +52,12 @@ backend/storage/uploads/
 # 本地工具与调试产物
 # tools/migrate/out/ 是迁移脚本的中间产物（媒体清单、核对报告等），不入库
 tools/migrate/out/
+# 换数据源重跑时上一版产物留在 out-<日期>/ 作对拍基线，同样不入库
+tools/migrate/out-*/
 # .claude/ 与 .playwright-mcp/ 为 Claude Code、Playwright MCP 的会话与快照文件；
 # /*.png 只忽略仓库根目录的调试截图，站内图片在 frontend/home/images/ 下不受影响
 .claude/
 .playwright-mcp/
 /*.png
+# Added by code-review-graph
+.code-review-graph/

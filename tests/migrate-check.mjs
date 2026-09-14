@@ -16,6 +16,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { gzipSync } from "node:zlib";
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const REPO = path.resolve(HERE, "..");
@@ -64,20 +65,27 @@ function phpEval(php, env, code) {
   return (result.stdout || "").trim();
 }
 
-/** 小样本旧库：覆盖主站口径内/外、已审/未审、新老年限、领导、未映射、县区 */
-const FIXTURE_SQL = `-- 迁移检查用小样本（结构与 Navicat 导出一致）
-INSERT INTO \`rd_news\` VALUES (9001, '市政协开展专题协商', '导语一句', NULL, 'http://gxhczx.gov.cn/uploadfiles/20260101/9001.jpg', '<div><span style="font-size:14px"><font color="red">正文第一段</font></span></div><p>&nbsp;</p><p><img src="http://gxhczx.gov.cn/uploadfiles/20260101/9001-1.jpg" width="600"></p><p><a href="http://gxhczx.gov.cn/uploadfiles/20260101/9001.docx">附件下载</a></p>', 1, 22, 1, 1, 904, 128, 0, 1767225600, '河池日报 2026/1/2 1版', '张三', '李四');
-INSERT INTO \`rd_news\` VALUES (9002, '早年的一篇稿件', '', NULL, '', '<p>旧稿正文</p>', 1, 22, 0, 1, 904, 20, 0, 1588320000, '本站', '', '');
-INSERT INTO \`rd_news\` VALUES (9003, '未审稿件', '', NULL, '', '<p>未审正文</p>', 0, 22, 0, 0, 904, 3, 0, 1748736000, '本站', '', '');
-INSERT INTO \`rd_news\` VALUES (9004, '全国政协要闻', '', NULL, '', '<p>区外稿件</p>', 1, 55, 0, 0, 902, 55, 0, 1767225600, '全国政协网', '', '');
-INSERT INTO \`rd_news\` VALUES (9005, '口径不符的 902 稿', '', NULL, '', '<p>不应入库</p>', 1, 22, 0, 0, 902, 5, 0, 1767225600, '本站', '', '');
-INSERT INTO \`rd_news\` VALUES (9006, '未映射栏目稿件', '', NULL, '', '<p>待甲方确认栏目</p>', 1, 22, 0, 0, 7101, 7, 0, 1767225600, '本站', '', '');
-INSERT INTO \`rd_news\` VALUES (9007, '县区稿件', '', NULL, '', '<p>县区内容本期不迁</p>', 1, 3, 0, 0, 306, 9, 0, 1767225600, '本站', '', '');
-INSERT INTO \`rd_news\` VALUES (9008, '韦某某', '副主席', NULL, '', '<p>领导简介正文</p>', 1, 22, 0, 1, 202, 66, 3, 1767225600, '本站', '', '副主席');
-INSERT INTO \`rd_video\` VALUES (1, '专题片：协商在河池', '', 1, 0, 1, 22, '', 'http://player.youku.com/embed/abc');
+/** 小样本旧库的 rd_news 行：覆盖主站口径内/外、已审/未审、新老年限、领导、未映射、县区 */
+const FIXTURE_NEWS_ROWS = [
+  "(9001, '市政协开展专题协商', '导语一句', NULL, 'http://gxhczx.gov.cn/uploadfiles/20260101/9001.jpg', '<div><span style=\"font-size:14px\"><font color=\"red\">正文第一段</font></span></div><p>&nbsp;</p><p><img src=\"http://gxhczx.gov.cn/uploadfiles/20260101/9001-1.jpg\" width=\"600\"></p><p><a href=\"http://gxhczx.gov.cn/uploadfiles/20260101/9001.docx\">附件下载</a></p>', 1, 22, 1, 1, 904, 128, 0, 1767225600, '河池日报 2026/1/2 1版', '张三', '李四')",
+  "(9002, '早年的一篇稿件', '', NULL, '', '<p>旧稿正文</p>', 1, 22, 0, 1, 904, 20, 0, 1588320000, '本站', '', '')",
+  "(9003, '未审稿件', '', NULL, '', '<p>未审正文</p>', 0, 22, 0, 0, 904, 3, 0, 1748736000, '本站', '', '')",
+  "(9004, '全国政协要闻', '', NULL, '', '<p>区外稿件</p>', 1, 55, 0, 0, 902, 55, 0, 1767225600, '全国政协网', '', '')",
+  "(9005, '口径不符的 902 稿', '', NULL, '', '<p>不应入库</p>', 1, 22, 0, 0, 902, 5, 0, 1767225600, '本站', '', '')",
+  "(9006, '未映射栏目稿件', '', NULL, '', '<p>待甲方确认栏目</p>', 1, 22, 0, 0, 7101, 7, 0, 1767225600, '本站', '', '')",
+  "(9007, '县区稿件', '', NULL, '', '<p>县区内容本期不迁</p>', 1, 3, 0, 0, 306, 9, 0, 1767225600, '本站', '', '')",
+  "(9008, '韦某某', '副主席', NULL, '', '<p>领导简介正文</p>', 1, 22, 0, 1, 202, 66, 3, 1767225600, '本站', '', '副主席')",
+];
+
+const FIXTURE_SIDE_SQL = `INSERT INTO \`rd_video\` VALUES (1, '专题片：协商在河池', '', 1, 0, 1, 22, '', 'http://player.youku.com/embed/abc');
 INSERT INTO \`rd_links\` VALUES (1, '中国政协', 'http://www.cppcc.gov.cn/', '', 1, 1, 22);
 INSERT INTO \`rd_hudong\` VALUES (5, '互动测试来信', '', '', '', 1, 55, 0, 0, 4122, 1, 0, 1495005926, '', '', '', '我最爱互动', 0, '小白', 1495005926, '群众来信内容', 1495041926, '办理回复内容', '', 0, '', 0, '', 0, '', '', 0);
 `;
+
+/** 小样本旧库（Navicat 风格：一条语句一行、一行一个元组） */
+const FIXTURE_SQL = `-- 迁移检查用小样本（结构与 Navicat 导出一致）
+${FIXTURE_NEWS_ROWS.map((row) => `INSERT INTO \`rd_news\` VALUES ${row};`).join("\n")}
+${FIXTURE_SIDE_SQL}`;
 
 const FIXTURE_CHANNELS = {
   channels: [
@@ -130,6 +138,45 @@ function main() {
     const mappingCsv = readFileSync(path.join(outDir, "mapping_report.csv"), "utf8");
     check("映射报表按栏目给出条数与 Region 口径",
       mappingCsv.includes("904") && mappingCsv.includes("902") && mappingCsv.includes("55") && mappingCsv.includes("202"));
+
+    // ---- 1b) 多行 INSERT + gzip（宝塔每日备份的写法）＋ 删除同步清单
+    const gzRows = FIXTURE_NEWS_ROWS.filter((row) => !row.startsWith("(9003,"));
+    const gzSql = "-- 多行 INSERT 样本（结构与宝塔 mysqldump 一致）\n"
+      + `INSERT INTO \`rd_news\` VALUES ${gzRows.slice(0, 4).join(",")};\n`
+      + `INSERT INTO \`rd_news\` VALUES ${gzRows.slice(4).join(",")};\n`;
+    const gzFile = path.join(tmpRoot, "legacy-v2.sql.gz");
+    const gzOut = path.join(tmpRoot, "out-v2");
+    mkdirSync(gzOut, { recursive: true });
+    writeFileSync(gzFile, gzipSync(Buffer.from(gzSql, "utf8")));
+
+    const gzParsed = run(python, [
+      "tools/migrate/legacy_extract.py", "parse",
+      "--sql", gzFile, "--out", gzOut, "--channels", channelFile,
+      "--expect-rows", String(gzRows.length), "--expect-max-id", "9008",
+      "--deleted-from", sqlFile,
+    ]);
+    const gzStats = JSON.parse(readFileSync(path.join(gzOut, "stats.json"), "utf8"));
+    check("多行 INSERT + gzip：解析行数与最大稿件号自检通过",
+      gzParsed.status === 0 && gzStats.old_news_rows === gzRows.length && gzStats.max_news_id === 9008,
+      JSON.stringify({ rows: gzStats.old_news_rows, max: gzStats.max_news_id }));
+    check("多行 INSERT + gzip：口径筛选与单行导出一致（范围内 4 篇）",
+      gzStats.in_scope === 4 && gzStats.published_public === 3 && gzStats.published_archive === 1 && gzStats.draft === 0,
+      JSON.stringify({ in_scope: gzStats.in_scope, pub: gzStats.published_public, arc: gzStats.published_archive }));
+    const deletedIds = readFileSync(path.join(gzOut, "deleted_ids.txt"), "utf8").trim().split("\n");
+    const deletedSummary = readFileSync(path.join(gzOut, "deleted_summary.txt"), "utf8");
+    check("删除同步：旧站已删稿件进清单、范围内稿件不在清单里",
+      deletedIds.length === 1 && deletedIds[0] === "9003" && !deletedIds.includes("9001"),
+      deletedIds.join(","));
+    check("删除同步：分类小计写出各类条数",
+      gzStats.deleted_total === 1 && gzStats.deleted_draft === 1 && gzStats.deleted_public === 0
+      && deletedSummary.includes("范围内-草稿（draft）：1 篇"),
+      deletedSummary.split("\n")[2] || "");
+    const badExpect = run(python, [
+      "tools/migrate/legacy_extract.py", "parse",
+      "--sql", gzFile, "--out", gzOut, "--channels", channelFile, "--expect-rows", "99",
+    ]);
+    check("自检：行数对不上时退出码非 0 并给出原因",
+      badExpect.status !== 0 && (badExpect.stderr || "").includes("自检失败"), String(badExpect.status));
 
     // ---- 2) 模拟抓图成功：把清单标成 ok，并落一个空文件（不联网）
     const manifestPath = path.join(outDir, "media_manifest.csv");
@@ -257,6 +304,38 @@ function main() {
     const bad = run(php, ["tools/migrate/legacy_import.php", "--in", badFile, "--dry-run", "--out", outDir], env);
     check("栏目不存在的条目被挡下且退出码非 0",
       bad.status !== 0 && (bad.stdout || "").includes("栏目不存在"), String(bad.status));
+
+    // ---- 4) 删除同步：旧站已删稿件转 archive（后台留档、前台下线），可重复执行
+    // 模拟一篇"迁移前就在库、本次导出里没有"的稿件
+    phpEval(php, env,
+      "require 'backend/src/bootstrap.php'; $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+      + " $db->execute(\"INSERT INTO cms_article (article_id, site_id, channel_type, title, content_html, has_body,"
+      + " status, public_scope, published_at) VALUES (9100, 1, '904', '旧站已删稿件', '<p>正文</p>', 1, 'published',"
+      + " 'public', '2026-01-01 08:00:00')\");");
+    const archiveList = path.join(outDir, "deleted_ids.txt");
+    writeFileSync(archiveList, "9100\n9999\n");
+    const archiveCommit = run(php, [
+      "tools/migrate/legacy_import.php", "--in", finalPath, "--commit", "--out", outDir,
+      "--archive-ids", archiveList,
+    ], env);
+    const archivedIds = readFileSync(path.join(outDir, "archived_ids.txt"), "utf8").trim().split("\n");
+    check("转归档：--archive-ids 把既存稿件改为 archive 且不动标题与审核状态",
+      archiveCommit.status === 0 && readOne(9100, "public_scope") === "archive"
+      && readOne(9100, "status") === "published" && readOne(9100, "title") === "旧站已删稿件",
+      readOne(9100, "public_scope"));
+    check("转归档：报告写明命中数，回滚清单只含库内命中的稿件号",
+      (archiveCommit.stdout || "").includes("删除同步（--archive-ids）")
+      && (archiveCommit.stdout || "").includes("库内命中 1 篇")
+      && archivedIds.length === 1 && archivedIds[0] === "9100",
+      archivedIds.join(","));
+    const archiveAgain = run(php, [
+      "tools/migrate/legacy_import.php", "--in", finalPath, "--commit", "--out", outDir,
+      "--archive-ids", archiveList,
+    ], env);
+    check("转归档幂等：再跑一次不再改动，稿件仍是 archive",
+      archiveAgain.status === 0 && readOne(9100, "public_scope") === "archive"
+      && readFileSync(path.join(outDir, "archived_ids.txt"), "utf8").trim() === "",
+      readFileSync(path.join(outDir, "archived_ids.txt"), "utf8").trim());
 
     return failures === 0 ? 0 : 1;
   } finally {
