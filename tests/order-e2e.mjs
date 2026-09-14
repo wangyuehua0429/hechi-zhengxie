@@ -198,28 +198,27 @@ try {
   step("下移一位可还原栏目内顺序", (await channelIds("904", 6)).join(",") === listBefore.join(","));
 
   // ---------- E 按栏目置顶 ----------
-  console.log("\n— E 按栏目置顶（稿件编辑页勾选 → 两处同时排前）");
+  // 2026-09-14 起编辑页不再设置排序：置顶统一走 /admin/article/{id}/top（首页管理与列表页的按钮）
+  console.log("\n— E 按栏目置顶（列表/首页管理的置顶按钮 → 两处同时排前）");
   const beforeTop = await channelIds("904", 6);
   const target = beforeTop[2];
   const targetPage = await req("GET", "/admin/article/" + target);
-  const targetTitle = (/name="title" value="([^"]*)"/.exec(targetPage.text) || [])[1] || "";
-  const saved = await req("POST", "/admin/article/" + target, {
+  const saved = await req("POST", "/admin/article/" + target + "/top", {
     _token: csrf(targetPage.text),
-    title: targetTitle,
-    content_html: "<p>排序端到端检查正文。</p>",
-    is_top: "1",
+    value: "1",
+    back: "/admin/articles",
   });
   const afterTop = await channelIds("904", 6);
   const zxdtTopAfter = await zxdtTop();
-  step("勾选「在本栏目置顶」可以保存", saved.status === 302);
+  step("置顶按钮可以保存", saved.status === 302);
   step("置顶后栏目列表排最前", afterTop[0] === target, `首条 ${afterTop[0]}，置顶 ${target}`);
   step("置顶后首页模块排最前", zxdtTopAfter[0] === target, `首页首条 ${zxdtTopAfter[0] || "无"}`);
 
   const unTopPage = await req("GET", "/admin/article/" + target);
-  await req("POST", "/admin/article/" + target, {
+  await req("POST", "/admin/article/" + target + "/top", {
     _token: csrf(unTopPage.text),
-    title: targetTitle,
-    content_html: "<p>排序端到端检查正文。</p>",
+    value: "0",
+    back: "/admin/articles",
   });
   const afterUnTop = await channelIds("904", 6);
   step("取消置顶后不再排最前", afterUnTop[0] !== target, `首条 ${afterUnTop[0]}`);

@@ -521,11 +521,23 @@ async function main() {
     });
     const withOrig = await client.get("/api/v1/article/" + SAMPLE_ID, { json: true });
     const origBody = String(withOrig.body?.article?.content ?? "");
+    // 前台出口会把行首缩进裁掉交给 CSS（text-indent: 2em），接口这里只看题区顺序
+    const indent = "\u3000\u3000";
     check("原标题：三项按加粗三行拼在正文最前，网页标题不受影响",
-      origBody.startsWith("<p><strong>引题层</strong></p><p><strong>主标题层</strong></p>")
-        && origBody.includes("<p><strong>副题层</strong></p>") && origBody.includes("正文第一段")
+      origBody.startsWith('<p><strong>引题层</strong></p><p><strong>主标题层</strong></p>')
+        && origBody.includes('<p><strong>副题层</strong></p>') && origBody.includes("正文第一段")
         && withOrig.body?.article?.title === "原标题检查",
       origBody.slice(0, 160));
+    // 库里那份要保留「首行空两格」，且缩进写在 <strong> 内（编辑器会把 strong 外侧的行首空白吃掉）
+    const storedOrig = runPhp(php, "-r", env, [
+      'require "backend/src/bootstrap.php"; $db = new HechiZx\\Support\\Db((array) hechi_config("db"));'
+        + ' echo (string) $db->scalar("SELECT content_html FROM cms_article WHERE article_id = ' + SAMPLE_ID + '");',
+    ]);
+    const storedOrigHtml = String(storedOrig.stdout || "");
+    check("原标题：库里三行都带首行空两格，且缩进写在 <strong> 内",
+      storedOrigHtml.startsWith('<p><strong>' + indent + '引题层</strong></p><p><strong>' + indent + '主标题层</strong></p>')
+        && storedOrigHtml.includes('<p><strong>' + indent + '副题层</strong></p>'),
+      storedOrigHtml.slice(0, 160));
 
     // 首页管理三件套（置顶／高亮／徽标同层）：高亮与徽标写 `cms_article_channel`，随模块输出给前台
     const flagsToken = csrfToken((await client.get("/admin/article/" + SAMPLE_ID)).text);

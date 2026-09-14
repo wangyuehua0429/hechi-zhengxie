@@ -328,6 +328,13 @@ a.county-link:hover { border-color: var(--primary); color: var(--primary); }
   color: var(--primary);
   line-height: 1.6;
 }
+/* 副题：详情页 h1 上方（引题属于正文内容，留在正文开头第一行，不在顶部重复） */
+.article-sub .article-subtitle {
+  display: block;
+  margin-top: 4px;
+  font-weight: 500;
+  color: var(--muted);
+}
 .article-title {
   font-size: calc(1.86em * var(--font-scale));
   font-weight: 700;
@@ -349,6 +356,8 @@ a.county-link:hover { border-color: var(--primary); color: var(--primary); }
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  /* 手机上一行放不下时整组换行，按钮内部不再折字（原先「默认」会断成「默／认」） */
+  flex-wrap: wrap;
   gap: 10px;
   margin: 16px 0 4px;
   padding-bottom: 12px;
@@ -356,10 +365,11 @@ a.county-link:hover { border-color: var(--primary); color: var(--primary); }
   font-size: 0.86em;
   color: var(--muted);
 }
-.article-toolbar .tool-group { display: flex; align-items: center; gap: 6px; }
+.article-toolbar .tool-group { display: flex; align-items: center; flex-wrap: nowrap; gap: 6px; }
 .article-toolbar button {
   padding: 4px 10px;
   font: inherit;
+  white-space: nowrap;
   color: var(--text);
   background: #fbfcfd;
   border: 1px solid var(--border);
@@ -373,9 +383,18 @@ a.county-link:hover { border-color: var(--primary); color: var(--primary); }
   font-size: calc(1.06em * var(--font-scale));
   line-height: 1.95;
   color: #33363c;
+  /* 旧库偶有超长英文串／URL，避免撑破手机版心 */
+  overflow-wrap: anywhere;
 }
+/* 段距统一在这里给：正文归一化已去掉旧库每段之间的空段（<div><br></div>），
+   此前相邻两段之间会出现 63px（约两行）空档；嵌套块不叠加下边距，
+   接口不可用回退静态快照时也保持同一观感。 */
 .article-body p,
-.article-body > div { margin: 0 0 16px; text-indent: 2em; }
+.article-body div { margin: 0 0 0.9em; text-indent: 2em; }
+.article-body div div,
+.article-body p p,
+.article-body li div { margin-bottom: 0; }
+.article-body > :last-child { margin-bottom: 0; }
 .article-body img {
   display: block;
   /* 旧站正文图多为 600~700px 宽，限制显示宽度避免放大后发虚 */
@@ -386,13 +405,90 @@ a.county-link:hover { border-color: var(--primary); color: var(--primary); }
   border: 1px solid var(--photo-border);
   border-radius: 3px;
 }
+/* 正文视频：原先没有任何约束，600~720px 的视频在手机（390px）上会撑破版面 */
+.article-body video,
+.article-body iframe {
+  display: block;
+  width: 100%;
+  max-width: min(100%, 720px);
+  height: auto;
+  margin: 20px auto;
+  text-indent: 0;
+  background: #000;
+  border: 1px solid var(--photo-border);
+  border-radius: 3px;
+}
+/* 没写 width 的老视频先按 16:9 占位，避免元数据加载前后跳版 */
+.article-body video:not([width]) { aspect-ratio: 16 / 9; }
+/* 资源被删或旧站不可达时的占位，替代「隐藏破图后留一块空白」 */
+.article-body .media-fallback {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: min(100%, 720px);
+  min-height: 120px;
+  margin: 20px auto;
+  padding: 18px;
+  color: var(--muted);
+  font-size: 0.94em;
+  line-height: 1.7;
+  text-align: center;
+  text-indent: 0;
+  background: #f7f8fa;
+  border: 1px dashed var(--border);
+  border-radius: 3px;
+}
 /* 领导简介：源图尺寸相差很大，统一显示宽度，避免各页照片大小跳变 */
 .article-body.is-leader img {
   width: 300px;
   max-width: 100%;
 }
 .article-body strong { font-weight: 700; }
-.article-body table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.95em; }
+/* 列表、标题、引用：全局 reset 把 ul/ol 的符号与缩进清掉了，
+   后台编辑器却允许这些标签，所以正文里必须补回来 */
+.article-body ul,
+.article-body ol {
+  margin: 0 0 0.9em;
+  padding-left: 2em;
+}
+.article-body ul { list-style: disc; }
+.article-body ol { list-style: decimal; }
+.article-body ul ul { list-style: circle; }
+.article-body li { margin-bottom: 0.35em; text-indent: 0; }
+.article-body li:last-child { margin-bottom: 0; }
+.article-body ul ul,
+.article-body ol ol,
+.article-body ul ol,
+.article-body ol ul { margin-bottom: 0; }
+.article-body h2,
+.article-body h3,
+.article-body h4 {
+  margin: 1.2em 0 0.5em;
+  text-indent: 0;
+  line-height: 1.5;
+}
+.article-body h2 { font-size: 1.24em; }
+.article-body h3 { font-size: 1.14em; }
+.article-body h4 { font-size: 1.04em; }
+.article-body blockquote {
+  margin: 0.9em 0;
+  padding: 2px 0 2px 14px;
+  text-indent: 0;
+  color: var(--muted);
+  border-left: 3px solid var(--border);
+}
+/* 宽表格在手机上自己横向滚动，不再撑破页面 */
+.article-body table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 0.95em;
+}
+.article-body th { background: #fbfcfd; }
 .article-body td, .article-body th { border: 1px solid var(--border); padding: 8px 10px; }
 .article-sign {
   margin-top: 26px;
@@ -753,7 +849,8 @@ img.img-failed { visibility: hidden; }
   .leader-card { width: calc((100% - 24px) / 3); }
   .leader-grid--single .leader-card { width: 42%; }
   .article-panel { padding: 22px 18px 20px; }
-  .article-title { font-size: calc(1.42em * var(--font-scale)); }
+  /* 100 字长标题在 390px 宽下按 1.42em 会占 8 行，压到 1.32em 并收紧行高 */
+  .article-title { font-size: calc(1.32em * var(--font-scale)); line-height: 1.5; }
   .article-body { font-size: calc(1.0em * var(--font-scale)); line-height: 1.9; }
   .article-rows { padding: 4px 14px 10px; }
   .article-rows li { flex-direction: column; gap: 3px; padding: 10px 2px 10px 14px; }
@@ -761,4 +858,64 @@ img.img-failed { visibility: hidden; }
   .article-rows time { font-size: 0.82em; }
   .panel-head { padding: 12px 14px; }
   .panel-body { padding: 4px 14px 12px; }
+}
+
+/* ---------- 详情页：回到顶部 ---------- */
+.to-top {
+  position: fixed;
+  right: 20px;
+  bottom: 24px;
+  z-index: 900;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  font: inherit;
+  font-size: 1.05em;
+  line-height: 1;
+  color: #fff;
+  background: rgba(165, 29, 34, 0.88);
+  border: 0;
+  border-radius: 50%;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+}
+.to-top:hover { background: var(--primary); }
+
+/* ---------- 打印 ---------- */
+/* 「打印本页」此前没有任何打印样式：站头大图、导航、侧栏、工具栏与按钮都会被打出来，
+   正文还被侧栏挤到左侧窄栏。这里只留标题、元信息与正文。 */
+@media print {
+  @page { margin: 16mm; }
+
+  body { background: #fff; }
+  .topbar,
+  .site-header,
+  .crumb-bar,
+  .inner-side,
+  .article-toolbar,
+  .article-lightbox,
+  .to-top,
+  .site-footer,
+  .skip-link { display: none !important; }
+
+  .inner-layout { display: block; padding: 0; }
+  .article-panel {
+    padding: 0;
+    background: #fff;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .article-head { border-bottom: 0; padding-bottom: 8px; }
+  .article-title { font-size: 20pt; }
+  .article-body { font-size: 12pt; line-height: 1.8; color: #000; }
+  .article-body img,
+  .article-body video { max-width: 100%; page-break-inside: avoid; }
+  .article-body h2,
+  .article-body h3 { page-break-after: avoid; }
+  .article-body .media-fallback { display: none; }
+  .article-gallery,
+  .article-attach { page-break-inside: avoid; }
 }

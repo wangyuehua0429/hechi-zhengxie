@@ -11,11 +11,30 @@
   const DEFAULT_ID = "62180";
   const BODY_SIZES = [0.92, 1, 1.12, 1.24];
   const BODY_DEFAULT = 1;
+  // 旧库图集记录里混着视频文件（cms_article_image 有 50 条 mp4），当图片渲染会出空白格
+  const MEDIA_EXT = ["mp4", "mov", "avi", "wmv", "flv", "mkv", "webm", "m4v", "mpeg", "mpg", "rmvb", "ogv"];
 
   const el = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+  function isImagePath(path) {
+    const clean = String(path || "").split("?")[0];
+    const dot = clean.lastIndexOf(".");
+    if (dot < 0) return true;
+    return MEDIA_EXT.indexOf(clean.slice(dot + 1).toLowerCase()) < 0;
+  }
+
+  // 接口不可用、回退静态快照时的兜底：旧站地址一律换成 https，
+  // 免得整站上了 HTTPS 之后这批图被浏览器按混合内容拦掉（接口出口已做同样处理）。
+  function safeResourceUrl(url) {
+    return String(url || "").replace(/^http:\/\/(www\.)?gxhczx\.gov\.cn\//i, "https://www.gxhczx.gov.cn/");
+  }
+
+  function safeResourceHtml(html) {
+    return String(html || "").replace(/http:\/\/(www\.)?gxhczx\.gov\.cn\//gi, "https://www.gxhczx.gov.cn/");
+  }
 
   const state = {
     article: null,
@@ -71,28 +90,35 @@
   function renderArticle() {
     const a = state.article;
     const sub = el("articleSub");
-    if (a.subtitle) {
-      sub.textContent = a.subtitle;
+    // 顶部只出一行标题：引题属于正文内容，留在正文开头第一行；这里只放接口给的副题（一般为空）
+    const subtitle = String(a.subtitle || "").trim();
+    if (subtitle) {
+      sub.innerHTML = '<span class="article-subtitle">' + esc(subtitle) + '</span>';
       sub.hidden = false;
     }
     el("articleTitle").textContent = a.title;
 
+    // 空值项不渲染（此前 views 为空会显示成「阅读：」）；
+    // 「编辑」只在文末落款出现一次，meta 行不再重复。
     const meta = [
-      '<span>发布时间：<b>' + esc(a.date) + '</b></span>',
+      a.date ? '<span>发布时间：<b>' + esc(a.date) + '</b></span>' : "",
       a.source ? '<span>来源：<b>' + esc(a.source) + '</b></span>' : "",
       a.author ? '<span>作者：<b>' + esc(a.author) + '</b></span>' : "",
-      a.editor ? '<span>编辑：<b>' + esc(a.editor) + '</b></span>' : "",
-      '<span>阅读：<b>' + esc(a.views) + '</b></span>'
+      a.views ? '<span>阅读：<b>' + esc(a.views) + '</b></span>' : ""
     ].filter(Boolean).join("");
     el("articleMeta").innerHTML = meta;
 
     const body = el("articleBody");
-    body.innerHTML = a.content;
+    body.innerHTML = safeResourceHtml(a.content);
     // 领导简介照片源图尺寸不一（130×162 与 960×1200 混用），统一显示宽度
     body.classList.toggle("is-leader",
       !!(state.channel && state.channel.layout === "leaders"));
     applyBodySize();
-    renderGalleryStrip(a);
+    // 正文图张数要在降级替换之前数：图片全失败时它们会变成占位块，
+    // 之后再看就数不到图，图集条会误以为「正文没图」又冒出来
+    const bodyImgs = body.querySelectorAll("img").length;
+    bindMediaFallback(body);
+    renderGalleryStrip(a, bodyImgs);
     renderAttachments(a);
 
     if (a.editor) {
@@ -127,20 +153,53 @@
   }
 
   // 图集型详情：正文含 2 张以上图片时给出缩略图条，点击可放大浏览
-  function renderGalleryStrip(a) {
+  function renderGalleryStrip(a, bodyImgCount) {
     const box = el("articleGallery");
     if (!box) return;
-    const imgs = a.images || [];
-    if (imgs.length < 2) {
+    // 正文里已有图就不再重复出图集条（49643 此前是正文 10 张 + 图集 11 格同一批图），
+    // 图集只服务纯图集型稿件；非图片文件先过滤掉。
+    const bodyImgs = typeof bodyImgCount === "number"
+      ? bodyImgCount
+      : el("articleBody").querySelectorAll("img").length;
+    const imgs = (a.images || []).filter(isImagePath);
+    if (bodyImgs > 0 || imgs.length < 2) {
       box.hidden = true;
       return;
     }
-    box.innerHTML = imgs.map(function (src, i) {
-      return '<a href="' + esc(src) + '" data-index="' + i + '" aria-label="查看第 ' + (i + 1) + ' 张图">' +
-        '<img src="' + esc(src) + '" alt="" loading="lazy"></a>';
+    const urls = imgs.map(safeResourceUrl);
+    box.innerHTML = urls.map(function (url, i) {
+      url = esc(url);
+      return '<a href="' + url + '" data-index="' + i + '" aria-label="查看第 ' + (i + 1) + ' 张图">' +
+        '<img src="' + url + '" alt="" loading="lazy"></a>';
     }).join("");
     box.hidden = false;
-    bindLightbox(box, imgs);
+    bindMediaFallback(box);
+    bindLightbox(box, urls);
+  }
+
+  // 破图／视频加载失败：换成占位块。此前只是 visibility:hidden，原地留一块空白
+  function mediaFallback(node, text) {
+    if (!node || !node.parentNode) return;
+    const box = document.createElement("div");
+    box.className = "media-fallback";
+    box.textContent = text;
+    node.parentNode.replaceChild(box, node);
+  }
+
+  function bindMediaFallback(scope) {
+    if (!scope) return;
+    scope.querySelectorAll("img").forEach(function (img) {
+      const fail = function () {
+        mediaFallback(img, String(img.getAttribute("alt") || "").trim() || "图片暂时无法显示");
+      };
+      if (img.complete && img.naturalWidth === 0) fail();
+      else img.addEventListener("error", fail, { once: true });
+    });
+    scope.querySelectorAll("video").forEach(function (video) {
+      video.addEventListener("error", function () {
+        mediaFallback(video, "视频暂时无法播放");
+      }, { once: true });
+    });
   }
 
   let lightboxIndex = 0;
@@ -215,6 +274,47 @@
     if (window.SITE && window.SITE.renderSidePanels) {
       window.SITE.renderSidePanels(state.channels);
     }
+    syncStickySide();
+  }
+
+  // 右栏比视口还高时取消粘性：长文页（正文 9000px 级）此前会把「图片新闻」一直压在视口外
+  function syncStickySide() {
+    const side = el("innerSide");
+    if (!side) return;
+    side.classList.toggle("is-sticky", side.getBoundingClientRect().height < window.innerHeight - 90);
+  }
+
+  let stickyObserver = null;
+  function bindStickySide() {
+    syncStickySide();
+    window.addEventListener("resize", syncStickySide);
+    document.addEventListener("site:fontchange", syncStickySide);
+    const side = el("innerSide");
+    if (side && window.ResizeObserver && !stickyObserver) {
+      stickyObserver = new ResizeObserver(syncStickySide);
+      stickyObserver.observe(side);
+    }
+  }
+
+  // 回到顶部：只加在详情页，滚动过一屏后出现
+  function initBackTop() {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "to-top";
+    btn.title = "回到顶部";
+    btn.setAttribute("aria-label", "回到顶部");
+    btn.textContent = "↑";
+    btn.hidden = true;
+    btn.addEventListener("click", function () {
+      const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
+    });
+    document.body.appendChild(btn);
+
+    const sync = function () { btn.hidden = window.scrollY < window.innerHeight * 0.8; };
+    window.addEventListener("scroll", sync, { passive: true });
+    window.addEventListener("resize", sync);
+    sync();
   }
 
   function bindToolbar() {
@@ -315,6 +415,8 @@
 
   function init() {
     const id = param("id") || DEFAULT_ID;
+    initBackTop();
+    bindStickySide();
     Promise.all([
       window.SITE_DATA.article(id),
       loadChannels()

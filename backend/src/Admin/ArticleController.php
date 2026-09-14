@@ -9,6 +9,7 @@ use HechiZx\Http\RedirectResponse;
 use HechiZx\Http\Request;
 use HechiZx\Http\Response;
 use HechiZx\Content\ArticleWorkflow;
+use HechiZx\Content\BodyNormalizer;
 use HechiZx\Content\HtmlSanitizer;
 use HechiZx\Content\Permissions;
 use HechiZx\Repository\ArticleRepository;
@@ -229,13 +230,27 @@ final class ArticleController extends AdminController
             ], '未找到稿件');
         }
 
+        // 正文开头的题区（引题／主标题／副题）：
+        // ① 空着的输入框按行回填（旧库稿件的原标题原本只躺在正文里）；
+        //    逐列判断而不是「三列全空才回填」——否则用户清空其中一列后，那一行会在保存时被丢掉；
+        // ② 编辑器里的正文去掉这几行，避免与输入框重复——保存时会按输入框重新拼回正文最前，
+        //    所以库里「题区＋正文」的形态不变，前台与静态页照旧从正文读题区。
+        $zone = BodyNormalizer::splitTitleZone((string) $article['content_html']);
+        if ($zone['lines'] !== []) {
+            foreach (['orig_kicker' => 0, 'orig_title' => 1, 'orig_subtitle' => 2] as $field => $index) {
+                if (trim((string) ($article[$field] ?? '')) === '') {
+                    $article[$field] = $zone['lines'][$index] ?? '';
+                }
+            }
+            $article['content_html'] = $zone['rest'];
+        }
+
         return $this->view->page('admin/article_edit', [
             'current' => 'articles',
             'article' => $article,
             'attachments' => $this->articles->attachments((int) $args['id']),
             'canDelete' => true,
             'canEdit' => $this->can(Permissions::ARTICLE_EDIT) && $this->auth->canChannel((string) $article['channel_type']),
-            'channelTop' => $this->articles->channelTop((int) $args['id'], (string) $article['channel_type']),
             'actions' => $this->allowedActions((string) $article['status']),
             'transitions' => ArticleWorkflow::transitions(),
             'saved'   => $request->query('saved') === '1',
@@ -322,8 +337,8 @@ final class ArticleController extends AdminController
             $downgraded = true;
         }
         $userId = (int) ($this->user()['user_id'] ?? 0);
-        $isTop = $request->post('is_top') === '1' ? 1 : 0;
-        $content = $this->normalizeContent($this->prependOrigTitle((string) ($_POST['content_html'] ?? ''), $request));
+        // 排序（置顶）不在提交环节设置：正文只处理内容，置顶统一在首页管理／稿件列表里点
+        $content = $this->normalizeContent($this->withOrigTitle((string) ($_POST['content_html'] ?? ''), $request));
         $id = $this->articles->create([
             'channel_type' => $channelType,
             'title'        => $title,
@@ -336,15 +351,11 @@ final class ArticleController extends AdminController
             'editor'       => $request->post('editor'),
             'published_at' => $this->composeDatetime($request->post('published_date'), $request->post('published_time')),
             'status'       => $status,
-            'is_top'       => $isTop,
             'created_by'   => $userId,
             'orig_kicker'   => trim((string) $request->post('orig_kicker')),
             'orig_title'    => trim((string) $request->post('orig_title')),
             'orig_subtitle' => trim((string) $request->post('orig_subtitle')),
         ]);
-        if ($isTop === 1) {
-            $this->articles->setChannelTop($id, $channelType, 1);
-        }
 
         // 新建页上传的图片／视频先落在 pending，这里迁到稿件目录并登记图集
         $adopted = $this->adoptPendingMedia($id, $content);
@@ -1144,7 +1155,7 @@ final class ArticleController extends AdminController
             // 新建页上传过的素材如果还挂在 pending 桶，保存时一并认领
             'content_html' => $this->adoptPendingMedia(
                 (int) $id,
-                $this->normalizeContent($this->prependOrigTitle((string) ($_POST['content_html'] ?? ''), $request))
+                $this->normalizeContent($this->withOrigTitle((string) ($_POST['content_html'] ?? ''), $request))
             ),
             'orig_kicker'   => trim((string) $request->post('orig_kicker')),
             'orig_title'    => trim((string) $request->post('orig_title')),
@@ -1157,20 +1168,8 @@ final class ArticleController extends AdminController
         if ($publishedAt !== null) {
             $fields['published_at'] = $publishedAt;
         }
-        // 编辑页已无置顶复选框
-        // 表单没提交就不动它，置顶改在首页管理维护
-        if ($request->post('is_top') !== null) {
-            $fields['is_top'] = $request->post('is_top') === '1' ? 1 : 0;
-        }
 
         $this->articles->adminUpdate($id, $fields);
-        // 「置顶」按栏目生效：首页对应模块与该栏目列表共用这一套顺序
-        // 只在勾选状态真的变了时才写，免得「编辑一条旧稿」顺手把它的栏目内顺序重置掉
-        $channelType = (string) $article['channel_type'];
-        $channelTopNow = $this->articles->channelTop((int) $id, $channelType);
-        if (array_key_exists('is_top', $fields) && (int) $fields['is_top'] !== $channelTopNow) {
-            $this->articles->setChannelTop((int) $id, $channelType, (int) $fields['is_top']);
-        }
         $this->articles->syncBodyAssets((int) $id, $fields['content_html']);
         $this->log('article.update', 'article', $id, [
             'title'  => $title,
@@ -1280,11 +1279,22 @@ final class ArticleController extends AdminController
     }
 
     /**
-     * 原标题块（引题／主标题／副题）拼在正文最前：同字体同字号，只加粗。
-     * 三项都空就不拼；单独存三列，便于编辑页回显再改。
+     * 原标题块（引题／主标题／副题）拼在正文最前：同字体同字号，只加粗，每行首行空两格。
+     *
+     * 2026-09-14 起统一口径：
+     * - 「原标题」三个输入框是这几行的唯一维护入口，正文里不再重复保留（编辑页打开时会剥掉）；
+     * - 缩进写成 `<strong>　　文本</strong>`：实测富文本编辑器（SunEditor）同步内容时会丢掉
+     *   strong 外侧的行首空白，写在里面才能存住（旧数据由 `bin/fix-orig-title.php` 统一搬迁）；
+     * - 提交时先剥掉正文首部残留的题区，再按输入框拼回，所以反复保存不会叠加。
      */
-    private function prependOrigTitle(string $contentHtml, Request $request): string
+    private function withOrigTitle(string $contentHtml, Request $request): string
     {
+        // 表单没带这三列（脚本／接口直接提交正文）时整段不动：
+        // 否则会在「正文里有题区、请求里没有对应字段」的场景下把题区剥没了。
+        if (!$request->hasPost('orig_kicker') && !$request->hasPost('orig_title') && !$request->hasPost('orig_subtitle')) {
+            return $contentHtml;
+        }
+
         $lines = [];
         foreach ([
             trim((string) $request->post('orig_kicker')),
@@ -1292,11 +1302,13 @@ final class ArticleController extends AdminController
             trim((string) $request->post('orig_subtitle')),
         ] as $text) {
             if ($text !== '') {
-                $lines[] = '<p><strong>' . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . '</strong></p>';
+                $lines[] = '<p><strong>' . BodyNormalizer::TITLE_INDENT
+                    . htmlspecialchars($text, ENT_QUOTES, 'UTF-8') . '</strong></p>';
             }
         }
+        $body = BodyNormalizer::splitTitleZone($contentHtml)['rest'];
 
-        return $lines === [] ? $contentHtml : implode('', $lines) . $contentHtml;
+        return $lines === [] ? $body : implode('', $lines) . $body;
     }
 
     /**

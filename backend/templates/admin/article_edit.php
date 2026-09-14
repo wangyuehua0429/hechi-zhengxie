@@ -23,7 +23,6 @@
  * @var string|null $defaultStatus
  * @var list<string> $actions
  * @var array<string, array<string, mixed>> $transitions
- * @var int|null $channelTop 本稿件在所属栏目里是否置顶
  */
 
 declare(strict_types=1);
@@ -126,9 +125,8 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
             <input type="text" name="source" value="<?= hechi_e($article['source'] ?? '') ?>" class="writing-author"
                    placeholder="来源（如：广西政协报）" aria-label="来源">
           </div>
-          <label class="writing-top"><input type="checkbox" name="is_top" value="1"<?= (int) ($channelTop ?? $article['is_top'] ?? 0) === 1 ? ' checked' : '' ?>> 在本栏目置顶（首页对应模块也跟着排前）</label>
           <div class="writing-orig">
-            <span class="muted">原标题（填写后按加粗三行拼在正文最前，不进网页标题与首页）</span>
+            <span class="muted">原标题（引题／主标题／副题，按加粗三行拼在正文最前，每行首行空两格；不进网页标题与首页。正文里的原标题行会自动收到这里，不在正文重复）</span>
             <input type="text" name="orig_kicker" value="<?= hechi_e($article['orig_kicker'] ?? '') ?>" placeholder="引题">
             <input type="text" name="orig_title" value="<?= hechi_e($article['orig_title'] ?? '') ?>" placeholder="主标题">
             <input type="text" name="orig_subtitle" value="<?= hechi_e($article['orig_subtitle'] ?? '') ?>" placeholder="副题">

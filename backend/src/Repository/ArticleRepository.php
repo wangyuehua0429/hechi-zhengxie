@@ -356,16 +356,6 @@ final class ArticleRepository
         );
     }
 
-    /** 稿件在某个栏目里是否置顶 */
-    public function channelTop(int $articleId, string $channelType): int
-    {
-        return (int) $this->db->scalar(
-            'SELECT COALESCE(is_top, 0) FROM cms_article_channel
-             WHERE site_id = :site AND channel_type = :channel AND article_id = :id',
-            ['site' => $this->siteId, 'channel' => $channelType, 'id' => $articleId]
-        );
-    }
-
     /** 这篇稿件是否挂在某个栏目下（模块页的排序／置顶要先确认归属） */
     public function isLinkedTo(int $articleId, string $channelType): bool
     {

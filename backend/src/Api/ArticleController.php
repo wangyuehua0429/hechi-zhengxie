@@ -6,6 +6,7 @@ namespace HechiZx\Api;
 
 use HechiZx\Http\ApiException;
 use HechiZx\Http\Request;
+use HechiZx\Content\BodyNormalizer;
 use HechiZx\Content\HtmlSanitizer;
 use HechiZx\Repository\ArticleRepository;
 
@@ -52,8 +53,16 @@ final class ArticleController
         if ($article === null) {
             throw ApiException::notFound('未找到稿件 ' . $args['id']);
         }
-        // 出口兜底：库里可能还有编辑器上线之前写入的正文，输出前统一过白名单
-        $article['content'] = HtmlSanitizer::clean((string) ($article['content'] ?? ''));
+        // 出口兜底：库里可能还有编辑器上线之前写入的正文，输出前统一过白名单；
+        // 再按展示口径归一化（去空段、裁多余缩进、拍平嵌套块、改写旧站资源地址、去标题重复行）。
+        // 归一化只发生在出口，库里的 content_html 保持原样，后台编辑回填不受影响。
+        $article['content'] = BodyNormalizer::normalize(
+            HtmlSanitizer::clean((string) ($article['content'] ?? '')),
+            (string) $article['title']
+        );
+        // 图集出口只留图片：旧库里有 50 条图集记录是 mp4，前台会渲染成空白格
+        $article['images'] = BodyNormalizer::normalizeImages((array) ($article['images'] ?? []));
+
         return ['article' => $article];
     }
 

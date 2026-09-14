@@ -72,4 +72,15 @@ final class Request
         }
         return is_string($value) ? trim($value) : $default;
     }
+
+    /**
+     * 表单里是否真的带了某个字段。
+     *
+     * 用来区分「没提交这个字段」与「提交了空值」——两者语义不同：
+     * 例如原标题三列，没提交时不应改动正文里的题区，提交空值则是有意清空。
+     */
+    public function hasPost(string $key): bool
+    {
+        return array_key_exists($key, $this->post);
+    }
 }

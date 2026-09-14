@@ -181,20 +181,22 @@ const CASES = [
     look: {
       selectors: {
         "#articleMeta span": 2,
-        "#crumb li": 2,
-        "#articleGallery": 0,
-        "#articleGallery .gallery-strip img, #articleGallery img": 2
+        "#crumb li": 2
       },
-      visible: ["#articleGallery"],
+      // 2026-09-14 起：正文里已有图时不再重复出图集条，图集只服务纯图集型稿件
+      hidden: ["#articleGallery"],
       textIncludes: ["市政协动态"],
       textExcludes: ["数据加载失败", "未找到该篇信息", "信息加载中"]
     }
   },
   {
+    // 预期基于阶段 A 快照数据：静态目标与脚本自建临时库都成立，
+    // 指向开发库时不成立（40029 在开发库是归档稿，接口 404）。
     name: "详情页·附件下载（40029）",
     page: "detail.html?id=40029",
     viewport: DESKTOP,
     ready: "#articleBody > *",
+    seededData: true,
     look: {
       visible: ["#articleAttach"],
       textIncludes: ["附件下载"],
@@ -202,14 +204,89 @@ const CASES = [
     }
   },
   {
+    // 同上：62212 在阶段 A 快照里没有正文，开发库里已有正文
     name: "详情页·列表有正文未内置（62212）",
     page: "detail.html?id=62212",
     viewport: DESKTOP,
     ready: "#articleBody > *",
+    seededData: true,
     look: {
       textIncludes: ["该篇暂无正文"],
       textExcludes: ["数据加载失败", "未找到该篇信息", "信息加载中"]
     }
+  },
+  {
+    // 2026-09-14 详情页排版修复的回归点：段距、首行缩进、引题、图集去重。
+    // 归一化发生在后端出口（接口与发布器），所以只在接口可用时断言；
+    // 接口不可用时前端回退的是阶段 A 原型快照，那份数据不经过出口，不在本用例口径内。
+    name: "详情页·正文排版（62180）",
+    page: "detail.html?id=62180",
+    viewport: DESKTOP,
+    ready: "#articleBody > *",
+    apiData: true,
+    // 引题属于正文内容：62180 的正文第一行就是「许显辉赴河池市调研时提出」
+    expectLeadLine: "许显辉赴河池市调研时提出",
+    kind: "detail-layout"
+  },
+  {
+    // 长文页：右栏高于视口时不再粘住，「图片新闻」仍能看到
+    name: "详情页·长文右栏不粘（2522）",
+    page: "detail.html?id=2522",
+    viewport: DESKTOP,
+    ready: "#articleBody > *",
+    kind: "sticky-check"
+  },
+  {
+    name: "详情页·回到顶部（62180）",
+    page: "detail.html?id=62180",
+    viewport: DESKTOP,
+    ready: "#articleBody > *",
+    kind: "back-top"
+  },
+  {
+    // 题区两行（引题＋主标题）、引题与网页标题恰好相同：两行都要留在正文（61598 快照与开发库都有）
+    name: "详情页·两行题区保留（61598）",
+    page: "detail.html?id=61598",
+    viewport: DESKTOP,
+    ready: "#articleBody > *",
+    kind: "title-zone",
+    expectLeadLine: "市政协党组（扩大）会议暨五届60次主席会议召开",
+    look: {
+      textIncludes: ["提升履职效能 奋力书写河池政协新答卷"],
+      textExcludes: ["数据加载失败", "未找到该篇信息", "信息加载中"]
+    }
+  },
+  {
+    // 用户点名的例子：正文写的是「引题＋主标题」，引题与网页标题相同也要保留（63904 只在开发库有）
+    name: "详情页·引题与标题相同仍保留（63904）",
+    page: "detail.html?id=63904",
+    viewport: DESKTOP,
+    ready: "#articleBody > *",
+    kind: "title-zone",
+    devOnly: true,
+    expectLeadLine: "黄恩率队到都安开展专题调研",
+    look: {
+      textIncludes: ["聚焦常态化帮扶 筑牢防返贫底线"],
+      textExcludes: ["数据加载失败", "未找到该篇信息", "信息加载中"]
+    }
+  },
+  {
+    // 单行题区且与标题一字不差：正文顶部不再重复网页标题（154 只在开发库有）
+    name: "详情页·单行重复标题去重（154）",
+    page: "detail.html?id=154",
+    viewport: DESKTOP,
+    ready: "#articleBody > *",
+    kind: "title-zone",
+    devOnly: true,
+    leadLineExcludes: "中国人民政治协商会议章程",
+    look: { textExcludes: ["数据加载失败", "未找到该篇信息", "信息加载中"] }
+  },
+  {
+    name: "详情页·打印样式（62180）",
+    page: "detail.html?id=62180",
+    viewport: DESKTOP,
+    ready: "#articleBody > *",
+    kind: "print"
   },
   {
     name: "详情页·未知稿件 id",
@@ -267,10 +344,43 @@ const CASES = [
   }
 ];
 
+/**
+ * 发布产物（Nginx 直出的静态详情页）用例：只在 `--publish` 时跑。
+ * 目标目录是临时发布目录，站内 /uploads 资源不在其中，所以放行破图与 404，
+ * 只断言样式与归一化结果——这正是「线上直出页」的那套渲染。
+ */
+const PUBLISH_CASES = [
+  {
+    name: "静态页·正文排版（62180）",
+    page: "article/62180.html",
+    viewport: DESKTOP,
+    ready: ".article-body > *",
+    waitUntil: "domcontentloaded",
+    allowBrokenImages: true,
+    allowHttpErrors: true,
+    kind: "detail-layout",
+    look: {
+      selectors: { ".article-body": 1, "h1": 1 },
+      textIncludes: ["许显辉赴河池市调研时提出"],
+      textExcludes: ["信息加载中"]
+    }
+  },
+  {
+    name: "静态页·资源地址与图集（49643）",
+    page: "article/49643.html",
+    viewport: MOBILE,
+    ready: ".article-body > *",
+    waitUntil: "domcontentloaded",
+    allowBrokenImages: true,
+    allowHttpErrors: true,
+    kind: "static-media"
+  }
+];
+
 // ---------------------------------------------------------------- 参数与环境
 
 function parseArgs(argv) {
-  const opts = { url: "", port: 8973, only: "", headed: false, timeout: 20000, keep: false, browser: "", viaApi: false };
+  const opts = { url: "", port: 8973, only: "", headed: false, timeout: 20000, keep: false, browser: "", viaApi: false, publish: false };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === "--url") opts.url = String(argv[++i] || "").replace(/\/+$/, "");
@@ -280,6 +390,7 @@ function parseArgs(argv) {
     else if (a === "--headed") opts.headed = true;
     else if (a === "--keep") opts.keep = true;
     else if (a === "--via-api") opts.viaApi = true;
+    else if (a === "--publish") opts.publish = true;
     else if (a === "--browser") opts.browser = String(argv[++i] || "");
     else if (a === "--help" || a === "-h") opts.help = true;
   }
@@ -494,7 +605,8 @@ async function runCase(browser, base, c, opts) {
 
   const url = new URL(c.page, base + "/").href;
   try {
-    const resp = await page.goto(url, { waitUntil: "load", timeout: opts.timeout });
+    // 发布产物里的图片指向旧站（慢，单请求约 10s），静态页用例只等文档加载完
+    const resp = await page.goto(url, { waitUntil: c.waitUntil || "load", timeout: opts.timeout });
     if (!resp || !resp.ok()) failures.push("页面返回 HTTP " + (resp ? resp.status() : "无响应") + "：" + url);
     await page.waitForSelector(c.ready, { state: "attached", timeout: opts.timeout });
     await page.waitForTimeout(250);
@@ -520,7 +632,7 @@ async function runCase(browser, base, c, opts) {
     if (info.overflowX > 1) failures.push("横向溢出 " + info.overflowX + "px");
 
     // 3) 破图（已加载完成但尺寸为 0；未触发的懒加载不计）
-    if (info.imgBroken.length) {
+    if (info.imgBroken.length && !c.allowBrokenImages) {
       failures.push("破图 " + info.imgBroken.length + " 张：" + info.imgBroken.slice(0, 3).join("，"));
     }
     notes.push("图片 " + (info.imgTotal - info.imgBroken.length) + "/" + info.imgTotal + " 张已加载" +
@@ -540,7 +652,9 @@ async function runCase(browser, base, c, opts) {
     });
     if (pageErrors.length) failures.push("JS 异常 " + pageErrors.length + " 条：" + pageErrors.slice(0, 2).join(" | "));
     if (consoleErrorsReal.length) failures.push("控制台报错 " + consoleErrorsReal.length + " 条：" + consoleErrorsReal.slice(0, 2).join(" | "));
-    if (httpErrorsReal.length) failures.push("请求失败 " + httpErrorsReal.length + " 条：" + httpErrorsReal.slice(0, 3).join(" | "));
+    if (httpErrorsReal.length && !c.allowHttpErrors) {
+      failures.push("请求失败 " + httpErrorsReal.length + " 条：" + httpErrorsReal.slice(0, 3).join(" | "));
+    }
     if (consoleWarnings.length) notes.push("控制台警告 " + consoleWarnings.length + " 条");
 
     // 5) 版式用例：关键容器数量、必须可见的区块、必须出现的文案
@@ -551,6 +665,10 @@ async function runCase(browser, base, c, opts) {
     }
     for (const sel of look.visible || []) {
       if (!(await page.locator(sel).first().isVisible())) failures.push("区块 " + sel + " 不可见");
+    }
+    for (const sel of look.hidden || []) {
+      const node = page.locator(sel).first();
+      if ((await node.count()) && (await node.isVisible())) failures.push("区块 " + sel + " 不该显示");
     }
     for (const s of look.textIncludes || []) {
       if (info.text.indexOf(s) === -1) failures.push("缺少文案「" + s + "」");
@@ -590,6 +708,165 @@ async function runCase(browser, base, c, opts) {
       const afterText = await page.evaluate(() => document.body.innerText || "");
       if (afterText.indexOf("数据加载失败") !== -1) failures.push("刷新后出现「数据加载失败」");
     }
+
+    // 8) 详情页正文排版（2026-09-14 修复的回归点）
+    if (c.kind === "detail-layout") {
+      const m = await page.evaluate(() => {
+        const body = document.getElementById("articleBody") || document.querySelector(".article-body");
+        const blocks = Array.from(body.children).filter((n) => n.nodeType === 1);
+        const font = parseFloat(getComputedStyle(body).fontSize);
+        const out = {
+          font,
+          empty: 0,
+          leadSpace: 0,
+          margins: [],
+          indent: null,
+          bodyImgs: body.querySelectorAll("img").length,
+          galleryHidden: true,
+          leadLine: "",
+          headExtraLine: false
+        };
+        const visible = (s) => String(s || "").replace(/[\s\u3000\u00a0]/g, "");
+        blocks.forEach((el) => {
+          const text = el.textContent || "";
+          if (visible(text) === "" && !el.querySelector("img,video,table")) out.empty += 1;
+          if (visible(text) !== "" && /^[\s\u3000\u00a0]/.test(text)) out.leadSpace += 1;
+          const mb = parseFloat(getComputedStyle(el).marginBottom);
+          if (mb > 0) out.margins.push(mb);
+        });
+        // 首个可见字符距版心的距离：应约等于 2 字（text-indent: 2em）
+        const target = blocks.find((el) => visible(el.textContent || "").length > 20);
+        if (target) {
+          const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT);
+          let node = walker.nextNode();
+          while (node && visible(node.nodeValue) === "") node = walker.nextNode();
+          if (node) {
+            const idx = String(node.nodeValue).search(/[^\s\u3000\u00a0]/);
+            if (idx >= 0) {
+              const range = document.createRange();
+              range.setStart(node, idx);
+              range.setEnd(node, idx + 1);
+              const box = target.getBoundingClientRect();
+              const cs = getComputedStyle(target);
+              const contentLeft = box.left + parseFloat(cs.paddingLeft) + parseFloat(cs.borderLeftWidth);
+              out.indent = Math.round(range.getBoundingClientRect().left - contentLeft);
+            }
+          }
+        }
+        const gallery = document.getElementById("articleGallery");
+        if (gallery) out.galleryHidden = gallery.hidden || out.bodyImgs === 0;
+        // 顶部只出一行标题：引题属于正文，不能在 h1 上方再占一行
+        const sub = document.getElementById("articleSub");
+        out.headExtraLine = !!sub && !sub.hidden && visible(sub.textContent) !== "";
+        out.leadLine = blocks.length ? visible(blocks[0].textContent || "").slice(0, 40) : "";
+        return out;
+      });
+
+      if (m.empty > 0) failures.push("正文仍有 " + m.empty + " 个空段（应为 0）");
+      if (m.leadSpace > 0) failures.push("正文还有 " + m.leadSpace + " 段自带首部空格（与 2em 缩进叠加）");
+      const maxMargin = m.margins.length ? Math.max(...m.margins) : 0;
+      const minMargin = m.margins.length ? Math.min(...m.margins) : 0;
+      if (maxMargin > m.font * 1.2) failures.push("段间距过大：" + Math.round(maxMargin) + "px（正文 " + Math.round(m.font) + "px）");
+      if (m.margins.length && minMargin < m.font * 0.4) failures.push("段间距过小：" + Math.round(minMargin) + "px");
+      if (m.indent !== null) {
+        const em = m.indent / m.font;
+        if (em < 1.4 || em > 2.6) failures.push("首行缩进 " + em.toFixed(1) + " 字（应为 2 字）");
+        notes.push("首行缩进 " + em.toFixed(1) + " 字");
+      }
+      if (!m.galleryHidden) failures.push("正文已有图，图集条仍重复渲染");
+      if (m.headExtraLine) failures.push("标题上方多出一行引题（顶部应只有一行标题）");
+      if (c.expectLeadLine && m.leadLine.indexOf(c.expectLeadLine) !== 0) {
+        failures.push("正文首行不是引题「" + c.expectLeadLine + "」，实际「" + m.leadLine + "」");
+      }
+      notes.push("正文首行「" + m.leadLine.slice(0, 14) + "…」");
+      notes.push("段间距 " + Math.round(minMargin) + "–" + Math.round(maxMargin) + "px");
+    }
+
+    // 9) 正文题区与标题重复：顶部只出一行标题，题区按行留在正文里
+    if (c.kind === "title-zone") {
+      const m = await page.evaluate(() => {
+        const body = document.getElementById("articleBody");
+        const sub = document.getElementById("articleSub");
+        const visible = (s) => String(s || "").replace(/[\s\u3000\u00a0]/g, "");
+        const blocks = Array.from(body.children).filter((el) => visible(el.textContent) !== "" || el.querySelector("img"));
+        return {
+          headExtraLine: !!sub && !sub.hidden && visible(sub.textContent) !== "",
+          leadLine: blocks.length ? String(blocks[0].textContent || "").replace(/[\s\u3000\u00a0]/g, "") : "",
+          lineCount: blocks.length
+        };
+      });
+      if (m.headExtraLine) failures.push("标题上方多出一行引题（顶部应只有一行标题）");
+      if (c.expectLeadLine && m.leadLine.indexOf(c.expectLeadLine) !== 0) {
+        failures.push("正文首行应为「" + c.expectLeadLine + "」，实际「" + m.leadLine.slice(0, 30) + "」");
+      }
+      if (c.leadLineExcludes && m.leadLine.indexOf(c.leadLineExcludes) === 0) {
+        failures.push("单行题区与标题重复时不应再出现在正文首行，实际「" + m.leadLine.slice(0, 30) + "」");
+      }
+      notes.push("正文首行「" + m.leadLine.slice(0, 16) + "…」，共 " + m.lineCount + " 块");
+    }
+
+    // 10) 长文页右栏不粘：侧栏高于视口时应取消 position: sticky
+    if (c.kind === "sticky-check") {
+      const m = await page.evaluate(() => {
+        const side = document.getElementById("innerSide");
+        return { height: Math.round(side.getBoundingClientRect().height), sticky: side.classList.contains("is-sticky"), viewport: window.innerHeight };
+      });
+      if (m.height >= m.viewport - 90 && m.sticky) {
+        failures.push("侧栏高 " + m.height + "px 仍启用粘性，底部内容在视口外看不到");
+      }
+      notes.push("侧栏 " + m.height + "px" + (m.sticky ? "（粘性保留）" : "（粘性取消）"));
+    }
+
+    // 10) 回到顶部：滚动后出现，点击回到顶部
+    if (c.kind === "back-top") {
+      await page.evaluate(() => window.scrollTo(0, window.innerHeight * 2));
+      await page.waitForTimeout(300);
+      const shown = await page.locator(".to-top").isVisible();
+      if (!shown) failures.push("滚动后「回到顶部」按钮未出现");
+      else {
+        await page.locator(".to-top").click();
+        await page.waitForTimeout(700);
+        const y = await page.evaluate(() => Math.round(window.scrollY));
+        if (y > 50) failures.push("点击回到顶部后仍在 " + y + "px");
+        else notes.push("回到顶部可用");
+      }
+    }
+
+    // 11) 打印样式：站头、导航、侧栏、工具栏、页脚都不应打出来
+    if (c.kind === "print") {
+      await page.emulateMedia({ media: "print" });
+      await page.waitForTimeout(200);
+      const stillVisible = await page.evaluate(() => {
+        return [".topbar", ".site-header", ".crumb-bar", ".inner-side", ".article-toolbar", ".site-footer"]
+          .filter((sel) => {
+            const el = document.querySelector(sel);
+            return !!el && getComputedStyle(el).display !== "none";
+          });
+      });
+      await page.emulateMedia({ media: "screen" });
+      if (stillVisible.length) failures.push("打印态仍会打出：" + stillVisible.join("、"));
+      else notes.push("打印态已隐藏站头/侧栏/工具栏");
+    }
+
+    // 12) 静态发布页：旧站地址必须已改写（本地有文件的走站内，其余强制 https）
+    if (c.kind === "static-media") {
+      const m = await page.evaluate(() => {
+        const html = document.body.innerHTML;
+        const video = document.querySelector(".article-body video");
+        const body = document.querySelector(".article-body");
+        const de = document.documentElement;
+        return {
+          plainHttp: (html.match(/http:\/\/(?:www\.)?gxhczx\.gov\.cn/gi) || []).length,
+          videoWidth: video ? Math.round(video.getBoundingClientRect().width) : 0,
+          bodyWidth: body ? Math.round(body.getBoundingClientRect().width) : 0,
+          overflowX: de.scrollWidth - de.clientWidth
+        };
+      });
+      if (m.plainHttp > 0) failures.push("静态页仍有 " + m.plainHttp + " 处 http 旧站地址");
+      if (m.videoWidth > m.bodyWidth + 1) failures.push("静态页视频 " + m.videoWidth + "px 超出正文 " + m.bodyWidth + "px");
+      if (m.overflowX > 1) failures.push("静态页横向溢出 " + m.overflowX + "px");
+      notes.push("视频 " + m.videoWidth + "/" + m.bodyWidth + "px");
+    }
   } catch (e) {
     failures.push("执行异常：" + String((e && e.message) || e).split("\n")[0]);
   } finally {
@@ -604,15 +881,17 @@ async function runCase(browser, base, c, opts) {
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
   if (opts.help) {
-    console.log("用法：node tests/check-pages.mjs [--url <base>] [--port 8973] [--only <关键词>] [--browser chrome] [--headed] [--keep]");
+    console.log("用法：node tests/check-pages.mjs [--url <base>] [--port 8973] [--only <关键词>] [--via-api] [--publish] [--browser chrome] [--headed] [--keep]");
     return 0;
   }
 
   const cases = opts.only
     ? CASES.filter((c) => c.name.indexOf(opts.only) !== -1)
     : CASES;
-  const selected = cases.filter((c) => (opts.viaApi ? true : !c.onlyApi));
-  if (!cases.length) {
+  const publishCases = opts.only
+    ? PUBLISH_CASES.filter((c) => c.name.indexOf(opts.only) !== -1)
+    : PUBLISH_CASES;
+  if (!cases.length && !(opts.publish && publishCases.length)) {
     console.log("没有匹配 --only " + opts.only + " 的用例");
     return 1;
   }
@@ -634,11 +913,49 @@ async function main() {
     console.log("检查目标：" + base);
   }
 
+  // 同一篇稿件的预期会随数据源变化（40029 在快照里公开、在开发库是归档；62212 在快照里无正文、
+  // 在开发库已有正文），所以用例分三类，按目标实际是什么来选：
+  //   · 通用：任何目标都跑；
+  //   · seededData：预期基于阶段 A 快照数据（静态目标与脚本自建临时库都成立），指向开发库时不跑；
+  //   · onlyApi：依赖脚本对临时库的改动（例如把 62245 改成草稿），只在自建临时库时跑。
+  let apiAvailable = opts.viaApi;
+  if (!apiAvailable) {
+    try {
+      const res = await fetch(base + "/api/v1/health");
+      apiAvailable = res.ok;
+    } catch (e) {
+      apiAvailable = false;
+    }
+  }
+  const liveDb = apiAvailable && !opts.viaApi;
+  const selected = cases.filter((c) => {
+    if (c.onlyApi) return opts.viaApi && !opts.url;
+    if (c.seededData) return !liveDb;
+    if (c.apiData) return apiAvailable;
+    if (c.devOnly) return liveDb;
+    return true;
+  });
+  console.log("数据源：" + (apiAvailable ? "接口可用（/api/v1/health 正常）" : "接口不可用（走静态快照）"));
+
   const { browser, label } = await launchBrowser(chromium, opts);
   console.log("浏览器：" + label);
   const started = Date.now();
   const results = [];
+  let publishServer = null;
+  let publishRoot = null;
   try {
+    // Nginx 直出的静态详情页：临时发布一次，用静态服务跑同一套排版断言
+    if (opts.publish) {
+      const php = resolvePhp();
+      if (!php) throw new Error("--publish 需要 php");
+      publishRoot = mkdtempSync(path.join(tmpdir(), "hechi-publish-"));
+      const run = spawnSync(php, ["backend/bin/publish.php", "--out=" + publishRoot], { cwd: REPO, encoding: "utf8" });
+      if (run.status !== 0) {
+        throw new Error("发布失败：" + String(run.stderr || run.stdout || "").trim().split("\n").slice(-1)[0]);
+      }
+      publishServer = await startStaticServer(publishRoot, opts.port + 1);
+      console.log("发布产物：" + publishRoot + " → " + publishServer.base);
+    }
     for (const c of selected) {
       const r = await runCase(browser, base, c, opts);
       results.push(r);
@@ -646,10 +963,21 @@ async function main() {
       console.log(tag + "  " + r.name + (r.notes.length ? "  — " + r.notes.join("；") : ""));
       r.failures.forEach((f) => console.log("      · " + f));
     }
+    if (publishServer) {
+      for (const c of publishCases) {
+        const r = await runCase(browser, publishServer.base, c, opts);
+        results.push(r);
+        const tag = r.failures.length ? "FAIL" : "PASS";
+        console.log(tag + "  " + r.name + (r.notes.length ? "  — " + r.notes.join("；") : ""));
+        r.failures.forEach((f) => console.log("      · " + f));
+      }
+    }
   } finally {
     await browser.close().catch(() => {});
     if (server && !opts.keep) server.child.kill("SIGTERM");
     if (phpServer && !opts.keep) rmSync(phpServer.tmpRoot, { recursive: true, force: true });
+    if (publishServer && !opts.keep) publishServer.child.kill("SIGTERM");
+    if (publishRoot && !opts.keep) rmSync(publishRoot, { recursive: true, force: true });
   }
 
   const failed = results.filter((r) => r.failures.length);

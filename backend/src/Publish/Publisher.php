@@ -7,6 +7,7 @@ namespace HechiZx\Publish;
 use HechiZx\Repository\ArticleRepository;
 use HechiZx\Repository\ChannelRepository;
 use HechiZx\Repository\HomeRepository;
+use HechiZx\Content\BodyNormalizer;
 use HechiZx\Content\HtmlSanitizer;
 use HechiZx\Support\Db;
 use HechiZx\Support\Json;
@@ -192,6 +193,12 @@ final class Publisher
             $article = $this->articles()->byId((string) $row['article_id']);
             if ($article !== null) {
                 unset($article['hasBody']);
+                // 出口归一化：静态页与 data/article.json 快照走同一份结果，口径见 BodyNormalizer 注释
+                $article['content'] = BodyNormalizer::normalize(
+                    HtmlSanitizer::clean((string) $article['content']),
+                    (string) $article['title']
+                );
+                $article['images'] = BodyNormalizer::normalizeImages((array) $article['images']);
                 $articles[] = $article;
             }
         }
@@ -244,8 +251,8 @@ final class Publisher
             $meta .= '　来源：' . htmlspecialchars((string) $article['source'], ENT_QUOTES);
         }
         $html = '<p class="meta">' . $meta . '</p>';
-        // 出口兜底：静态页直接对外，正文统一过白名单（覆盖编辑器上线前的历史正文）
-        $html .= '<div class="article-body">' . HtmlSanitizer::clean((string) $article['content']) . '</div>';
+        // 正文在 articlesWithBody() 里已过白名单并归一化（静态页与快照同一份结果），这里直接输出
+        $html .= '<div class="article-body">' . (string) $article['content'] . '</div>';
 
         $attachments = $article['attachments'] ?? [];
         if ($attachments !== []) {

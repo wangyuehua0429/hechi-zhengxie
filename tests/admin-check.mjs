@@ -138,6 +138,20 @@ function csrfToken(html) {
   return m ? m[1] : "";
 }
 
+/** 页面里的表单值都是转义过的，回填 POST 时要还原 */
+function unescapeHtml(value) {
+  return String(value == null ? "" : value)
+    .replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"').replace(/&#039;/g, "'")
+    .replace(/&amp;/g, "&");
+}
+
+/** 从编辑页取出某列表单值（已反转义） */
+function formValue(html, name) {
+  const m = new RegExp('name="' + name + '" value="([^"]*)"').exec(html);
+  return m ? unescapeHtml(m[1]) : "";
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
   if (opts.help) {
@@ -349,6 +363,13 @@ async function main() {
     const originalTitle = (/name="title" value="([^"]*)"/.exec(edit.text) || [])[1] || "";
     const originalSummary = (/name="summary" rows="3">([\s\S]*?)<\/textarea>/.exec(edit.text) || [])[1] || "";
     const originalContent = (/name="content_html" rows="18" class="mono">([\s\S]*?)<\/textarea>/.exec(edit.text) || [])[1] || "";
+    // 2026-09-14 起编辑页把正文题区收进「原标题」三列，正文里不再重复；
+    // 回填保存时要把这三列一起带上，否则等于用户把原标题删了。
+    const originalOrig = {
+      orig_kicker: formValue(edit.text, "orig_kicker"),
+      orig_title: formValue(edit.text, "orig_title"),
+      orig_subtitle: formValue(edit.text, "orig_subtitle"),
+    };
     check("编辑页带出原标题与正文", originalTitle !== "" && originalContent.length > 100,
       originalTitle + " / 正文 " + originalContent.length + " 字符");
 
@@ -412,27 +433,29 @@ async function main() {
       published_date: "2026-04-23",
       published_time: "11:17",
       summary: originalSummary,
-      content_html: originalContent
+      // 编辑页里的 textarea 值是转义过的，回填时要还原成真 HTML（否则会把 &lt;div&gt; 存进库）
+      content_html: unescapeHtml(originalContent),
+      ...originalOrig
     });
     check("恢复原稿成功", restored.status === 302);
     const publishedPublic = await client.get("/api/v1/article/" + SAMPLE_ID, { json: true });
     check("恢复为已发布后公开接口又能读到",
       publishedPublic.status === 200 && publishedPublic.body?.article?.title === originalTitle);
 
-    // ---- 「在本栏目置顶」：稿件编辑页勾选后，首页模块与栏目页列表同时排前
+    // ---- 「在本栏目置顶」：2026-09-14 起编辑页不再设置排序，置顶统一在首页管理／列表里点
     const listBeforeTop = (await client.get("/api/v1/channels/904?listSize=5", { json: true })).body?.channel?.list || [];
     const topTargetId = String(listBeforeTop[1]?.id || "");
     check("取到用于置顶检查的第二篇稿件", topTargetId !== "", "904 前三条 " + listBeforeTop.slice(0, 3).map((i) => i.id).join(","));
     if (topTargetId !== "") {
       const topEdit = await client.get("/admin/article/" + topTargetId);
-      const topTitle = (/name="title" value="([^"]*)"/.exec(topEdit.text) || [])[1] || "";
-      const topSaved = await client.post("/admin/article/" + topTargetId, {
+      check("编辑页不再有「在本栏目置顶」复选框（排序不在提交环节设置）",
+        !/name="is_top"/.test(topEdit.text));
+      const topSaved = await client.post("/admin/article/" + topTargetId + "/top", {
         _token: csrfToken(topEdit.text),
-        title: topTitle,
-        content_html: "<p>置顶检查正文。</p>",
-        is_top: "1"
+        value: "1",
+        back: "/admin/articles"
       });
-      check("编辑页勾选「在本栏目置顶」可以保存", topSaved.status === 302);
+      check("首页管理/列表里的「置顶」按钮可以保存", topSaved.status === 302);
       const listAfterTop = (await client.get("/api/v1/channels/904?listSize=5", { json: true })).body?.channel?.list || [];
       check("置顶后该稿排在栏目列表最前",
         String(listAfterTop[0]?.id || "") === topTargetId,
@@ -443,20 +466,95 @@ async function main() {
         "首页首条 " + (homeAfterTop.body?.home?.zxdt?.tabs?.[0]?.items?.[0]?.id || "无"));
 
       const unTopPage = await client.get("/admin/article/" + topTargetId);
-      const unTopSaved = await client.post("/admin/article/" + topTargetId, {
+      const unTopSaved = await client.post("/admin/article/" + topTargetId + "/top", {
         _token: csrfToken(unTopPage.text),
-        title: topTitle,
-        content_html: "<p>置顶检查正文。</p>"
+        value: "0",
+        back: "/admin/articles"
       });
-      check("取消置顶后编辑页复选框回到未勾选",
-        unTopSaved.status === 302 &&
-        !/name="is_top" value="1" checked/.test((await client.get("/admin/article/" + topTargetId)).text));
+      check("取消置顶接口可用，且编辑页始终没有置顶复选框",
+        unTopSaved.status === 302
+          && !/name="is_top"/.test((await client.get("/admin/article/" + topTargetId)).text),
+        "状态 " + unTopSaved.status);
       const listAfterUnTop = (await client.get("/api/v1/channels/904?listSize=5", { json: true })).body?.channel?.list || [];
       const posBefore = listBeforeTop.findIndex((i) => String(i.id) === topTargetId);
       const posAfter = listAfterUnTop.findIndex((i) => String(i.id) === topTargetId);
       check("取消置顶后按发布时间落回原位，不会顶到最前",
         posAfter === posBefore && posAfter !== 0,
         "置顶前第 " + (posBefore + 1) + " 位 → 取消后第 " + (posAfter + 1) + " 位");
+    }
+
+    // ---- 原标题：正文题区收进三列、编辑器正文不重复、保存幂等（2026-09-14）
+    {
+      const origPage = await client.get("/admin/article/" + SAMPLE_ID);
+      const taMatch = /<textarea[^>]*name="content_html"[^>]*>([\s\S]*?)<\/textarea>/.exec(origPage.text);
+      const taHtml = taMatch ? unescapeHtml(taMatch[1]) : "";
+      const kicker = formValue(origPage.text, "orig_kicker");
+      const mainTitle = formValue(origPage.text, "orig_title");
+      check("编辑页把正文题区回填进「原标题」输入框",
+        kicker.includes("许显辉赴河池市调研时提出") && mainTitle.includes("生态与资源协同发力"),
+        JSON.stringify({ kicker, mainTitle }));
+      check("编辑页正文里不再重复题区行", taHtml !== "" && !taHtml.includes("许显辉赴河池市调研时提出"),
+        taHtml.slice(0, 80));
+
+      const pageTitle = (/name="title" value="([^"]*)"/.exec(origPage.text) || [])[1] || "";
+      const post = async () => client.post("/admin/article/" + SAMPLE_ID, {
+        _token: csrfToken((await client.get("/admin/article/" + SAMPLE_ID)).text),
+        title: unescapeHtml(pageTitle),
+        content_html: taHtml,
+        orig_kicker: kicker,
+        orig_title: mainTitle,
+      });
+      await post();
+      await post();   // 连续保存两次，正文不应出现两份题区
+      const after = await client.get("/api/v1/article/" + SAMPLE_ID, { json: true });
+      const body = String(after.body?.article?.content ?? "");
+      const indent = "\u3000\u3000";
+      // 前台出口会把行首缩进裁掉交给 CSS（text-indent: 2em），所以接口这里只看题区在最前
+      check("保存后正文题区仍排在最前（缩进由前台样式给）",
+        body.startsWith("<p><strong>" + kicker + "</strong></p>")
+          && body.includes("<p><strong>" + mainTitle + "</strong></p>"),
+        body.slice(0, 120));
+      check("重复保存不会叠加题区",
+        body.split(kicker).length - 1 === 1 && body.split(mainTitle).length - 1 === 1,
+        "引题出现 " + (body.split(kicker).length - 1) + " 次");
+
+      // 库里存的那份要保留「首行空两格」，且缩进写在 <strong> 里（编辑器外侧空白会被吃掉）
+      const stored = runPhp(php, "-r", env, [
+        'require "backend/src/bootstrap.php"; $db = new HechiZx\\Support\\Db((array) hechi_config("db"));'
+          + ' echo (string) $db->scalar("SELECT content_html FROM cms_article WHERE article_id = ' + SAMPLE_ID + '");',
+      ]);
+      const storedHtml = String(stored.stdout || "");
+      check("库里题区行首行空两格，且缩进写在 <strong> 内",
+        storedHtml.startsWith("<p><strong>" + indent + kicker + "</strong></p>")
+          && storedHtml.includes("<p><strong>" + indent + mainTitle + "</strong></p>"),
+        storedHtml.slice(0, 120));
+
+      // 回归（P1）：正文有三行题区、但三列只填了两列时，空着的那列要从正文补回，保存不能丢行
+      runPhp(php, "-r", env, [
+        'require "backend/src/bootstrap.php"; $db = new HechiZx\\Support\\Db((array) hechi_config("db"));'
+          + ' $db->execute("UPDATE cms_article SET content_html = :c, orig_kicker = :k, orig_title = :t, orig_subtitle = :s WHERE article_id = :id",'
+          + ' ["c" => "<div><strong>引题新增</strong></div><div><strong>主标题新增</strong></div>'
+          + '<div><strong>副题新增</strong></div><div>正文。</div>",'
+          + ' "k" => "引题新增", "t" => "主标题新增", "s" => "", "id" => ' + SAMPLE_ID + ']);',
+      ]);
+      const backPage = await client.get("/admin/article/" + SAMPLE_ID);
+      check("残缺状态：空着的副题会从正文题区补回",
+        formValue(backPage.text, "orig_subtitle") === "副题新增",
+        formValue(backPage.text, "orig_subtitle"));
+      const backTa = unescapeHtml((/<textarea[^>]*name="content_html"[^>]*>([\s\S]*?)<\/textarea>/.exec(backPage.text) || [])[1] || "");
+      await client.post("/admin/article/" + SAMPLE_ID, {
+        _token: csrfToken(backPage.text),
+        title: formValue(backPage.text, "title"),
+        content_html: backTa,
+        orig_kicker: formValue(backPage.text, "orig_kicker"),
+        orig_title: formValue(backPage.text, "orig_title"),
+        orig_subtitle: formValue(backPage.text, "orig_subtitle"),
+      });
+      const kept = await client.get("/api/v1/article/" + SAMPLE_ID, { json: true });
+      const keptBody = String(kept.body?.article?.content ?? "");
+      check("残缺状态保存后三行题区都还在（不会丢副题）",
+        keptBody.includes("引题新增") && keptBody.includes("主标题新增") && keptBody.includes("副题新增"),
+        keptBody.slice(0, 140));
     }
 
     // ---- 新建稿件 → 附件 → 插图 → 删除
