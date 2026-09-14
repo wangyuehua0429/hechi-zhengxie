@@ -160,7 +160,11 @@
   /* ---------------------------------------------------- 标题字数（标题输入框） */
   if (titleArea && titleCount) {
     const refreshTitleCount = () => {
-      titleCount.textContent = titleArea.value.length + "/64";
+      const used = titleArea.value.length;
+      titleCount.textContent = used + "/64";
+      // 快到上限时变色：标题超长前台会被截断，写之前就该看见
+      titleCount.classList.toggle("is-near", used >= 56 && used < 64);
+      titleCount.classList.toggle("is-full", used >= 64);
     };
     titleArea.addEventListener("input", refreshTitleCount);
     refreshTitleCount();
@@ -386,12 +390,28 @@
   if (toTop) {
     const reduceMotion = typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const syncToTop = () => { toTop.hidden = window.scrollY < 400; };
+    // 稿件页底部有吸底保存条：窄屏上把「回到顶部」抬到条子上方，
+    // 免得它压住保存按钮。条子吸在视口下沿时按高度让位；滚到页面末尾时条子停在
+    // 正文下方（离视口下沿还差 main 的下内边距），所以每次滚动都按它的实际位置重算。
+    const stickyBar = document.querySelector(".form-actions");
+    const liftToTop = () => {
+      if (!stickyBar || window.innerWidth > 720) {
+        toTop.style.bottom = "";
+        return;
+      }
+      const rect = stickyBar.getBoundingClientRect();
+      toTop.style.bottom = Math.max(0, window.innerHeight - rect.top + 16) + "px";
+    };
+    const syncToTop = () => {
+      toTop.hidden = window.scrollY < 400;
+      liftToTop();
+    };
 
     toTop.addEventListener("click", () => {
       window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
     });
     window.addEventListener("scroll", syncToTop, { passive: true });
+    window.addEventListener("resize", syncToTop);
     syncToTop();
   }
 

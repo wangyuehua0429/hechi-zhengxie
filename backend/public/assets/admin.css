@@ -45,6 +45,10 @@ body {
   font: 15px/1.7 "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", sans-serif;
 }
 
+/* 稿件编辑页的保存条吸在底部，会盖住最后一屏的下边缘；给滚动留出它的高度，
+   键盘 Tab 到靠下的字段时不会被工具条整个挡住（WCAG 2.2「焦点不被遮挡」）。 */
+html { scroll-padding-bottom: 96px; }
+
 a { color: var(--brand); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
@@ -770,6 +774,40 @@ html:not(.js) .bulk-col { display: none; }
 .card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .card-head h2 { margin: 0; }
 .card-tools { display: flex; align-items: center; gap: 10px; }
+/* 卡片标题前的步骤号：新建稿件是「先选栏目、再写内容」两步，编号让顺序一眼可见 */
+.card-head h2 .step-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 700;
+  vertical-align: 1px;
+}
+/* 卡片标题右侧的小状态块：栏目选没选、正文字数这类「一眼要看到」的读数 */
+.pick-current {
+  margin: 0;
+  padding: 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fafbfc;
+  color: var(--muted);
+  font-size: 13px;
+}
+.pick-current strong { color: var(--ink); }
+/* 没选栏目就存不下稿（服务端会退回并报错），这里先说清楚 */
+.pick-current--empty { border-color: #e6cf9a; background: #fff8e1; color: #8a5d0f; }
+.pick-note { margin: 10px 0 0; }
+.count-chip {
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
 .form-actions {
   display: flex;
   flex-wrap: wrap;
@@ -786,6 +824,37 @@ html:not(.js) .bulk-col { display: none; }
   box-shadow: var(--shadow-float);
 }
 .form-actions .muted { flex: 1 1 240px; margin: 0; }
+/* 保存条：按钮成组靠左，说明文字靠右下；返回列表用竖线与主按钮分开 */
+.action-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.action-buttons .btn[href] {
+  margin-left: 6px;
+  padding-left: 18px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0;
+  color: var(--muted);
+}
+.action-hint { flex: 1 1 260px; margin: 0; text-align: right; font-size: 13px; }
+/* 说明文字分长短两版：窄屏用短句，免得吸底条长成三行 */
+.hint-narrow { display: none; }
+/* 快捷键提示：小圆角方框，与正文里的 code 区分开 */
+kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: #fafbfc;
+  color: #444;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+}
 .meta-list { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 6px 10px; margin: 0; font-size: 14px; }
 .meta-list dt { color: var(--muted); font-size: 13px; }
 .meta-list dd { margin: 0; word-break: break-word; }
@@ -854,6 +923,27 @@ html:not(.js) .bulk-col { display: none; }
   .pager-jump { margin-left: 0; }
   .filter-label { min-width: 100%; }
   .preview-panel iframe { height: 320px; }
+  /* 保存条：按钮各占一半铺满一行，说明文字另起一行左对齐 */
+  .action-buttons { width: 100%; flex-wrap: nowrap; gap: 8px; }
+  .action-buttons .btn, .action-buttons .btn-primary {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 9px 10px;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+  /* 窄屏上「返回列表」回到普通按钮的样子，别再用竖线分隔（一行放不下就会单独占一行） */
+  .action-buttons .btn[href] {
+    flex: 0 0 auto;
+    margin-left: 0;
+    padding-left: 12px;
+    border: 1px solid var(--field-line);
+    border-radius: 4px;
+    color: var(--ink);
+  }
+  .action-hint { flex: 1 1 100%; text-align: left; font-size: 12px; }
+  .hint-wide { display: none; }
+  .hint-narrow { display: inline; }
 }
 
 /* ============================================================ 首页四大类页面 */

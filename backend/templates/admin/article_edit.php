@@ -74,8 +74,15 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
 </div>
 
 <?php if ($isNew): ?>
-  <section class="card">
-    <h2>选择栏目</h2>
+  <section class="card card--pick">
+    <div class="card-head">
+      <h2><span class="step-no" aria-hidden="true">1</span>选择栏目</h2>
+      <?php if ($currentChannelName !== ''): ?>
+        <p class="pick-current">当前：<strong><?= hechi_e($currentChannelName) ?></strong></p>
+      <?php else: ?>
+        <p class="pick-current pick-current--empty">还没选栏目，选好才存得下稿</p>
+      <?php endif; ?>
+    </div>
     <?php
     $navUrl = '/admin/article/new';
     $navActive = (string) ($defaultChannel ?? '');
@@ -83,7 +90,7 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
     $navAllLabel = '未选';
     include __DIR__ . '/_channel_nav.php';
     ?>
-    <p class="muted">当前栏目：<strong><?= hechi_e($currentChannelName !== '' ? $currentChannelName : '未选择') ?></strong>（点上面的栏目名切换）</p>
+    <p class="pick-note muted">点栏目名即选中；带箭头的是含子栏目的一级栏目，点开后接着选具体子栏目。</p>
   </section>
 <?php endif; ?>
 
@@ -104,34 +111,50 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
 
       <section class="card">
         <div class="card-head">
-          <h2>摘要与正文</h2>
+          <h2><?php if ($isNew): ?><span class="step-no" aria-hidden="true">2</span><?php endif; ?>摘要与正文</h2>
           <div class="card-tools">
             <button type="button" class="btn btn-sm btn-ghost" data-preview-toggle hidden>预览正文</button>
             <button type="button" class="btn btn-sm btn-ghost" data-editor-toggle hidden>切到源码</button>
-            <span class="muted" data-content-count></span>
+            <span class="count-chip" data-content-count></span>
           </div>
         </div>
         <div class="writing-paper">
           <div class="writing-title-line">
+            <span class="writing-title-label" id="writing-title-label">网页标题</span>
             <input type="text" name="title" value="<?= hechi_e($article['title'] ?? '') ?>" class="writing-title"
-                   maxlength="64" placeholder="请在这里输入标题" aria-label="标题" required>
+                   maxlength="64" placeholder="请在这里输入标题" aria-labelledby="writing-title-label" required>
             <span class="writing-title-count" data-title-count aria-hidden="true"></span>
           </div>
-          <div class="writing-meta">
-            <input type="text" name="author" value="<?= hechi_e($article['author'] ?? '') ?>" class="writing-author"
-                   placeholder="请输入作者" aria-label="作者">
-            <input type="text" name="editor" value="<?= hechi_e($article['editor'] ?? '') ?>" class="writing-author"
-                   placeholder="责任编辑" aria-label="责任编辑">
-            <input type="text" name="source" value="<?= hechi_e($article['source'] ?? '') ?>" class="writing-author"
-                   placeholder="来源（如：广西政协报）" aria-label="来源">
-          </div>
           <div class="writing-orig">
-            <span class="muted">原标题（引题／主标题／副题，按加粗三行拼在正文最前，每行首行空两格；不进网页标题与首页。正文里的原标题行会自动收到这里，不在正文重复）</span>
-            <input type="text" name="orig_kicker" value="<?= hechi_e($article['orig_kicker'] ?? '') ?>" placeholder="引题">
-            <input type="text" name="orig_title" value="<?= hechi_e($article['orig_title'] ?? '') ?>" placeholder="主标题">
-            <input type="text" name="orig_subtitle" value="<?= hechi_e($article['orig_subtitle'] ?? '') ?>" placeholder="副题">
+            <div class="writing-orig-head">
+              <span class="writing-orig-name">原标题</span>
+              <span class="writing-orig-tag">印刷版式题区</span>
+              <span class="writing-orig-note">保存时按加粗三行拼在正文最前，每行首行空两格</span>
+            </div>
+            <div class="writing-orig-fields">
+              <label class="writing-field">
+                <span class="writing-field-label">引题</span>
+                <input type="text" name="orig_kicker" value="<?= hechi_e($article['orig_kicker'] ?? '') ?>" placeholder="题区第一行，可留空">
+              </label>
+              <label class="writing-field">
+                <span class="writing-field-label">主标题</span>
+                <input type="text" name="orig_title" value="<?= hechi_e($article['orig_title'] ?? '') ?>" placeholder="题区第二行，可留空">
+              </label>
+              <label class="writing-field">
+                <span class="writing-field-label">副题</span>
+                <input type="text" name="orig_subtitle" value="<?= hechi_e($article['orig_subtitle'] ?? '') ?>" placeholder="题区第三行，可留空">
+              </label>
+            </div>
+            <p class="writing-orig-hint">正文里已有的题区行会在打开本页时自动收进这三列，正文不再重复；三列都留空则不输出题区，题区也不进网页标题与首页。</p>
           </div>
-          <p class="writing-hint muted">正文（可直接插图与 mp4／webm 视频，图片单个 ≤ 2 MB；粘贴网页或 Word 内容时图片自动上传）</p>
+          <div class="writing-meta">
+            <label class="writing-field writing-field--inline">
+              <span class="writing-field-label">来源</span>
+              <input type="text" name="source" value="<?= hechi_e($article['source'] ?? '') ?>" class="writing-author"
+                     placeholder="如：广西政协报">
+            </label>
+          </div>
+          <p class="writing-hint"><span class="writing-hint-name">正文</span>可直接插图与 mp4／webm 视频，图片单个 ≤ 2 MB；粘贴网页或 Word 内容时图片自动上传。</p>
           <textarea name="content_html" rows="18" class="mono"><?= hechi_e($article['content_html'] ?? '') ?></textarea>
           <div class="editor-mount" data-editor-mount hidden></div>
         </div>
@@ -141,14 +164,19 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
       </section>
 
       <div class="form-actions">
-        <?php if ($isNew): ?>
-          <button type="submit" name="status" value="published" class="btn-primary">保存并发布</button>
-          <button type="submit" name="status" value="draft" class="btn">保存为草稿</button>
-        <?php else: ?>
-          <button type="submit" class="btn-primary">保存稿件</button>
-        <?php endif; ?>
-        <a class="btn" href="/admin/articles">返回列表</a>
-        <span class="muted">保存只改库里的内容，不改稿库状态；需要刷新静态页时回概览点「立即发布全站」。</span>
+        <div class="action-buttons">
+          <?php if ($isNew): ?>
+            <button type="submit" name="status" value="published" class="btn-primary">保存并发布</button>
+            <button type="submit" name="status" value="draft" class="btn">保存为草稿</button>
+          <?php else: ?>
+            <button type="submit" class="btn-primary">保存稿件</button>
+          <?php endif; ?>
+          <a class="btn" href="/admin/articles">返回列表</a>
+        </div>
+        <p class="action-hint muted">
+          <span class="hint-wide"><kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>S</kbd> 保存；只改库里的内容，不改稿库状态，前台更新回概览点「立即发布全站」。</span>
+          <span class="hint-narrow">只改库里内容；前台更新回概览发布。</span>
+        </p>
       </div>
     </form>
   </div>

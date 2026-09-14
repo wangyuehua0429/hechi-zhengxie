@@ -532,10 +532,21 @@ async function main() {
         orig_kicker: kicker,
         orig_title: mainTitle,
       });
+      // 作者／责任编辑已不在编辑页维护（表单里没有这两个框），保存时请求也就不会带这两列；
+      // 详情页仍按库里的内容显示「作者」「责任编辑」，所以保存不能把它们清成空值。
+      const signBefore = (await client.get("/api/v1/article/" + SAMPLE_ID, { json: true })).body?.article || {};
       await post();
       await post();   // 连续保存两次，正文不应出现两份题区
       const after = await client.get("/api/v1/article/" + SAMPLE_ID, { json: true });
       const body = String(after.body?.article?.content ?? "");
+      check("表单不带作者／责任编辑时，保存不会清掉库里的署名",
+        String(signBefore.author ?? "") !== "" && String(signBefore.editor ?? "") !== ""
+          && String(after.body?.article?.author ?? "") === String(signBefore.author)
+          && String(after.body?.article?.editor ?? "") === String(signBefore.editor),
+        JSON.stringify({
+          before: signBefore.author + " / " + signBefore.editor,
+          after: after.body?.article?.author + " / " + after.body?.article?.editor,
+        }));
       const indent = "\u3000\u3000";
       // 前台出口会把行首缩进裁掉交给 CSS（text-indent: 2em），所以接口这里只看题区在最前
       check("保存后正文题区仍排在最前（缩进由前台样式给）",

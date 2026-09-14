@@ -1161,10 +1161,15 @@ final class ArticleController extends AdminController
             'orig_title'    => trim((string) $request->post('orig_title')),
             'orig_subtitle' => trim((string) $request->post('orig_subtitle')),
             'source'       => $request->post('source'),
-            'author'       => $request->post('author'),
-            'editor'       => $request->post('editor'),
             'updated_by'   => $userId,
         ];
+        // 作者／责任编辑已不在编辑页维护，表单不带这两列；请求里真带了才写回去，
+        // 否则等于每存一次稿就把详情页的「作者」「责任编辑」署名清空。
+        foreach (['author', 'editor'] as $signColumn) {
+            if ($request->hasPost($signColumn)) {
+                $fields[$signColumn] = $request->post($signColumn);
+            }
+        }
         if ($publishedAt !== null) {
             $fields['published_at'] = $publishedAt;
         }

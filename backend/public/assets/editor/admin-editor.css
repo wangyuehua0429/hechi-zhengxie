@@ -27,87 +27,89 @@
 
 .writing-paper {
   margin-top: 12px;
-  padding: 26px 30px 30px;
+  padding: 22px 26px 26px;
   background: #fff;
   border: 1px solid #e6e8eb;
   border-radius: 10px;
 }
 
+/* 标题一行：上行是「网页标题」标签与字数，下行是标题输入框（整行铺开）。
+   用 grid 排而不是把标签塞进输入框旁边，是为了让输入框始终占满整行。 */
 .writing-title-line {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin-top: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 12px;
+  margin: 0 0 16px;
 }
 
-.writing-title {
-  flex: 1;
+.writing-title-label {
+  grid-area: 1 / 1;
+  color: #57606a;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+/* 选择器带上 .writing-paper：admin.css 里 input[type="text"] 的描边与内边距
+   权重更高（属性选择器 + 元素 > 单个类），不这样写标题就会退化成普通输入框。 */
+.writing-paper .writing-title {
+  grid-area: 2 / 1 / 3 / 3;
+  width: 100%;
   min-width: 0;
-  padding: 6px 0;
+  padding: 4px 0 8px;
   border: 0;
-  border-bottom: 1px solid transparent;
-  font-size: 26px;
+  border-bottom: 2px solid #eceff2;
+  border-radius: 0;
+  font-size: 27px;
   font-weight: 700;
   line-height: 1.4;
   color: #1f2328;
-  background: none;
+  background: transparent;
 }
 
-.writing-title::placeholder {
-  color: #9aa1a9;
-  font-weight: 500;
+.writing-paper .writing-title::placeholder {
+  color: #b3bac2;
+  font-weight: 400;
 }
 
-.writing-title:focus {
-  border-bottom-color: #c9302c;
-  box-shadow: none;
-  outline: none;
+/* 只换下划线颜色：焦点环交给 admin.css 的全局 :focus-visible，
+   否则键盘 Tab 到标题时看不到焦点在哪（那是无障碍红线）。 */
+.writing-paper .writing-title:focus {
+  border-bottom-color: var(--brand, #a51d22);
 }
 
 .writing-title-count {
-  flex: none;
+  grid-area: 1 / 2;
   color: #8c959f;
-  font-size: 13px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
+/* 接近 64 字上限时把字数提醒变暖色，撞到上限再变红 */
+.writing-title-count.is-near { color: #8a5d0f; font-weight: 700; }
+.writing-title-count.is-full { color: #a5301f; font-weight: 700; }
 
-.writing-author {
+/* 来源：与原标题三列同一套「标签在上、控件在下」的字段样式 */
+.writing-paper .writing-author {
   width: 100%;
-  margin: 4px 0 18px;
-  padding: 4px 0;
-  border: 0;
-  border-bottom: 1px solid transparent;
-  font-size: 15px;
-  color: #57606a;
-  background: none;
-}
-
-/* 作者／责任编辑／来源并排一行 */
-.writing-meta {
-  display: flex;
-  gap: 14px;
-  margin: 4px 0 18px;
-}
-
-.writing-meta .writing-author {
-  flex: 1;
   min-width: 0;
-  margin: 0;
+  font-size: 14px;
 }
 
-.writing-author::placeholder {
-  color: #9aa1a9;
-}
-
-.writing-author:focus {
-  border-bottom-color: #d0d7de;
-  box-shadow: none;
-  outline: none;
+/* 来源一行（作者与责任编辑不再由编辑页维护） */
+.writing-meta {
+  margin: 0 0 16px;
 }
 
 .writing-hint {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   font-size: 12px;
+  color: #57606a;
+}
+
+.writing-hint-name {
+  margin-right: 6px;
+  font-weight: 700;
 }
 
 /* 编辑器容器融进纸张：工具栏浅灰一条，正文区留白更大 */
@@ -134,21 +136,111 @@
   line-height: 1.95;
 }
 
-/* 原标题三项：与作者行同一片留白，输入框保持表单样式 */
+/* 原标题三项：落在工具栏与正文框之间的一块浅色面板，标签在上、三列并排，
+   让「印刷版式题区」与上面的「网页标题」一眼分开。 */
 .writing-orig {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin: 0 0 18px;
-  flex-wrap: wrap;
+  margin: 0 0 16px;
+  padding: 12px 14px 10px;
+  border: 1px solid #e9ebee;
+  border-radius: 8px;
+  background: #fafbfc;
 }
 
-.writing-orig .muted {
-  flex: none;
+.writing-orig-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin-bottom: 10px;
+}
+
+.writing-orig-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1f2328;
+}
+
+.writing-orig-tag {
+  padding: 1px 7px;
+  border: 1px solid #e6d3d5;
+  border-radius: 999px;
+  background: #fff;
+  color: #a5301f;
   font-size: 12px;
 }
 
-.writing-orig input {
+.writing-orig-note {
+  color: #5f6771;
+  font-size: 12px;
+}
+
+.writing-orig-hint {
+  margin: 8px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.writing-orig-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.writing-orig-fields .writing-field {
   flex: 1;
-  min-width: 120px;
+  min-width: 150px;
+}
+
+/* 字段统一形态：标签在上（可见标签，不靠 placeholder 当标签），控件在下 */
+.writing-paper .writing-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  font-size: 12px;
+  color: #57606a;
+}
+
+.writing-paper .writing-field-label {
+  font-weight: 700;
+}
+
+.writing-paper .writing-field input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* 这几个输入框拖进编辑器容器后，落进了 .sun-editor input:focus 的射程——
+   那条规则会把焦点环换成淡蓝色（对比度弱，且与后台其它表单不一致），
+   这里按品牌色还回来，键盘 Tab 时仍然看得见焦点。 */
+.writing-paper .writing-field input:focus-visible,
+.writing-paper .writing-author:focus-visible {
+  outline: 3px solid var(--brand, #a51d22);
+  outline-offset: 1px;
+  box-shadow: none;
+}
+
+/* 来源：标签在左、输入框占满右侧，避免整行大白框 */
+.writing-paper .writing-field--inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+}
+
+.writing-paper .writing-field--inline .writing-field-label {
+  flex: 0 0 auto;
+}
+
+.writing-paper .writing-field--inline .writing-author {
+  flex: 1;
+  max-width: 480px;
+}
+
+@media (max-width: 720px) {
+  .writing-paper { padding: 18px 16px 20px; }
+  .writing-paper .writing-title { font-size: 22px; }
+  .writing-orig-fields .writing-field { flex: 1 1 100%; }
+  .writing-paper .writing-field--inline .writing-author { max-width: none; }
 }

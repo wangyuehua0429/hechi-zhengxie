@@ -191,15 +191,19 @@ async function main() {
 
     check("编辑页：保留正文 textarea（提交字段不变）", /name="content_html"[^>]*>/.test(editorHtml));
     check("编辑页：有编辑器挂载点", editorHtml.includes("data-editor-mount"));
-    // 纸张式写作区：大标题 + 作者 + 正文
-    check("编辑页：写作区把标题、作者、正文收在一张纸里",
+    // 纸张式写作区：大标题 + 原标题三列 + 来源 + 正文
+    check("编辑页：写作区把标题、原标题、来源、正文收在一张纸里",
       editorHtml.includes("writing-paper")
         && /class="writing-title"[\s\S]*?maxlength="64"/.test(editorHtml)
-        && editorHtml.includes('name="author"')
+        && editorHtml.includes('name="orig_title"')
+        && editorHtml.includes('name="source"')
         && editorHtml.includes("data-title-count"),
       "写作区结构不完整");
-    check("编辑页：标题、作者、责任编辑、来源都已移出基本信息卡",
-      !/基本信息[\s\S]{0,900}name="(title|author|editor|source)"/.test(editorHtml),
+    check("编辑页：作者、责任编辑两个框已取消",
+      !/name="(author|editor)"/.test(editorHtml),
+      "写作区里还有作者／责任编辑输入框");
+    check("编辑页：标题、原标题、来源都已移出基本信息卡",
+      !/基本信息[\s\S]{0,900}name="(title|orig_title|source)"/.test(editorHtml),
       "基本信息卡里还有这些字段");
     check("编辑页：引入编辑器资源（仅本页）",
       editorHtml.includes("/assets/editor/suneditor.min.js") && editorHtml.includes("/assets/editor/admin-editor.js"),
@@ -293,16 +297,24 @@ async function main() {
         textareaVisible: !document.querySelector('textarea[name="content_html"]').hidden,
         containerHidden: document.querySelector(".se-container").hidden,
         toggleText: document.querySelector("[data-editor-toggle]").textContent.trim(),
+        // 标题与原标题／来源不在编辑器容器里，切到源码时不能跟着工具栏一起消失
+        titleVisible: !!document.querySelector(".writing-title-line")?.offsetParent,
+        origVisible: !!document.querySelector(".writing-orig")?.offsetParent,
       }));
       check("浏览器：可切到源码（textarea 恢复显示）",
         sourceState.textareaVisible && sourceState.containerHidden, JSON.stringify(sourceState));
+      check("浏览器：切到源码后标题与原标题／来源仍在页面上",
+        sourceState.titleVisible && sourceState.origVisible, JSON.stringify(sourceState));
 
       await page.click("[data-editor-toggle]");
       const richState = await page.evaluate(() => ({
         textareaHidden: document.querySelector('textarea[name="content_html"]').hidden,
         containerVisible: !document.querySelector(".se-container").hidden,
+        titleVisible: !!document.querySelector(".writing-title-line")?.offsetParent,
+        origVisible: !!document.querySelector(".writing-orig")?.offsetParent,
       }));
-      check("浏览器：可切回富文本", richState.textareaHidden && richState.containerVisible, JSON.stringify(richState));
+      check("浏览器：可切回富文本", richState.textareaHidden && richState.containerVisible
+        && richState.titleVisible && richState.origVisible, JSON.stringify(richState));
 
       await Promise.all([page.waitForNavigation(), page.click('button[type="submit"].btn-primary')]);
       const apiAfterType = await client.get("/api/v1/article/" + SAMPLE_ID, { json: true });
@@ -412,22 +424,53 @@ async function main() {
       const writingUi = await page.evaluate(() => ({
         paper: !!document.querySelector(".writing-paper"),
         titleInside: !!document.querySelector(".writing-paper input[name='title']"),
-        authorInside: !!document.querySelector(".writing-paper input[name='author']"),
+        origInside: !!document.querySelector(".writing-paper input[name='orig_title']"),
+        noSignInputs: !document.querySelector(".writing-paper input[name='author']")
+          && !document.querySelector(".writing-paper input[name='editor']"),
         countText: (document.querySelector("[data-title-count]") || {}).textContent || "",
         placeholder: (document.querySelector(".se-placeholder") || {}).textContent || "",
       }));
-      check("新建页：写作区渲染正常（标题、作者、标题字数）",
-        writingUi.paper && writingUi.titleInside && writingUi.authorInside && /\/64$/.test(writingUi.countText),
+      check("新建页：写作区渲染正常（标题、原标题、标题字数）",
+        writingUi.paper && writingUi.titleInside && writingUi.origInside && /\/64$/.test(writingUi.countText),
         JSON.stringify(writingUi));
+      check("新建页：作者与责任编辑两个框已取消", writingUi.noSignInputs, JSON.stringify(writingUi));
       check("新建页：正文占位符是「从这里开始写正文」",
         writingUi.placeholder.includes("从这里开始写正文"), JSON.stringify(writingUi));
       const writingOrder = await page.evaluate(() => Array.prototype.map.call(
-        document.querySelectorAll(".writing-paper .se-toolbar, .writing-paper .writing-title-line, .writing-paper .writing-meta, .writing-paper .se-wrapper"),
+        document.querySelectorAll(
+          ".writing-paper .writing-title-line, .writing-paper .se-toolbar,"
+            + " .writing-paper .writing-orig, .writing-paper .writing-meta, .writing-paper .se-wrapper"
+        ),
         (n) => n.className.split(" ")[0]
       ));
-      check("新建页：写作窗顺序为 工具栏 → 标题 → 作者 → 正文",
-        JSON.stringify(writingOrder) === JSON.stringify(["se-toolbar", "writing-title-line", "writing-meta", "se-wrapper"]),
+      check("新建页：写作窗顺序为 标题 → 工具栏 → 原标题 → 来源 → 正文",
+        JSON.stringify(writingOrder)
+          === JSON.stringify(["writing-title-line", "se-toolbar", "writing-orig", "writing-meta", "se-wrapper"]),
         JSON.stringify(writingOrder));
+
+      /* 版面细节：每个输入框都有可见标签（不靠 placeholder 当标签）、
+         卡片带步骤号、栏目卡右上角显示当前选中的栏目。 */
+      const paperUi = await page.evaluate(() => ({
+        labels: Array.prototype.map.call(
+          document.querySelectorAll(".writing-paper .writing-field-label"),
+          (n) => n.textContent.trim()
+        ),
+        titleLabel: (document.querySelector(".writing-title-label") || {}).textContent || "",
+        steps: document.querySelectorAll(".card .step-no").length,
+        pick: (document.querySelector(".pick-current") || {}).textContent || "",
+      }));
+      check("新建页：标题、原标题三列与来源都有可见标签",
+        paperUi.titleLabel.trim() === "网页标题" && paperUi.labels.join("/") === "引题/主标题/副题/来源",
+        JSON.stringify(paperUi));
+      check("新建页：两张卡片带步骤号，栏目卡显示当前选择",
+        paperUi.steps === 2 && paperUi.pick.includes("当前："), JSON.stringify(paperUi));
+
+      // 标题写到 56 字时字数提醒变色（上限 64，超了前台会截断）
+      await page.fill('input[name="title"]', "检".repeat(56));
+      const countClasses = await page.evaluate(() => document.querySelector("[data-title-count]").className);
+      check("新建页：标题字数接近上限时给出提醒色", /is-near/.test(countClasses), countClasses);
+      await page.fill('input[name="title"]', "");
+
       await page.fill('input[name="title"]', "新建页插图检查");
       await page.evaluate(async (dataUri) => {
         const html = '<p>新建页正文</p><p><img src="' + dataUri + '" alt="新建页粘贴图"></p>';

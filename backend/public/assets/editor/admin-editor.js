@@ -93,6 +93,44 @@
     }
   }
 
+  /* ------------------------------------------------ 纸张里的字段排布 */
+
+  /**
+   * 把标题、原标题、来源、正文提示摆到写作窗里。
+   *
+   * 富文本模式下：标题压在工具栏上方，原标题／来源／正文提示落在工具栏与正文框之间；
+   * 编辑器没加载时它们留在模板原位，顺序与这里一致。切到源码模式时富文本容器整块
+   * 隐藏，这几块必须挪回纸张里，否则「原标题」「来源」会跟着工具栏一起消失、没处编辑。
+   */
+  function layoutFields(container, richText) {
+    // 容器的父节点是编辑器自己的 .sun-editor 外壳，再上一层才是纸张；
+    // 标题要落在工具栏之上，就得插到外壳前面（插进 .se-container 会进到工具栏下面）。
+    var editorRoot = container.closest(".sun-editor") || container;
+    var paper = editorRoot.parentElement;
+    var titleLine = document.querySelector(".writing-title-line");
+    var blocks = [".writing-orig", ".writing-meta", ".writing-hint"]
+      .map(function (selector) { return document.querySelector(selector); })
+      .filter(Boolean);
+    if (richText) {
+      if (titleLine) {
+        paper.insertBefore(titleLine, editorRoot);
+      }
+      var anchor = container.querySelector(".se-toolbar");
+      if (!anchor) {
+        return;
+      }
+      blocks.forEach(function (block) {
+        anchor.insertAdjacentElement("afterend", block);
+        anchor = block;
+      });
+      return;
+    }
+    var stacked = (titleLine ? [titleLine] : []).concat(blocks);
+    stacked.forEach(function (block) {
+      paper.insertBefore(block, textarea);
+    });
+  }
+
   /* ---------------------------------------------- 粘贴 base64 图片先上传 */
 
   function uploadDataUri(dataUri) {
@@ -189,16 +227,7 @@
     }
     bindPaste(container);
 
-    // 参照"写作窗"布局：工具栏在最上，标题与作者在正文之上（编辑器没加载时它们留在原处）
-    var toolbar = container.querySelector(".se-toolbar");
-    var titleLine = document.querySelector(".writing-title-line");
-    var authorLine = document.querySelector(".writing-meta");
-    if (toolbar && titleLine) {
-      toolbar.insertAdjacentElement("afterend", titleLine);
-      if (authorLine) {
-        titleLine.insertAdjacentElement("afterend", authorLine);
-      }
-    }
+    layoutFields(container, true);
 
     if (toggle) {
       toggle.hidden = false;
@@ -209,12 +238,14 @@
           container.hidden = false;
           textarea.hidden = true;
           toggle.textContent = "切到源码";
+          layoutFields(container, true);
           return;
         }
         textarea.value = editor.$.html.get();
         textarea.hidden = false;
         container.hidden = true;
         toggle.textContent = "回到富文本";
+        layoutFields(container, false);
       });
     }
 
