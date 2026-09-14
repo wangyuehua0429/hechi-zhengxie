@@ -502,7 +502,7 @@ if ($invalid !== []) {
     }
 }
 
-// 媒体清单概况（parse 产出、fetch_media 回填，不在就说明还没抓图）
+// 媒体清单概况（parse 产出；文件从服务器拷到位后用 render --local-check 认账，清单不在就不显示这段）
 $manifest = dirname($inFile) . '/media_manifest.csv';
 if (is_file($manifest)) {
     $mediaStat = ['ok' => 0, 'failed' => 0, 'pending' => 0];

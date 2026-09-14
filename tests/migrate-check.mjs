@@ -178,30 +178,44 @@ function main() {
     check("自检：行数对不上时退出码非 0 并给出原因",
       badExpect.status !== 0 && (badExpect.stderr || "").includes("自检失败"), String(badExpect.status));
 
-    // ---- 2) 模拟抓图成功：把清单标成 ok，并落一个空文件（不联网）
+    // ---- 2) 服务器拷图场景：文件放到 target 位置，render --local-check 按本地文件改写地址
     const manifestPath = path.join(outDir, "media_manifest.csv");
     const csvLines = readFileSync(manifestPath, "utf8").trim().split("\n");
     check("媒体清单列出正文图片、缩略图与附件（≥3 条）",
       csvLines.length - 1 >= 3 && csvLines.some((l) => l.includes("9001-1.jpg"))
       && csvLines.some((l) => l.includes("9001.docx")),
       String(csvLines.length - 1) + " 条");
-    const header = csvLines[0];
-    const filled = [header];
+    const targets = [];
     for (const line of csvLines.slice(1)) {
-      const url = line.split(",")[0];
       const target = line.split(",")[1];
       const abs = path.join(REPO, target);
       mkdirSync(path.dirname(abs), { recursive: true });
       writeFileSync(abs, "fake-image");
-      filled.push([url, target, "ok", "10", "deadbeef", ""].join(","));
+      targets.push(abs);
     }
-    writeFileSync(manifestPath, filled.join("\n") + "\n");
 
-    const rendered = run(python, [
+    // 清单没标 ok、又没带 --local-check：保持旧站原地址，不改写成死链
+    const plainRender = run(python, [
       "tools/migrate/legacy_extract.py", "render",
       "--in", path.join(outDir, "articles.jsonl"), "--out", outDir, "--manifest", manifestPath,
     ]);
+    const plainRows = plainRender.status === 0
+      ? readFileSync(path.join(outDir, "articles.final.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line))
+      : [];
+    const plainFirst = plainRows.find((row) => row.article_id === 9001);
+    check("清单未就绪时保留旧站外链（不改写成死链）",
+      plainFirst !== undefined && plainFirst.content_html.includes("http://gxhczx.gov.cn/uploadfiles/20260101/9001-1.jpg"),
+      (plainFirst?.content_html || "").slice(0, 80));
+
+    // 少一个文件（缩略图），验证"缺的保留旧链接、有的改写成站内地址"
+    if (targets.length > 0) rmSync(targets[0], { force: true });
+    const rendered = run(python, [
+      "tools/migrate/legacy_extract.py", "render",
+      "--in", path.join(outDir, "articles.jsonl"), "--out", outDir, "--manifest", manifestPath, "--local-check",
+    ]);
     check("render 执行成功", rendered.status === 0, (rendered.stderr || rendered.stdout || "").trim().split("\n")[0]);
+    check("render --local-check 按本地文件判定就绪",
+      (rendered.stdout || "").includes("按本地文件判定可用"), (rendered.stdout || "").trim());
 
     const finalPath = path.join(outDir, "articles.final.jsonl");
     const rows = readFileSync(finalPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
@@ -211,6 +225,8 @@ function main() {
     check("正文图片改写为站内抓取地址",
       first && first.content_html.includes("src=\"/uploads/legacy/uploadfiles/20260101/9001-1.jpg\""),
       (first?.content_html || "").slice(0, 160));
+    check("本地缺失的图保留旧站外链",
+      first && first.thumb === "http://gxhczx.gov.cn/uploadfiles/20260101/9001.jpg", first?.thumb || "");
     check("图片按出现顺序登记为图集", first && first.images.length === 1 && first.images[0].startsWith("/uploads/legacy/"));
     check("正文附件登记为附件下载项", first && first.attachments.length === 1 && first.attachments[0].ext === "docx");
     check("来源字段去掉日期版面", first && first.source === "河池日报", first?.source);
@@ -222,20 +238,7 @@ function main() {
     check("非领导稿：Title1 落 summary",
       byId.get(9001).summary === "导语一句" && byId.get(9001).role === "");
 
-    // ---- 2b) 离线核对（改从服务器拷文件时的用法，不联网）
-    const verifyAll = run(python, ["tools/migrate/fetch_media.py", "--manifest", manifestPath, "--verify"]);
-    check("离线核对：本地已有的文件标为已就绪",
-      verifyAll.status === 0 && (verifyAll.stdout || "").includes("本地已有 3 个、缺 0 个"),
-      (verifyAll.stdout || "").trim());
-    const firstTarget = path.join(REPO, csvLines[1].split(",")[1]);
-    rmSync(firstTarget, { force: true });
-    const verifyPartial = run(python, ["tools/migrate/fetch_media.py", "--manifest", manifestPath, "--verify"]);
-    check("离线核对：缺文件时留 pending 并给出原因",
-      verifyPartial.status === 0 && (verifyPartial.stdout || "").includes("本地已有 2 个、缺 1 个")
-      && readFileSync(manifestPath, "utf8").includes("本地没有该文件"),
-      (verifyPartial.stdout || "").trim());
-    writeFileSync(firstTarget, "fake-image");
-    run(python, ["tools/migrate/fetch_media.py", "--manifest", manifestPath, "--verify"]);
+    if (targets.length > 0) writeFileSync(targets[0], "fake-image");
 
     // ---- 3) 入库（临时 SQLite）
     const migrated = run(php, ["backend/bin/migrate.php"], env);

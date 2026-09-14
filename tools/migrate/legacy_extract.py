@@ -11,7 +11,8 @@
   * 只迁主站口径：Type 与新站同号，且 Region 与栏目口径一致（默认 22，902→55、903→33）；
   * 未映射 Type 只出报表，不入库；
   * 公开年限按关停日 2026-11-20 回溯 3 年：该日之后 public，之前 archive；
-  * 图片与视频从旧站现网抓回本地（fetch_media.py），抓成功的才改写正文地址。
+  * 图片与视频由人工从旧站服务器拷到 backend/public/uploads/legacy/；render 时用
+    --local-check 按本地文件是否存在判定，只有到位的才改写正文地址（不到位的保留旧站外链）。
 """
 
 import argparse
@@ -752,28 +753,50 @@ def build_side_tables(args):
 
 # ---------------------------------------------------------------- 命令：render
 
-def read_manifest(path):
-    """媒体清单 → {原始地址: 站内地址}（只收 status=ok 的）。"""
-    mapping, failed = {}, 0
+def read_manifest(path, local_check=False):
+    """媒体清单 → {原始地址: 站内地址}。
+
+    只收 status=ok 的条目；带 local_check 时再按 target 在本地是否存在判断——从服务器
+    拷过来的文件不用先改清单就能直接改写地址。
+    返回 (映射, 失败数, 按本地文件判定的条数, 清单总行数)；清单文件不存在时抛 OSError。
+    """
+    mapping, failed, local_ready, total_rows = {}, 0, 0, 0
     if not path:
-        return mapping, 0
-    with open(path, encoding='utf-8', newline='') as handle:
+        return mapping, failed, local_ready, total_rows
+    with open(path, encoding='utf-8', newline='') as handle:  # 文件不存在时由调用方兜住
         for row in csv.DictReader(handle):
-            if (row.get('status') or '').strip().lower() != 'ok':
-                if (row.get('status') or '').strip().lower() not in ('', 'pending'):
+            total_rows += 1
+            status = (row.get('status') or '').strip().lower()
+            target = (row.get('target') or '').strip()
+            ready = status == 'ok'
+            if not ready and local_check and target:
+                absolute = target if os.path.isabs(target) else os.path.join(os.getcwd(), target)
+                if os.path.isfile(absolute) and os.path.getsize(absolute) > 0:
+                    ready = True
+                    local_ready += 1
+            if not ready:
+                if status not in ('', 'pending'):
                     failed += 1
                 continue
-            rel = os.path.relpath(row['target'], 'backend/public').replace(os.sep, '/')
+            rel = os.path.relpath(target, 'backend/public').replace(os.sep, '/')
             if rel.startswith('..'):
                 failed += 1
                 continue
             url_path = '/' + rel
             mapping[row['url'].strip()] = url_path
-    return mapping, failed
+    return mapping, failed, local_ready, total_rows
 
 
 def cmd_render(args):
-    media_map, failed = read_manifest(args.manifest)
+    try:
+        media_map, failed, local_ready, total_rows = read_manifest(args.manifest, args.local_check)
+    except OSError as exc:
+        print('读不到媒体清单：%s（清单由 parse 产出，重跑一次 parse 可再生）' % exc, file=sys.stderr)
+        return 1
+    if args.local_check and total_rows and not media_map:
+        print('提示：清单 %d 条里本地一个都没找到。--local-check 按仓库根目录的相对路径找文件，'
+              '请在仓库根目录运行，或确认图片是否真的拷到了 backend/public/uploads/legacy/ 下。' % total_rows,
+              file=sys.stderr)
     articles, stats = [], {'rendered': 0, 'images': 0, 'attachments': 0, 'media_rewritten': 0, 'content_chars': 0}
 
     with open(args.infile, encoding='utf-8') as handle:
@@ -848,7 +871,9 @@ def cmd_render(args):
     print('渲染 %d 篇；正文图片 %d 张（其中 %d 张已改写为站内地址）、附件 %d 条、正文合计 %d 字'
           % (stats['rendered'], stats['images'], stats['media_rewritten'], stats['attachments'], stats['content_chars']))
     if args.manifest:
-        print('媒体清单：可用 %d 条，抓取失败 %d 条（失败的保留原地址）' % (len(media_map), failed))
+        extra = ('，其中按本地文件判定可用 %d 条' % local_ready) if args.local_check else ''
+        print('媒体清单：可用 %d 条%s，不可用 %d 条（不可用的保留原地址）'
+              % (len(media_map), extra, failed))
     else:
         print('未提供媒体清单：正文图片保持旧站原地址')
     print('产物：%s' % final_path)
@@ -887,7 +912,10 @@ def main():
     render_cmd = sub.add_parser('render', help='articles.jsonl + 媒体清单 → articles.final.jsonl')
     render_cmd.add_argument('--in', dest='infile', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out/articles.jsonl'))
     render_cmd.add_argument('--out', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out'))
-    render_cmd.add_argument('--manifest', default='', help='媒体清单 csv（fetch_media.py 回填后）')
+    render_cmd.add_argument('--manifest', default='',
+                            help='媒体清单 csv（parse 产出；status=ok 的条目会改写为站内地址）')
+    render_cmd.add_argument('--local-check', action='store_true',
+                            help='按清单 target 检查本地是否已有文件，已有的按就绪处理（服务器拷图场景，不联网）')
     render_cmd.set_defaults(func=cmd_render)
 
     args = parser.parse_args()
