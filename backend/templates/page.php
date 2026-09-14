@@ -36,18 +36,24 @@ $esc = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES,
     .article-rows li { display: flex; justify-content: space-between; gap: 16px; border-bottom: 1px dashed #e5e5e5; padding: 10px 0; }
     .article-rows a { color: #222; text-decoration: none; }
     .article-rows a:hover { color: #b01e23; }
-    /* 正文样式：与 frontend/home/css/inner.css 的详情页口径一致——
-       段距由样式统一给（正文已归一化掉库里的空段），首行缩进 2 字，
-       图片与视频限宽居中，列表符号补回来（全局 reset 之外的独立页面）。 */
-    .article-body { line-height: 1.9; color: #33363c; overflow-wrap: anywhere; }
+    /* 正文样式：与 frontend/home/css/inner.css 的详情页口径一致，参照全国政协网稿件页
+       （宋体／16px／行高 1.625（26px）／首行缩进 2 字／段距 1.625em／图片 ≤700px／左对齐）；
+       段距由样式统一给（正文已归一化掉库里的空段），列表符号补回来。 */
+    .article-body {
+      font-family: "宋体", SimSun, "Songti SC", "Songti TC", serif;
+      font-size: 16px;
+      line-height: 1.625;
+      color: #121212;
+      overflow-wrap: anywhere;
+    }
     .article-body p,
-    .article-body div { margin: 0 0 0.9em; text-indent: 2em; }
+    .article-body div { margin: 0 0 1.625em; text-indent: 2em; }
     .article-body div div { margin-bottom: 0; }
     .article-body > :last-child { margin-bottom: 0; }
     .article-body img {
       display: block;
       box-sizing: border-box;
-      max-width: 100%;
+      max-width: min(100%, 700px);
       height: auto;
       margin: 20px auto;
       text-indent: 0;
@@ -62,7 +68,7 @@ $esc = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES,
       display: block;
       box-sizing: border-box;
       width: 100%;
-      max-width: 100%;
+      max-width: min(100%, 700px);
       height: auto;
       margin: 20px auto;
       text-indent: 0;

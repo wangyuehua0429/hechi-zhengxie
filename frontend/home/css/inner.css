@@ -380,9 +380,15 @@ a.county-link:hover { border-color: var(--primary); color: var(--primary); }
 
 .article-body {
   padding: 22px 0 8px;
-  font-size: calc(1.06em * var(--font-scale));
-  line-height: 1.95;
-  color: #33363c;
+  /* 正文版式对齐全国政协网稿件页（2026-09-14 实测该站正文：宋体／16px／行高 26px／
+     首行缩进 32px（2 字）／段距 26px／图片 ≤700px／左对齐）：
+     - 字体走宋体族；
+     - 字号 = 16px × 适老化系数 × 详情页「正文字号」档位（--body-scale）；
+     - 行高与段距都用 1.625em（16px 下正好 26px），跟随字号等比缩放。 */
+  font-family: "宋体", SimSun, "Songti SC", "Songti TC", serif;
+  font-size: calc(16px * var(--font-scale) * var(--body-scale, 1));
+  line-height: 1.625;
+  color: #121212;
   /* 旧库偶有超长英文串／URL，避免撑破手机版心 */
   overflow-wrap: anywhere;
 }
@@ -390,15 +396,15 @@ a.county-link:hover { border-color: var(--primary); color: var(--primary); }
    此前相邻两段之间会出现 63px（约两行）空档；嵌套块不叠加下边距，
    接口不可用回退静态快照时也保持同一观感。 */
 .article-body p,
-.article-body div { margin: 0 0 0.9em; text-indent: 2em; }
+.article-body div { margin: 0 0 1.625em; text-indent: 2em; }
 .article-body div div,
 .article-body p p,
 .article-body li div { margin-bottom: 0; }
 .article-body > :last-child { margin-bottom: 0; }
 .article-body img {
   display: block;
-  /* 旧站正文图多为 600~700px 宽，限制显示宽度避免放大后发虚 */
-  max-width: min(100%, 720px);
+  /* 与参照页一致：图片最宽 700px（旧站正文图多为 600~700px，限制宽度也避免放大后发虚） */
+  max-width: min(100%, 700px);
   height: auto;
   margin: 20px auto;
   text-indent: 0;
@@ -410,7 +416,7 @@ a.county-link:hover { border-color: var(--primary); color: var(--primary); }
 .article-body iframe {
   display: block;
   width: 100%;
-  max-width: min(100%, 720px);
+  max-width: min(100%, 700px);
   height: auto;
   margin: 20px auto;
   text-indent: 0;
@@ -851,7 +857,8 @@ img.img-failed { visibility: hidden; }
   .article-panel { padding: 22px 18px 20px; }
   /* 100 字长标题在 390px 宽下按 1.42em 会占 8 行，压到 1.32em 并收紧行高 */
   .article-title { font-size: calc(1.32em * var(--font-scale)); line-height: 1.5; }
-  .article-body { font-size: calc(1.0em * var(--font-scale)); line-height: 1.9; }
+  /* 手机上正文与桌面同一套版式（宋体 16px / 行高 1.625），只收窄版心 */
+  .article-body { font-size: calc(16px * var(--font-scale) * var(--body-scale, 1)); line-height: 1.625; }
   .article-rows { padding: 4px 14px 10px; }
   .article-rows li { flex-direction: column; gap: 3px; padding: 10px 2px 10px 14px; }
   .article-rows li::before { top: 17px; }
@@ -901,6 +908,8 @@ img.img-failed { visibility: hidden; }
   .skip-link { display: none !important; }
 
   .inner-layout { display: block; padding: 0; }
+  /* 打印不带「短稿撑高」：内联 min-height 要用 !important 才盖得住 */
+  .article-panel { min-height: 0 !important; }
   .article-panel {
     padding: 0;
     background: #fff;

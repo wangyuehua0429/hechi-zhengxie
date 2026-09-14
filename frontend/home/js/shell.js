@@ -164,17 +164,36 @@
    *   最新新闻 —— 各栏目稿件汇总（排除首页聚合栏目与领导简介），按发布时间倒序；
    *   图片新闻 —— 只取「图片新闻」栏目（type 314）里有图的稿件，按时间倒序取，
    *               不回退到其它栏目的图片，避免把领导照片当成图片新闻。
-   * 条数/张数在基准值基础上自动配平：渲染后测量左栏内容高度与右栏稿件列表高度，
-   * 增删最新新闻条数与图片新闻行数（2 列 1 行 = 2 张），使左栏底部与右栏对齐。
+   * 条数/张数按页面策略配平：渲染后测量侧栏内容高度与主栏高度，增删最新新闻条数与
+   * 图片新闻行数（2 列 1 行 = 2 张），使侧栏底部尽量与主栏对齐。
+   * 栏目页用默认策略（基准 8 条，紧张时可减到 3 条、可减行数甚至收起图片新闻）；
+   * 详情页用 detail 策略（2026-09-14 客户口径）：正文短也固定「最新新闻 10 条 + 图片新闻
+   * 2 行 4 张」，正文长时按高度往上配，最多 15 条 + 3 行 6 张，不往下减、不收起。
    */
-  const SIDE_LATEST_BASE = 8;      // 最新新闻基准条数
-  const SIDE_LATEST_MIN = 3;       // 配平下限
-  const SIDE_LATEST_MAX = 30;      // 配平上限
+  const SIDE_LATEST_BASE = 8;      // 最新新闻基准条数（栏目页）
+  const SIDE_LATEST_MIN = 3;       // 配平下限（栏目页）
+  const SIDE_LATEST_MAX = 30;      // 配平上限（栏目页）
   const SIDE_THUMB_ROWS = 2;       // 图片新闻基准行数（每行 2 张，即 4 张）
   const SIDE_THUMB_ROWS_MAX = 3;   // 图片新闻最多 3 行 6 张
   const SIDE_THUMB_COLS = 2;
   const SIDE_FIT_TOLERANCE = 8;    // 允许的高度差（px）
   const IMAGE_NEWS_TYPE = "314";
+
+  const DEFAULT_SIDE_POLICY = {
+    latestBase: SIDE_LATEST_BASE,
+    latestMin: SIDE_LATEST_MIN,
+    latestMax: SIDE_LATEST_MAX,
+    thumbRowsOptions: [SIDE_THUMB_ROWS, 1, SIDE_THUMB_ROWS_MAX],
+    hideThumbsWhenTight: true
+  };
+  const DETAIL_SIDE_POLICY = {
+    latestBase: 10,
+    latestMin: 10,
+    latestMax: 15,
+    thumbRowsOptions: [SIDE_THUMB_ROWS, SIDE_THUMB_ROWS_MAX],
+    hideThumbsWhenTight: false
+  };
+  let sidePolicy = DEFAULT_SIDE_POLICY;
 
   function timeOf(item) {
     return String(item.datetime || item.date || "");
@@ -234,13 +253,19 @@
     const side = document.querySelector(".inner-side");
     const main = document.querySelector(".inner-main");
     if (!side || !main || side.offsetParent === null) return;
-    if (window.matchMedia("(max-width: 860px)").matches) return;
+    if (window.matchMedia("(max-width: 860px)").matches) {
+      clearMainStretch(main);   // 窄屏侧栏换到主栏下方，不需要等高
+      return;
+    }
     if (!sidePools.latest.length && !sidePools.thumbs.length) return;
 
+    clearMainStretch(main);     // 量之前先撤掉上一轮的撑高，拿到的才是自然高度
     const target = contentHeight(main);
     if (target < 200) return;
-    const maxLatest = Math.min(SIDE_LATEST_MAX,
-      Math.max(SIDE_LATEST_BASE, sidePools.latest.length));
+    const policy = sidePolicy;
+    const poolLatest = sidePools.latest.length;
+    const minLatest = poolLatest ? Math.min(policy.latestMin, poolLatest) : policy.latestMin;
+    const maxLatest = Math.min(policy.latestMax, Math.max(policy.latestMin, poolLatest));
     const maxRows = sidePools.thumbs.length
       ? Math.min(SIDE_THUMB_ROWS_MAX, Math.ceil(sidePools.thumbs.length / SIDE_THUMB_COLS))
       : 1;
@@ -254,18 +279,20 @@
       return height;
     };
 
-    // 图片行数可选 2 → 1 → 3（2 行为基准，超高的页面先收到 1 行，
-    // 腾出的空间用新闻条数补；不够高时才扩到 3 行）
-    const rowOptions = [SIDE_THUMB_ROWS, 1, SIDE_THUMB_ROWS_MAX].filter(function (rows, i, arr) {
+    // 图片行数按策略给：栏目页 2 → 1 → 3（紧张时先收行、腾出的空间补新闻条数）；
+    // 详情页只允许 2 行与 3 行（短正文固定 2 行 4 张，长正文最多 3 行 6 张）
+    const rowOptions = policy.thumbRowsOptions.filter(function (rows, i, arr) {
       return rows >= 1 && rows <= maxRows && arr.indexOf(rows) === i;
     });
 
-    // 右栏过短时（连「3 条新闻 + 1 行图片」都放不下），才把图片新闻整卡隐藏
-    if (measure(SIDE_LATEST_MIN, 1) > target + SIDE_FIT_TOLERANCE) rowOptions.push(0);
+    // 栏目页在内容过短时才把图片新闻整卡隐藏；详情页按口径一直保留
+    if (policy.hideThumbsWhenTight && measure(minLatest, 1) > target + SIDE_FIT_TOLERANCE) {
+      rowOptions.push(0);
+    }
 
     // 每个行数下用二分法找不超过右栏的最大新闻条数
     rowOptions.forEach(function (rows) {
-      let low = SIDE_LATEST_MIN;
+      let low = minLatest;
       let high = maxLatest;
       let fit = null;
       while (low <= high) {
@@ -278,7 +305,7 @@
           high = mid - 1;
         }
       }
-      if (fit === null) measure(SIDE_LATEST_MIN, rows);
+      if (fit === null) measure(minLatest, rows);
       else if (fit < maxLatest) measure(fit + 1, rows);
     });
 
@@ -291,7 +318,36 @@
     });
     const pick = candidates[0];
     paintSide(pick.latest, pick.rows * SIDE_THUMB_COLS);
-    lastFittedTarget = target;
+    // 短稿时把正文卡片撑到与侧栏同高：两栏底边对齐，多出来的空间留在卡片里
+    alignMainBottom(side, main);
+    // 记录对齐后的高度：ResizeObserver 用它判断要不要重新配平，
+    // 否则会被自己撑出来的高度反复触发（撑高 → 侧栏再配高 → 再撑高）
+    lastFittedTarget = contentHeight(main);
+  }
+
+  /**
+   * 主栏比侧栏矮（短稿）时，把主栏最后一块内容撑到与侧栏同高：两栏底边对齐，内容下方留白。
+   */
+  function alignMainBottom(side, main) {
+    const last = lastVisibleChild(main);
+    if (!last) return;
+    const gap = side.getBoundingClientRect().height - contentHeight(main);
+    if (gap > 1) {
+      last.style.minHeight = Math.round(last.getBoundingClientRect().height + gap) + "px";
+    }
+  }
+
+  /** 撤掉上一步给主栏末块加的撑高 */
+  function clearMainStretch(main) {
+    const last = lastVisibleChild(main);
+    if (last) last.style.minHeight = "";
+  }
+
+  function lastVisibleChild(container) {
+    const blocks = Array.prototype.filter.call(container.children, function (child) {
+      return !child.hidden && child.offsetParent !== null;
+    });
+    return blocks[blocks.length - 1] || null;
   }
 
   let lastFittedTarget = null;
@@ -301,7 +357,17 @@
     sideFitTimer = window.setTimeout(fitSideHeights, 120);
   }
 
-  function renderSidePanels(channels) {
+  /**
+   * 渲染侧栏并配平高度。
+   *
+   * @param {Array} channels 栏目数据（含各自列表）
+   * @param {string|Object} [policy] 数量策略：传 "detail" 用详情页口径（短正文固定 10 条 + 4 张，
+   *                                长正文最多 15 条 + 6 张），不传用栏目页默认策略
+   */
+  function renderSidePanels(channels, policy) {
+    sidePolicy = policy === "detail"
+      ? Object.assign({}, DEFAULT_SIDE_POLICY, DETAIL_SIDE_POLICY)
+      : Object.assign({}, DEFAULT_SIDE_POLICY, typeof policy === "object" && policy ? policy : {});
     const list = channels || [];
     const seen = {};
     sidePools.latest = [];
@@ -320,7 +386,8 @@
       .filter(function (item) { return !!item.img; })
       .sort(byTimeDesc);
 
-    paintSide(SIDE_LATEST_BASE, SIDE_THUMB_ROWS * SIDE_THUMB_COLS);
+    // 首屏先按策略基准铺一遍（窄屏不跑配平，看到的就是这一版）
+    paintSide(sidePolicy.latestBase, sidePolicy.thumbRowsOptions[0] * SIDE_THUMB_COLS);
     fitSideHeights();
     // 字号缩放、窗口尺寸变化、正文图片加载导致右栏变高后重新配平
     window.addEventListener("resize", scheduleSideFit);

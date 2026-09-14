@@ -224,6 +224,8 @@ const CASES = [
     viewport: DESKTOP,
     ready: "#articleBody > *",
     apiData: true,
+    // 前台详情页专有的断言（侧栏目数量、正文字号档位、两栏底边对齐、元信息口径）
+    frontendDetail: true,
     // 引题属于正文内容：62180 的正文第一行就是「许显辉赴河池市调研时提出」
     expectLeadLine: "许显辉赴河池市调研时提出",
     kind: "detail-layout"
@@ -234,7 +236,9 @@ const CASES = [
     page: "detail.html?id=2522",
     viewport: DESKTOP,
     ready: "#articleBody > *",
-    kind: "sticky-check"
+    kind: "sticky-check",
+    // 正文 6599px 的长稿：侧栏应配到上限附近（15 条 + 3 行 6 张）
+    expectSideMax: true
   },
   {
     name: "详情页·回到顶部（62180）",
@@ -717,6 +721,8 @@ async function runCase(browser, base, c, opts) {
         const font = parseFloat(getComputedStyle(body).fontSize);
         const out = {
           font,
+          fontFamily: getComputedStyle(body).fontFamily,
+          lineHeight: parseFloat(getComputedStyle(body).lineHeight),
           empty: 0,
           leadSpace: 0,
           margins: [],
@@ -764,10 +770,17 @@ async function runCase(browser, base, c, opts) {
 
       if (m.empty > 0) failures.push("正文仍有 " + m.empty + " 个空段（应为 0）");
       if (m.leadSpace > 0) failures.push("正文还有 " + m.leadSpace + " 段自带首部空格（与 2em 缩进叠加）");
+      // 正文版式参照全国政协网稿件页：宋体族 / 行高 1.625（16px → 26px）
+      if (!/宋体|SimSun|Songti/i.test(m.fontFamily)) {
+        failures.push("正文字体不是宋体族：" + String(m.fontFamily).slice(0, 30));
+      }
+      const lhEm = m.lineHeight / m.font;
+      if (Math.abs(lhEm - 1.625) > 0.12) failures.push("正文行高 " + lhEm.toFixed(2) + " 字（参照页为 1.625）");
       const maxMargin = m.margins.length ? Math.max(...m.margins) : 0;
       const minMargin = m.margins.length ? Math.min(...m.margins) : 0;
-      if (maxMargin > m.font * 1.2) failures.push("段间距过大：" + Math.round(maxMargin) + "px（正文 " + Math.round(m.font) + "px）");
-      if (m.margins.length && minMargin < m.font * 0.4) failures.push("段间距过小：" + Math.round(minMargin) + "px");
+      // 参照页段距 = 一行（16px 字号下 26px = 1.625em）
+      if (maxMargin > m.font * 2.0) failures.push("段间距过大：" + Math.round(maxMargin) + "px（正文 " + Math.round(m.font) + "px）");
+      if (m.margins.length && minMargin < m.font * 1.3) failures.push("段间距过小：" + Math.round(minMargin) + "px");
       if (m.indent !== null) {
         const em = m.indent / m.font;
         if (em < 1.4 || em > 2.6) failures.push("首行缩进 " + em.toFixed(1) + " 字（应为 2 字）");
@@ -779,7 +792,66 @@ async function runCase(browser, base, c, opts) {
         failures.push("正文首行不是引题「" + c.expectLeadLine + "」，实际「" + m.leadLine + "」");
       }
       notes.push("正文首行「" + m.leadLine.slice(0, 14) + "…」");
-      notes.push("段间距 " + Math.round(minMargin) + "–" + Math.round(maxMargin) + "px");
+      notes.push("正文 " + Math.round(m.font) + "px/" + lhEm.toFixed(2) + "，段间距 " + Math.round(minMargin) + "–" + Math.round(maxMargin) + "px");
+
+      // 侧栏数量：详情页口径是「短正文固定 10 条 + 2 行 4 张」，长正文最多 15 条 + 3 行 6 张
+      if (c.frontendDetail) {
+      const sideCounts = await page.evaluate(() => ({
+        latest: document.querySelectorAll("#latestList li").length,
+        thumbs: document.querySelectorAll("#thumbGrid img").length,
+      }));
+      if (sideCounts.latest < 10 || sideCounts.latest > 15) {
+        failures.push("侧栏最新新闻 " + sideCounts.latest + " 条（应在 10–15 之间）");
+      }
+      if (sideCounts.thumbs < 4 || sideCounts.thumbs > 6) {
+        failures.push("侧栏图片新闻 " + sideCounts.thumbs + " 张（应在 4–6 之间）");
+      }
+      notes.push("侧栏 " + sideCounts.latest + " 条 / " + sideCounts.thumbs + " 张");
+
+      // 「正文字号」档位走 CSS 变量：点 A+ 变大，且不覆盖 16px 基准与适老化系数
+      await page.locator('#articleToolbar button[data-size="up"]').click();
+      await page.waitForTimeout(120);
+      const bigger = await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById("articleBody")).fontSize));
+      if (!(bigger > m.font + 0.5)) failures.push("点 A+ 后正文字号没有变大（" + m.font + " → " + bigger + "）");
+      await page.locator('#articleToolbar button[data-size="reset"]').click();
+      // 改字号会让正文高度变化，侧栏配平有 120ms 防抖：等它跑完再看底边对齐
+      await page.waitForTimeout(450);
+
+      // 短稿：正文卡片撑到与侧栏同高（内容下方留白），两栏底边对齐；正文更长时不撑
+      const align = await page.evaluate(() => {
+        const main = document.querySelector(".inner-main");
+        const side = document.getElementById("innerSide");
+        const panel = document.querySelector(".inner-main > *:last-child");
+        const prev = panel ? panel.style.minHeight : "";
+        if (panel) panel.style.minHeight = "";
+        const naturalMain = Math.round(main.getBoundingClientRect().height);
+        if (panel) panel.style.minHeight = prev;
+        return {
+          naturalMain,
+          sideHeight: Math.round(side.getBoundingClientRect().height),
+          mainBottom: Math.round(main.getBoundingClientRect().bottom),
+          sideBottom: Math.round(side.getBoundingClientRect().bottom),
+          stretched: prev !== "",
+        };
+      });
+      if (align.naturalMain < align.sideHeight - 2) {
+        if (!align.stretched || Math.abs(align.mainBottom - align.sideBottom) > 2) {
+          failures.push("短稿没和侧栏底边对齐：正文 " + align.mainBottom + " / 侧栏 " + align.sideBottom);
+        }
+      } else if (align.stretched) {
+        failures.push("正文并不比侧栏短，却被撑高了");
+      }
+      notes.push("底边：" + (align.stretched ? "已撑高对齐 " + align.mainBottom + "px" : "按内容高度"));
+
+      // 元信息口径：发布时间只到年月日；不显示点击（阅读）数据
+      const metaText = await page.evaluate(() => (document.getElementById("articleMeta") || {}).innerText || "");
+      if (/阅读/.test(metaText)) failures.push("详情页元信息仍显示阅读数据");
+      if (!/发布时间：\d{4}-\d{2}-\d{2}/.test(metaText)) {
+        failures.push("发布时间不是年月日：「" + metaText.slice(0, 40) + "」");
+      } else {
+        notes.push("元信息：" + metaText.replace(/\s+/g, " ").slice(0, 40));
+      }
+      } // frontendDetail
     }
 
     // 9) 正文题区与标题重复：顶部只出一行标题，题区按行留在正文里
@@ -809,12 +881,25 @@ async function runCase(browser, base, c, opts) {
     if (c.kind === "sticky-check") {
       const m = await page.evaluate(() => {
         const side = document.getElementById("innerSide");
-        return { height: Math.round(side.getBoundingClientRect().height), sticky: side.classList.contains("is-sticky"), viewport: window.innerHeight };
+        return {
+          height: Math.round(side.getBoundingClientRect().height),
+          sticky: side.classList.contains("is-sticky"),
+          viewport: window.innerHeight,
+          latest: document.querySelectorAll("#latestList li").length,
+          thumbs: document.querySelectorAll("#thumbGrid img").length,
+        };
       });
       if (m.height >= m.viewport - 90 && m.sticky) {
         failures.push("侧栏高 " + m.height + "px 仍启用粘性，底部内容在视口外看不到");
       }
-      notes.push("侧栏 " + m.height + "px" + (m.sticky ? "（粘性保留）" : "（粘性取消）"));
+      // 详情页侧栏口径：10–15 条、4–6 张；长文应顶到上限附近
+      if (m.latest < 10 || m.latest > 15) failures.push("侧栏最新新闻 " + m.latest + " 条（应在 10–15 之间）");
+      if (m.thumbs < 4 || m.thumbs > 6) failures.push("侧栏图片新闻 " + m.thumbs + " 张（应在 4–6 之间）");
+      if (c.expectSideMax && (m.latest < 13 || m.thumbs < 6)) {
+        failures.push("长文的侧栏没顶到上限：" + m.latest + " 条 / " + m.thumbs + " 张");
+      }
+      notes.push("侧栏 " + m.height + "px、新闻 " + m.latest + " 条 / 图 " + m.thumbs + " 张"
+        + (m.sticky ? "（粘性保留）" : "（粘性取消）"));
     }
 
     // 10) 回到顶部：滚动后出现，点击回到顶部
@@ -865,6 +950,11 @@ async function runCase(browser, base, c, opts) {
       if (m.plainHttp > 0) failures.push("静态页仍有 " + m.plainHttp + " 处 http 旧站地址");
       if (m.videoWidth > m.bodyWidth + 1) failures.push("静态页视频 " + m.videoWidth + "px 超出正文 " + m.bodyWidth + "px");
       if (m.overflowX > 1) failures.push("静态页横向溢出 " + m.overflowX + "px");
+      // 静态页与前台同口径：发布时间只到年月日
+      const staticMeta = await page.evaluate(() => (document.querySelector(".meta") || {}).textContent || "");
+      if (/\d{2}:\d{2}/.test(staticMeta) || !/发布时间：\d{4}-\d{2}-\d{2}/.test(staticMeta)) {
+        failures.push("静态页发布时间口径不对：「" + staticMeta.slice(0, 40) + "」");
+      }
       notes.push("视频 " + m.videoWidth + "/" + m.bodyWidth + "px");
     }
   } catch (e) {

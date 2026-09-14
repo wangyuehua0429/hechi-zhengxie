@@ -246,7 +246,8 @@ final class Publisher
     /** @param array<string, mixed> $article */
     private function articleHtml(array $article): string
     {
-        $meta = '发布时间：' . htmlspecialchars((string) $article['date'], ENT_QUOTES);
+        // 发布时间只到年月日（与前台详情页同口径，时分不上页面）
+        $meta = '发布时间：' . htmlspecialchars(substr((string) ($article['dateText'] ?? $article['date']), 0, 10), ENT_QUOTES);
         if (($article['source'] ?? '') !== '') {
             $meta .= '　来源：' . htmlspecialchars((string) $article['source'], ENT_QUOTES);
         }

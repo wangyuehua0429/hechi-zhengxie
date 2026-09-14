@@ -98,13 +98,13 @@
     }
     el("articleTitle").textContent = a.title;
 
-    // 空值项不渲染（此前 views 为空会显示成「阅读：」）；
-    // 「编辑」只在文末落款出现一次，meta 行不再重复。
+    // 元信息口径（2026-09-14）：发布时间只到年月日（时分不进详情页）；不显示点击／阅读数据；
+    // 空值项不渲染；「编辑」只在文末落款出现一次，meta 行不再重复。
+    const pubDate = String(a.dateText || a.date || "").slice(0, 10);
     const meta = [
-      a.date ? '<span>发布时间：<b>' + esc(a.date) + '</b></span>' : "",
+      pubDate ? '<span>发布时间：<b>' + esc(pubDate) + '</b></span>' : "",
       a.source ? '<span>来源：<b>' + esc(a.source) + '</b></span>' : "",
-      a.author ? '<span>作者：<b>' + esc(a.author) + '</b></span>' : "",
-      a.views ? '<span>阅读：<b>' + esc(a.views) + '</b></span>' : ""
+      a.author ? '<span>作者：<b>' + esc(a.author) + '</b></span>' : ""
     ].filter(Boolean).join("");
     el("articleMeta").innerHTML = meta;
 
@@ -130,7 +130,9 @@
 
   function applyBodySize() {
     const body = el("articleBody");
-    if (body) body.style.fontSize = (1.06 * state.bodySize) + "em";
+    // 用 CSS 变量而不是直接写 font-size：基准 16px、行高与段距都由样式算，
+    // 直接写内联 font-size 会把适老化（--font-scale）与参照页版式一起盖掉。
+    if (body) body.style.setProperty("--body-scale", String(state.bodySize));
   }
 
   // 附件下载区：数据里有 attachments 才显示（旧站正文里的 doc/pdf/xls 等原件链接）
@@ -270,9 +272,10 @@
   }
 
   function renderSide() {
-    // 侧栏「最新新闻 + 图片新闻」与栏目页统一，逻辑见 js/shell.js
+    // 侧栏「最新新闻 + 图片新闻」逻辑见 js/shell.js；详情页传 "detail" 策略：
+    // 正文短也固定 10 条 + 2 行 4 张，正文长按高度往上配，最多 15 条 + 3 行 6 张
     if (window.SITE && window.SITE.renderSidePanels) {
-      window.SITE.renderSidePanels(state.channels);
+      window.SITE.renderSidePanels(state.channels, "detail");
     }
     syncStickySide();
   }
