@@ -79,11 +79,11 @@
         </span>
         <div class="marquee-viewport"><span class="marquee-track" id="marqueeTrack"></span></div>
       </div>
-      <form class="run-search" action="https://www.gxhczx.gov.cn/search.php" method="get" target="_blank" role="search">
-        <input type="text" name="key" placeholder="搜索站内内容…" aria-label="搜索站内内容">
-        <select name="type" aria-label="搜索范围">
-          <option value="1">标题</option>
-          <option value="2">内容</option>
+      <form class="run-search" action="search.html" method="get" role="search">
+        <input type="text" name="q" placeholder="搜索站内内容…" aria-label="检索词">
+        <select name="scope" aria-label="检索范围">
+          <option value="all">标题＋正文</option>
+          <option value="title">仅标题</option>
         </select>
         <button type="submit">搜索</button>
       </form>

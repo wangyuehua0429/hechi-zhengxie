@@ -93,6 +93,45 @@ const CASES = [
     kind: "pager"
   },
   {
+    name: "站内检索·结果页（桌面 1440）",
+    page: "search.html?q=" + encodeURIComponent("政协"),
+    viewport: DESKTOP,
+    ready: "#resultWrap .search-rows li",
+    look: {
+      selectors: {
+        "#resultWrap .search-rows li": 20,
+        "#resultWrap mark": 1,
+        "#pager button": 1
+      },
+      textIncludes: ["站内检索", "条"],
+      textExcludes: ["检索失败"]
+    }
+  },
+  {
+    name: "站内检索·翻第 2 页（桌面 1440）",
+    page: "search.html?q=" + encodeURIComponent("政协"),
+    viewport: DESKTOP,
+    ready: "#resultWrap .search-rows li",
+    kind: "search-pager"
+  },
+  {
+    name: "站内检索·空结果（桌面 1440）",
+    page: "search.html?q=" + encodeURIComponent("zzz查无此词"),
+    viewport: DESKTOP,
+    ready: "#resultWrap .search-empty",
+    look: {
+      selectors: { "#resultWrap .search-empty": 1 },
+      textIncludes: ["没有找到"]
+    }
+  },
+  {
+    name: "站内检索（手机 390）",
+    page: "search.html?q=" + encodeURIComponent("政协"),
+    viewport: MOBILE,
+    ready: "#resultWrap .search-rows li",
+    look: { selectors: { "#resultWrap .search-rows li": 1, "#pager button": 1 } }
+  },
+  {
     name: "栏目页·政协领导（202）",
     page: "channel.html?id=202",
     viewport: DESKTOP,
@@ -694,6 +733,23 @@ async function runCase(browser, base, c, opts) {
         if (rows < 1) failures.push("翻到第 2 页后列表为空");
         if (countText.indexOf("第 2") === -1) failures.push("翻页后页码文案未同步：" + countText.trim());
         notes.push("第 2 页 " + rows + " 行");
+      }
+    }
+
+    // 6b) 站内检索翻页：结果仍非空，条数文案与地址栏（page=2）同步
+    if (c.kind === "search-pager") {
+      const btn = page.locator('#pager button[data-page="2"]').first();
+      if (!(await btn.count())) {
+        failures.push("检索结果没有第 2 页按钮");
+      } else {
+        await btn.click();
+        await page.waitForTimeout(700);
+        const rows = await page.locator("#resultWrap .search-rows li").count();
+        const countText = await page.locator("#resultCount").innerText();
+        if (rows < 1) failures.push("检索翻到第 2 页后结果为空");
+        if (countText.indexOf("第 2") === -1) failures.push("检索翻页后页码文案未同步：" + countText.trim());
+        if (page.url().indexOf("page=2") === -1) failures.push("检索翻页后地址栏没带 page=2：" + page.url());
+        notes.push("检索第 2 页 " + rows + " 行");
       }
     }
 

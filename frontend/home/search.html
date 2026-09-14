@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="mast-folded">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="广西河池政协网 - 站内检索">
+  <title>站内检索 · 广西河池政协网</title>
+  <link rel="icon" href="favicon.ico">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/inner.css">
+</head>
+<body data-font="default">
+  <a class="skip-link" href="#main">跳到主要内容</a>
+
+  <!-- 顶部工具条 -->
+  <div class="topbar">
+    <div class="container topbar-inner">
+      <div class="topbar-left">
+        <span class="topbar-date" id="topbarDate"></span>
+        <span class="topbar-org">中国人民政治协商会议河池市委员会</span>
+      </div>
+      <div class="topbar-right">
+        <div class="font-tools" role="group" aria-label="字号调整">
+          <span>适老化</span>
+          <button type="button" data-font="small" aria-label="缩小字号">A-</button>
+          <button type="button" data-font="default" aria-label="标准字号" class="active">默认</button>
+          <button type="button" data-font="large" aria-label="放大字号">A+</button>
+        </div>
+        <button type="button" class="contrast-btn" id="contrastBtn" aria-label="切换高对比度">无障碍</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 站点品牌 -->
+  <header class="site-header">
+    <div class="container masthead">
+      <a href="./index.html" aria-label="广西河池政协网首页">
+        <div class="masthead-layers" aria-hidden="false">
+          <img class="mast-bg active" src="images/head_bg1.jpg" alt="" fetchpriority="high">
+          <img class="mast-bg" src="images/head_bg2.jpg" alt="" fetchpriority="low" decoding="async">
+          <img class="mast-bg" src="images/head_bg3.jpg" alt="" fetchpriority="low" decoding="async">
+          <img class="mast-logo" src="images/head_logo.png" alt="中国人民政治协商会议河池市委员会" decoding="async">
+          <img class="mast-slogan" src="images/head_slogan.png" alt="政治协商 民主监督 参政议政">
+        </div>
+      </a>
+    </div>
+    <div class="container header-inner">
+      <a class="brand" href="./index.html" aria-label="广西河池政协网首页">
+        <span class="brand-badge" aria-hidden="true">政&nbsp;协</span>
+        <span class="brand-text">
+          <strong>广西河池政协网</strong>
+          <small>中国人民政治协商会议河池市委员会</small>
+        </span>
+      </a>
+      <button type="button" class="nav-toggle" id="navToggle" aria-label="打开菜单" aria-expanded="false" aria-controls="siteNav">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+    <nav class="site-nav" id="siteNav">
+      <div class="container nav-wrap">
+        <a class="nav-home" id="navHome" aria-label="返回首页"></a>
+        <div class="nav-rows" id="navRows" role="menubar" aria-label="主导航"></div>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main">
+    <!-- 面包屑 -->
+    <nav class="crumb-bar" aria-label="当前位置">
+      <div class="container">
+        <ol class="crumb">
+          <li><a href="./index.html">首页</a></li>
+          <li class="is-current" aria-current="page">站内检索</li>
+        </ol>
+      </div>
+    </nav>
+
+    <div class="container">
+      <section class="panel" aria-labelledby="searchHeading">
+        <div class="panel-head">
+          <h2 id="searchHeading">站内检索</h2>
+          <span class="panel-count" id="resultCount"></span>
+        </div>
+        <div class="panel-body search-body">
+          <form class="search-form" id="searchForm" role="search">
+            <input type="search" id="q" name="q" placeholder="输入关键词，如：政协、提案、乡村振兴" aria-label="检索词" autocomplete="off">
+            <select id="scope" name="scope" aria-label="检索范围">
+              <option value="all">标题＋正文</option>
+              <option value="title">仅标题</option>
+            </select>
+            <button type="submit">搜索</button>
+          </form>
+          <p class="search-note" id="searchNote">
+            默认在标题、摘要与正文里检索，标题命中的稿件排在前面；
+            <a id="legacySearch" href="https://www.gxhczx.gov.cn/search.php" target="_blank" rel="noopener">旧站全站检索</a>
+            仍然保留（含县（区）政协稿件）。
+          </p>
+          <div id="resultWrap"></div>
+        </div>
+        <nav class="pager" id="pager" aria-label="检索结果分页"></nav>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner" id="footerBody"></div>
+  </footer>
+
+  <script src="js/data-source.js"></script>
+  <script src="js/site-links.js"></script>
+  <script src="js/shell.js"></script>
+  <script src="js/search.js"></script>
+</body>
+</html>

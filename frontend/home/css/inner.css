@@ -827,6 +827,73 @@ a.county-link:hover { border-color: var(--primary); color: var(--primary); }
 }
 img.img-failed { visibility: hidden; }
 
+/* ---------- 站内检索（search.html） ---------- */
+.search-body { padding: 16px 20px 4px; }
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.search-form input[type="search"] {
+  flex: 1 1 320px;
+  min-width: 0;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.search-form input[type="search"]:focus {
+  border-color: var(--primary);
+  outline: 2px solid rgba(165, 29, 34, 0.16);
+}
+.search-form select {
+  flex: none;
+  padding: 10px 8px;
+  font: inherit;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+}
+.search-form button {
+  flex: none;
+  padding: 10px 22px;
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  background: var(--primary);
+  border: 1px solid var(--primary);
+  border-radius: 4px;
+  cursor: pointer;
+}
+.search-form button:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+.search-note {
+  margin: 10px 0 0;
+  font-size: 0.86em;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.search-note a { color: var(--link); }
+.search-empty a { color: var(--link); }
+/* 结果行比栏目列表多一行命中片段：标题与日期一行，片段占整行 */
+.search-rows li { flex-wrap: wrap; }
+.search-excerpt {
+  flex: 1 0 100%;
+  margin: 2px 0 0;
+  font-size: 0.88em;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.search-source { margin-left: 10px; color: #8b9099; }
+.search-rows mark {
+  padding: 0 1px;
+  color: var(--primary);
+  background: #ffe9a8;
+  border-radius: 2px;
+}
+
 /* ---------- 响应式 ---------- */
 @media (max-width: 1080px) {
   .inner-layout { grid-template-columns: minmax(0, 1fr) 300px; }
@@ -847,6 +914,10 @@ img.img-failed { visibility: hidden; }
   .topic-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 640px) {
+  .search-body { padding: 14px 14px 4px; }
+  .search-form input[type="search"] { flex: 1 1 100%; }
+  .search-form select,
+  .search-form button { flex: 1 1 auto; }
   .gallery-grid,
   .video-grid,
   .topic-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 12px 14px 16px; }

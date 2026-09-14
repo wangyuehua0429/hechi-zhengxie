@@ -21,9 +21,17 @@ final class ArticleRepository
      * 列表查询：栏目页分页、检索、更多列表共用。
      *
      * @param list<string> $channelTypes 空数组表示不限栏目
+     * @param string $scope 检索范围：all＝标题＋摘要＋正文（默认，见 docs/api-contract.md 4.8），title＝只查标题
      * @return array{items: list<array<string, mixed>>, total: int}
      */
-    public function paginate(array $channelTypes, int $page, int $size, string $keyword = '', string $order = 'date_desc'): array
+    public function paginate(
+        array $channelTypes,
+        int $page,
+        int $size,
+        string $keyword = '',
+        string $order = 'date_desc',
+        string $scope = 'all'
+    ): array
     {
         $where = ['a.site_id = :site', 'a.status = :status', 'a.public_scope = :scope'];
         $params = ['site' => $this->siteId, 'status' => 'published', 'scope' => 'public'];
@@ -42,30 +50,148 @@ final class ArticleRepository
         }
 
         if ($keyword !== '') {
-            $where[] = '(a.title LIKE :kw OR a.summary LIKE :kw)';
-            $params['kw'] = '%' . $keyword . '%';
+            // 三段各用各的占位符：Support/Db.php 关掉了预处理模拟（EMULATE_PREPARES=false），
+            // 同一个命名占位符在一条语句里出现两次，MySQL 上会抛 HY093，
+            // 之前那样写只有在 SQLite 上跑得通。
+            // 用不到的占位符不能留在 $params 里——多绑一个值同样是 HY093。
+            $params['kw'] = self::likePattern($keyword);
+            if ($scope === 'title') {
+                $where[] = "a.title LIKE :kw ESCAPE '!'";
+            } else {
+                $params['kwSummary'] = $params['kw'];
+                $params['kwBody']    = $params['kw'];
+                $where[] = "(a.title LIKE :kw ESCAPE '!'
+                    OR a.summary LIKE :kwSummary ESCAPE '!'
+                    OR a.content_html LIKE :kwBody ESCAPE '!')";
+            }
         }
 
         $whereSql = implode(' AND ', $where);
+        // 计数语句用不到排序占位符，分开传参：多传一个绑定值同样会报 HY093。
+        $listParams = $params;
+        $direction = strtolower($order) === 'date_asc' ? 'ASC' : 'DESC';
+        $orderSql = 'a.published_at ' . $direction . ', a.article_id ' . $direction;
+        if ($keyword !== '') {
+            // 带检索词时先把标题命中的排前面，再按发布时间：
+            // 正文命中的长尾不会把标题命中的稿件压到几十页之后。
+            $listParams['kwOrder'] = self::likePattern($keyword);
+            $orderSql = "CASE WHEN a.title LIKE :kwOrder ESCAPE '!' THEN 0 ELSE 1 END ASC, " . $orderSql;
+        }
+
         $total = (int) $this->db->scalar(
             'SELECT COUNT(DISTINCT a.article_id) FROM cms_article a' . $join . ' WHERE ' . $whereSql,
             $params
         );
 
-        $direction = strtolower($order) === 'date_asc' ? 'ASC' : 'DESC';
         $offset = max(0, ($page - 1) * $size);
 
         $rows = $this->db->select(
             'SELECT a.* FROM cms_article a' . $join . ' WHERE ' . $whereSql .
-            ' ORDER BY a.published_at ' . $direction . ', a.article_id ' . $direction .
+            ' ORDER BY ' . $orderSql .
             ' LIMIT ' . max(1, $size) . ' OFFSET ' . $offset,
-            $params
+            $listParams
         );
 
         return [
             'items' => array_map([ChannelRepository::class, 'mapListItem'], $rows),
             'total' => $total,
         ];
+    }
+
+    /**
+     * 给检索结果补一段命中片段，供搜索页显示“为什么命中”。
+     *
+     * 标题命中时片段取摘要／正文开头（标题本身就在结果行里）；摘要或正文命中时
+     * 取关键词前后各若干字的窗口。返回纯文本，转义与关键词高亮交给前端做。
+     *
+     * @param list<array<string, mixed>> $items mapListItem() 给出的结果项
+     * @return list<array<string, mixed>> 带 excerpt 字段的结果项
+     */
+    public function attachExcerpts(array $items, string $keyword, int $width = 46): array
+    {
+        $ids = [];
+        foreach ($items as $item) {
+            $id = (int) ($item['id'] ?? 0);
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+        if ($ids === [] || $keyword === '') {
+            return $items;
+        }
+
+        $placeholders = [];
+        $params = ['site' => $this->siteId];
+        foreach ($ids as $index => $id) {
+            $key = 'id' . $index;
+            $placeholders[] = ':' . $key;
+            $params[$key] = $id;
+        }
+        $rows = $this->db->select(
+            'SELECT article_id, title, summary, content_html FROM cms_article
+             WHERE site_id = :site AND article_id IN (' . implode(', ', $placeholders) . ')',
+            $params
+        );
+        $byId = [];
+        foreach ($rows as $row) {
+            $byId[(int) $row['article_id']] = $row;
+        }
+
+        $out = [];
+        foreach ($items as $item) {
+            $row = $byId[(int) ($item['id'] ?? 0)] ?? null;
+            if ($row !== null) {
+                $item['excerpt'] = self::excerptFor($row, $keyword, $width);
+            }
+            $out[] = $item;
+        }
+        return $out;
+    }
+
+    /** @param array<string, mixed> $row */
+    private static function excerptFor(array $row, string $keyword, int $width): string
+    {
+        $summary = self::plainText((string) ($row['summary'] ?? ''));
+        $body = self::plainText((string) ($row['content_html'] ?? ''));
+
+        $length = mb_strlen($keyword, 'UTF-8');
+        foreach ([$summary, $body] as $text) {
+            $pos = $text === '' ? false : mb_stripos($text, $keyword, 0, 'UTF-8');
+            if ($pos === false) {
+                continue;
+            }
+            $start = max(0, $pos - $width);
+            $take = min(mb_strlen($text, 'UTF-8') - $start, $width * 2 + $length);
+            return ($start > 0 ? '……' : '')
+                . mb_substr($text, $start, $take, 'UTF-8')
+                . ($start + $take < mb_strlen($text, 'UTF-8') ? '……' : '');
+        }
+
+        // 标题命中（标题就在结果行里，不必重复），或关键词只落在 HTML 标记里（如链接地址）
+        // 时的兜底：给摘要／正文开头，让结果行不至于只剩标题与日期。
+        $fallback = $summary !== '' ? $summary : $body;
+        if ($fallback === '') {
+            return '';
+        }
+        $fallbackLength = mb_strlen($fallback, 'UTF-8');
+        return mb_substr($fallback, 0, $width * 2, 'UTF-8') . ($fallbackLength > $width * 2 ? '……' : '');
+    }
+
+    /** 正文 HTML 拍平成一行纯文本：块级标签当空格，转义还原，空白折叠。 */
+    private static function plainText(string $html): string
+    {
+        $spaced = (string) preg_replace('#<(?:br\s*/?|/p|/div|/li|/h[1-6]|/tr|/td)\s*>#i', ' ', $html);
+        $text = html_entity_decode(strip_tags($spaced), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return trim((string) preg_replace('/\s+/u', ' ', $text));
+    }
+
+    /**
+     * LIKE 模式：关键词里的 % 与 _ 按字面量处理（用 ! 作转义符，MySQL／SQLite 都认 ESCAPE）。
+     * 不转义的话，检索词里带一个 % 就会命中全库。
+     */
+    private static function likePattern(string $keyword): string
+    {
+        return '%' . str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $keyword) . '%';
     }
 
     /**

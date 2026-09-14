@@ -251,6 +251,33 @@ async function main() {
     check("search 命中结果", search.status === 200 && (search.body?.total || 0) > 0, JSON.stringify(search.body).slice(0, 120));
     check("search 未传 q 时返回 400 bad_request",
       (await fetchJson(base, "/api/v1/search")).status === 400);
+    const searchTitle = await fetchJson(base,
+      "/api/v1/search?q=" + encodeURIComponent("政协") + "&scope=title&size=10");
+    check("search scope=title 只查标题，命中数不多于默认范围",
+      searchTitle.status === 200 && (searchTitle.body?.total || 0) > 0 &&
+      (searchTitle.body?.total || 0) <= (search.body?.total || 0),
+      JSON.stringify({ all: search.body?.total, title: searchTitle.body?.total }));
+    check("search scope=title 每条结果标题都含检索词",
+      (searchTitle.body?.articles || []).length > 0 &&
+      (searchTitle.body?.articles || []).every((item) => item.title.indexOf("政协") !== -1),
+      JSON.stringify((searchTitle.body?.articles || []).map((item) => item.title).slice(0, 2)));
+    check("search 结果带命中片段 excerpt",
+      (search.body?.articles || []).length > 0 &&
+      (search.body?.articles || []).every((item) => typeof item.excerpt === "string"),
+      JSON.stringify((search.body?.articles || []).map((item) => item.excerpt || "").slice(0, 1)));
+    const searchOrder = await fetchJson(base, "/api/v1/search?q=" + encodeURIComponent("政协") + "&size=20");
+    check("search 里标题命中的排在正文命中的前面",
+      (() => {
+        const flags = (searchOrder.body?.articles || []).map((item) => (item.title.indexOf("政协") !== -1 ? 1 : 0));
+        return flags.length > 0 && flags.every((flag, index) => index === 0 || flags[index - 1] >= flag);
+      })(),
+      JSON.stringify((searchOrder.body?.articles || []).map((item) => item.title.slice(0, 6))));
+    const searchWildcard = await fetchJson(base, "/api/v1/search?q=" + encodeURIComponent("%") + "&size=1");
+    check("search 把关键词里的 % 当字面量（不会命中全库）",
+      searchWildcard.status === 200 && (searchWildcard.body?.total || 0) <= 20,
+      "total=" + (searchWildcard.body?.total ?? "无"));
+    check("search scope 非法时返回 400 bad_request",
+      (await fetchJson(base, "/api/v1/search?q=" + encodeURIComponent("政协") + "&scope=body")).status === 400);
 
     // ---- 首页
     const home = await fetchJson(base, "/api/v1/home");

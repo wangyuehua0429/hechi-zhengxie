@@ -67,6 +67,41 @@
     return cache[key];
   }
 
+  // ---- 静态快照检索用的小工具：把正文 HTML 拍成一行纯文本，便于“内容”检索与片段展示
+  function flatten(html) {
+    return String(html == null ? "" : html)
+      .replace(/<(?:br\s*\/?|\/p|\/div|\/li|\/h[1-6])\s*>/gi, " ")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/&nbsp;/gi, " ")
+      .replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">")
+      .replace(/&quot;/gi, "\"").replace(/&#39;/gi, "'")
+      .replace(/\s+/g, " ").trim();
+  }
+
+  // 命中判定：标题命中即算命中；“内容”一档再看样例正文的摘要与正文
+  function snapshotMatch(item, detail, needle, scope) {
+    if (!needle) return false;
+    if (String(item.title || "").toLowerCase().indexOf(needle) >= 0) return true;
+    if (scope === "title" || !detail) return false;
+    return (flatten(detail.summary) + " " + flatten(detail.content)).toLowerCase().indexOf(needle) >= 0;
+  }
+
+  // 命中片段：摘要优先、正文其次，取关键词前后各 46 字（与后端 attachExcerpts 同一口径）
+  function snapshotExcerpt(item, detail, needle, width) {
+    var pools = detail ? [flatten(detail.summary), flatten(detail.content)] : [];
+    for (var i = 0; i < pools.length; i += 1) {
+      var text = pools[i];
+      var pos = text.toLowerCase().indexOf(needle);
+      if (pos < 0) continue;
+      var start = Math.max(0, pos - width);
+      return (start > 0 ? "……" : "") + text.slice(start, start + width * 2 + needle.length) +
+        (start + width * 2 + needle.length < text.length ? "……" : "");
+    }
+    var fallback = pools.length ? (pools[0] || pools[1]) : "";
+    if (!fallback) return "";
+    return fallback.slice(0, width * 2) + (fallback.length > width * 2 ? "……" : "");
+  }
+
   // ---- 各数据项的取数：接口与静态快照返回结构对齐，取出来的都是同一形状
   var loaders = {
     home: {
@@ -160,6 +195,90 @@
           return hit || null;
         });
       }
+    },
+    // 站内检索：接口模式是真检索（默认标题＋摘要＋正文，scope=title 只查标题）；
+    // 静态快照模式只能在快照自带的内容里本地过一遍（43 个栏目各 24 条列表项 + 70 篇样例正文），
+    // 条数与全站不一致，页面据此标注“演示数据”。
+    search: {
+      api: function (options) {
+        var size = options.size || 20;
+        var page = options.page || 1;
+        return getJSON(API_BASE + "/search?q=" + encodeURIComponent(options.q || "") +
+          "&scope=" + encodeURIComponent(options.scope || "all") +
+          "&page=" + page + "&size=" + size).then(function (data) {
+          return {
+            items: data.articles || [],
+            page: data.page || page,
+            size: data.size || size,
+            total: data.total || 0,
+            pages: data.pages || 1,
+            q: data.q || options.q || "",
+            scope: data.scope || options.scope || "all",
+            demo: false
+          };
+        });
+      },
+      static: function (options) {
+        var size = options.size || 20;
+        var page = options.page || 1;
+        var scope = options.scope === "title" ? "title" : "all";
+        var needle = String(options.q || "").trim().toLowerCase();
+        return Promise.all([
+          getJSON(STATIC_BASE + "channel.json"),
+          getJSON(STATIC_BASE + "article.json").catch(function () { return { articles: [] }; })
+        ]).then(function (res) {
+          var texts = {};
+          (((res[1] || {}).articles) || []).forEach(function (detail) {
+            texts[String(detail.id)] = detail;
+          });
+          var hits = [];
+          var seen = {};
+          ((res[0] || {}).channels || []).forEach(function (channel) {
+            (channel.list || []).forEach(function (item) {
+              var id = String(item.id);
+              if (seen[id]) return;
+              var detail = texts[id] || null;
+              if (!snapshotMatch(item, detail, needle, scope)) return;
+              seen[id] = true;
+              var hit = {
+                id: id, title: item.title, url: item.url || ("detail.html?id=" + id),
+                date: item.date || "", datetime: item.datetime || item.date || "",
+                source: item.source || ""
+              };
+              hit.excerpt = snapshotExcerpt(item, detail, needle, 46);
+              hits.push(hit);
+            });
+          });
+          // 样例正文里不在栏目列表内的稿件也补进来（详情页样例就是这样单独存在的）
+          Object.keys(texts).forEach(function (id) {
+            if (seen[id]) return;
+            var detail = texts[id];
+            var item = {
+              id: id, title: detail.title, url: "detail.html?id=" + id,
+              date: detail.date || "", datetime: detail.date || "", source: detail.source || ""
+            };
+            if (!snapshotMatch(item, detail, needle, scope)) return;
+            seen[id] = true;
+            item.excerpt = snapshotExcerpt(item, detail, needle, 46);
+            hits.push(item);
+          });
+          hits.sort(function (a, b) {
+            return String(b.datetime || "").localeCompare(String(a.datetime || ""));
+          });
+          var total = hits.length;
+          var start = (page - 1) * size;
+          return {
+            items: hits.slice(start, start + size),
+            page: page,
+            size: size,
+            total: total,
+            pages: Math.max(1, Math.ceil(total / size)),
+            q: options.q || "",
+            scope: scope,
+            demo: true
+          };
+        });
+      }
     }
   };
 
@@ -197,6 +316,17 @@
       return once(key, function () {
         return resolvedMode().then(function (mode) {
           return loaders.articles[mode](options);
+        });
+      });
+    },
+    /** 站内检索：{items, page, size, total, pages, q, scope, demo}；接口不可用时回退快照本地检索 */
+    search: function (options) {
+      options = options || {};
+      var key = "search:" + (options.q || "") + ":" + (options.scope || "all") + ":" + (options.page || 1) +
+        ":" + (options.size || 20);
+      return once(key, function () {
+        return resolvedMode().then(function (mode) {
+          return loaders.search[mode](options);
         });
       });
     }

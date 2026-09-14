@@ -301,3 +301,21 @@ frontend/home/
 - **两份渲染要保持一致**：`js/main.js`（首页）与 `js/shell.js`（内页）各有一份 `renderFooter()`，输出逐字相同，改一处必须同步另一处。
 - **标识链接**：现指向 conac 公示平台公共查询页 `https://bszs.conac.cn/sitename?method=searchIndex`；拿到本站的标识 ID 后，改成 `https://bszs.conac.cn/sitename?method=show&id=<ID>` 更精确。
 - **窄屏**：`@media (max-width: 640px)` 下三栏改竖排居中，二维码缩到 108×108。
+
+## 站内检索（2026-09-14 新增）
+
+全站检索入口在首页导航下方的横栏里，表单提交到 **`search.html`**（原先直接跳旧站 `search.php`）：关键词参数 `q`、范围参数 `scope`、页码参数 `page`。
+
+```
+frontend/home/
+├── search.html      检索结果页（复用内页外壳：顶栏／站头／导航／面包屑／页脚）
+└── js/search.js     结果渲染、关键词高亮、分页、地址栏同步
+```
+
+- **取数**：走 `js/data-source.js` 的 `SITE_DATA.search({q, scope, page, size})`。接口模式打 `/api/v1/search`（真分页，结果自带 `excerpt` 命中片段）；静态快照模式在 `data/*.json` 里本地过一遍（43 个栏目各 24 条列表项 + 70 篇样例正文），条数标注“演示数据”，与全站条数不是一回事。
+- **检索范围**：`scope=all`（默认）＝标题＋摘要＋正文，`scope=title`＝只查标题；后端排序为“标题命中优先，再按发布时间倒序”，标题命中的不会被正文命中的长尾压到几十页之后。
+- **结果行**：标题（关键词高亮）＋ 发布时间 ＋ 命中片段（同样高亮）＋ 来源；片段占整行，手机端标题与日期竖排（与栏目列表同款断点）。
+- **分页**：每页 20 条，页数多时只列首页、当前页前后一页与末页（与栏目页共用同一套 `pageWindow`）；翻页与提交新检索都写 `history`，地址栏出现 `page=2`，返回键能退回上一页结果。
+- **旧站兜底**：结果页说明里保留“旧站全站检索”（`search.php?key=…&type=1`，含县（区）政协稿件——这部分稿件不迁新站），空结果时也引导过去。
+- **样式**：表单与结果行样式在 `css/inner.css` 的“站内检索”一节；`css/style.css` 里原先那组没人引用的 `.search-form` 规则已删除，新页面用自己那套（输入框 `type="search"`、范围下拉、主色按钮）。
+
