@@ -77,6 +77,7 @@ $sections = [
     'banners'   => ['label' => '站内横幅', 'url' => '/admin/banners', 'parent' => $homeCrumb],
     'users'     => ['label' => '用户管理', 'url' => '/admin/users'],
     'logs'      => ['label' => '操作日志', 'url' => '/admin/logs'],
+    'health'    => ['label' => '接口状态', 'url' => '/admin/health'],
 ];
 $section = $sections[$current] ?? null;
 $pageLabel = trim(explode('·', $title)[0]);
@@ -137,7 +138,7 @@ $rootCrumb = isset($section['parent']) ? $section['parent'] : ['label' => '概�
       <?php endforeach; ?>
       <span class="sidenav-sep" aria-hidden="true"></span>
       <a class="sidenav-secondary" href="/" target="_blank" rel="noopener">查看站点前台</a>
-      <span class="sidenav-note">自检：<a href="/api/v1/health" target="_blank" rel="noopener">接口状态</a></span>
+      <span class="sidenav-note">自检：<a href="/admin/health">接口状态</a></span>
     </nav>
 
     <main class="main" id="main">

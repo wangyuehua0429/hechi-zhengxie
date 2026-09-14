@@ -1145,3 +1145,40 @@ kbd {
   line-height: 1.9;
 }
 .publish-hint code { background: #f2f3f5; }
+
+/* ============================================================ 接口状态自检页 */
+
+/* 结论条：一眼看清「正常／异常」，细节放下面的卡片里 */
+.health-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid #cfe7d8;
+  border-left: 4px solid var(--ok);
+  border-radius: var(--radius);
+  background: #eef8f1;
+  color: #1d6b38;
+  line-height: 1.7;
+}
+.health-banner--bad { border-color: #f0d6d2; border-left-color: var(--err); background: #fdeeec; color: #a5301f; }
+.health-banner strong { font-size: 16px; }
+.health-banner-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: var(--ok);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.health-banner--bad .health-banner-icon { background: var(--err); }
+.health-banner-note { display: block; color: inherit; opacity: .9; font-size: 14px; }
+/* 值里带路径：长路径要能换行，别把卡片撑破 */
+.health-banner code, .meta-list dd code { word-break: break-all; }

@@ -13,6 +13,7 @@ use HechiZx\Admin\AuthController;
 use HechiZx\Admin\BannerController;
 use HechiZx\Admin\ChannelController;
 use HechiZx\Admin\DashboardController;
+use HechiZx\Admin\HealthController;
 use HechiZx\Admin\LogController;
 use HechiZx\Admin\NavController;
 use HechiZx\Admin\PublishController;
@@ -73,6 +74,7 @@ return static function (Router $router, Db $db, Config $config): void {
     $userController = new UserController($auth, $view, $db, $siteId);
     $roleController = new RoleController($auth, $view, $db, $siteId, $channels);
     $logController = new LogController($auth, $view, $db, $siteId);
+    $healthController = new HealthController($auth, $view, $db, $siteId, $config);
     $publishController = new PublishController(
         $auth,
         $view,
@@ -85,6 +87,7 @@ return static function (Router $router, Db $db, Config $config): void {
     );
 
     $router->get('/admin', [$dashboard, 'index']);
+    $router->get('/admin/health', [$healthController, 'index']);
     $router->get('/admin/login', [$authController, 'showLogin']);
     $router->post('/admin/login', [$authController, 'login']);
     $router->post('/admin/logout', [$authController, 'logout']);

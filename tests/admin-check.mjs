@@ -253,6 +253,24 @@ async function main() {
     check("侧栏一级菜单带内联 SVG 图标（不引图标库）",
       (dashboard.text.match(/class="ico"/g) || []).length >= 5);
 
+    // ---- 自检页：侧栏「接口状态」不再直接弹一串 JSON
+    const healthPage = await client.get("/admin/health");
+    check("侧栏「接口状态」指向后台自检页（不再直开接口）",
+      dashboard.text.includes('href="/admin/health"')
+        && !dashboard.text.includes('href="/api/v1/health"'));
+    check("自检页把探活结果读成人能看的样子",
+      healthPage.status === 200
+        && healthPage.text.includes("接口正常")
+        && healthPage.text.includes("探活结果")
+        && healthPage.text.includes("运行环境")
+        && healthPage.text.includes("重新检查"),
+      "状态 " + healthPage.status);
+    check("自检页保留原始 JSON 入口，并列出数据库与目录写权限",
+      healthPage.text.includes('href="/api/v1/health"')
+        && healthPage.text.includes("数据库")
+        && healthPage.text.includes("发布目录")
+        && /可写|只读/.test(healthPage.text));
+
     // ---- 设计令牌：品牌红与站点前台一致
     const cssText = readFileSync(path.join(REPO, "backend/public/assets/admin.css"), "utf8");
     check("后台品牌色统一到前台红 #a51d22",
