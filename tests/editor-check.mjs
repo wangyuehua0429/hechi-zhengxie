@@ -561,13 +561,15 @@ async function main() {
     });
     check("首页管理：不存在的稿件被拒绝", flagsMissing.status === 302, "状态 " + flagsMissing.status);
 
-    // 预览与复制链接：已发布走 /article/{id}.html 正式静态页
+    // 预览与复制链接：预览打开前台正式详情页（/detail.html?id=），复制链接给对外静态地址
     const listHtml2 = (await client.get("/admin/articles")).text;
     const sectionsHtml = (await client.get("/admin/sections?section=zxdt")).text;
     check("稿件列表：已发布稿件带预览与复制链接",
-      /href="\/article\/\d+\.html"/.test(listHtml2) && listHtml2.includes("data-copy-link"), "列表页没找到");
+      /href="\/detail\.html\?id=\d+"/.test(listHtml2)
+        && /data-copy-link="\/article\/\d+\.html"/.test(listHtml2), "列表页没找到");
     check("首页管理：模块稿件带预览与复制链接",
-      sectionsHtml.includes("data-copy-link") && /target="_blank"/.test(sectionsHtml), "其他栏目页没找到");
+      /data-copy-link="\/article\/\d+\.html"/.test(sectionsHtml)
+        && /href="\/detail\.html\?id=\d+"/.test(sectionsHtml), "其他栏目页没找到");
 
     const styleToken = csrfToken((await client.get("/admin/article/" + SAMPLE_ID)).text);
     await client.post("/admin/article/" + SAMPLE_ID, {

@@ -255,9 +255,8 @@ $renderChip = static function (array $chip): string {
                       </form>
                     <?php endif; ?>
                     <a class="btn btn-sm btn-ghost" href="/admin/article/<?= $id ?>">编辑</a>
-                    <a class="btn btn-sm btn-ghost" href="/article/<?= $id ?>.html" target="_blank" rel="noopener">预览</a>
+                    <a class="btn btn-sm btn-ghost" href="/detail.html?id=<?= $id ?>" target="_blank" rel="noopener">预览</a>
                     <button type="button" class="btn btn-sm btn-ghost" data-copy-link="/article/<?= $id ?>.html">复制链接</button>
-                    <a class="btn btn-sm btn-ghost" href="/detail.html?id=<?= $id ?>" target="_blank" rel="noopener">前台</a>
                   </div>
                 </td>
               </tr>

@@ -293,13 +293,24 @@ if ((string) $filters['keyword'] !== '') {
               </form>
             <?php endif; ?>
             <a class="btn btn-sm" href="/admin/article/<?= $id ?>">编辑</a>
-            <?php $official = '/article/' . $id . '.html'; $isPublished = (string) $item['status'] === 'published'; ?>
-            <?php if ($isPublished): ?>
-              <a class="btn btn-sm btn-ghost" href="<?= hechi_e($official) ?>" target="_blank" rel="noopener">预览</a>
+            <?php
+              // 预览打开的是正式对外页面（前台详情页，与首页／栏目页点进去的是同一个）；
+              // 复制链接给的仍是发布器产出的对外地址 /article/{id}.html。
+              // 只有「已发布 + 公开发布」的稿件才有对外页面：归档稿（public_scope=archive，超出
+              // 公开年限只留后台）既不产静态页、接口也取不到，两个按钮一律置灰。
+              $official = '/article/' . $id . '.html';
+              $previewUrl = '/detail.html?id=' . $id;
+              $isPublished = (string) $item['status'] === 'published';
+              $isPublic = (string) ($item['public_scope'] ?? 'public') === 'public';
+            ?>
+            <?php if ($isPublished && $isPublic): ?>
+              <a class="btn btn-sm btn-ghost" href="<?= hechi_e($previewUrl) ?>" target="_blank" rel="noopener">预览</a>
               <button type="button" class="btn btn-sm btn-ghost" data-copy-link="<?= hechi_e($official) ?>">复制链接</button>
             <?php else: ?>
-              <span class="btn btn-sm is-disabled" aria-disabled="true" title="发布后可预览">预览</span>
-              <span class="btn btn-sm is-disabled" aria-disabled="true" title="发布后可复制链接">复制链接</span>
+              <span class="btn btn-sm is-disabled" aria-disabled="true"
+                    title="<?= $isPublished ? '归档稿不对外发布，没有对外页面' : '发布后可预览' ?>">预览</span>
+              <span class="btn btn-sm is-disabled" aria-disabled="true"
+                    title="<?= $isPublished ? '归档稿不对外发布，没有对外地址' : '发布后可复制链接' ?>">复制链接</span>
             <?php endif; ?>
             <?php foreach (($item['flow_rules'] ?? []) as $action => $rule): ?>
               <?php if ((string) $action === 'delete'): ?>

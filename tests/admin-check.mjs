@@ -266,6 +266,34 @@ async function main() {
     const filtered = await client.get("/admin/articles?channel=904&keyword=" + encodeURIComponent("政协"));
     check("稿件列表支持栏目 + 关键词筛选", filtered.status === 200 && filtered.text.includes("共 "));
 
+    // ---- 预览／复制链接：预览打开前台正式详情页，复制链接给对外静态地址；归档稿两个都置灰
+    const rowsOf = (html) => (html.match(/<tr>[\s\S]*?<\/tr>/g) || []);
+    const rowFor = (html, id) => rowsOf(html).find((row) => row.includes("/admin/article/" + id + '">')) || "";
+    const publishedList = await client.get("/admin/articles?status=published");
+    const sampleId = (publishedList.text.match(/\/admin\/article\/(\d+)">/) || [])[1] || "";
+    check("列表的「预览」打开前台详情页、「复制链接」给对外静态地址",
+      sampleId !== ""
+        && rowFor(publishedList.text, sampleId).includes('href="/detail.html?id=' + sampleId + '"')
+        && rowFor(publishedList.text, sampleId).includes('data-copy-link="/article/' + sampleId + '.html"'),
+      "样例 #" + sampleId);
+
+    // 归档稿（public_scope=archive）超出公开年限、只留后台，不产静态页且接口取不到
+    runPhp(php, "-r", env, [
+      'require "backend/src/bootstrap.php"; $db = new HechiZx\\Support\\Db((array) hechi_config("db"));'
+        + ' $db->execute("UPDATE cms_article SET public_scope = :s WHERE article_id = :id", ["s" => "archive", "id" => ' + SAMPLE_ID + ']);',
+    ]);
+    const archivedList = await client.get("/admin/articles?status=published&keyword=" + encodeURIComponent("许显辉"));
+    const archivedRow = rowFor(archivedList.text, SAMPLE_ID);
+    check("归档稿的「预览」「复制链接」置灰并说明原因",
+      archivedRow.includes("is-disabled")
+        && !archivedRow.includes('href="/detail.html?id=' + SAMPLE_ID + '"')
+        && /归档稿不对外发布/.test(archivedRow),
+      archivedRow ? "该行已置灰" : "没找到该行");
+    runPhp(php, "-r", env, [
+      'require "backend/src/bootstrap.php"; $db = new HechiZx\\Support\\Db((array) hechi_config("db"));'
+        + ' $db->execute("UPDATE cms_article SET public_scope = :s WHERE article_id = :id", ["s" => "public", "id" => ' + SAMPLE_ID + ']);',
+    ]);
+
     // ---- 栏目筛选是导航条（不是下拉）：默认只列一级项，选中哪一组就展开哪一组
     const chipLabels = (html) => {
       const out = [];
