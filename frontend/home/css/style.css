@@ -652,13 +652,14 @@ body[data-font="large"] .news-list li { padding: 11px 0; }
   width: 100%; cursor: pointer;
 }
 
-/* 页脚 */
+/* 页脚（2026-09-14 重构）：左挂党政机关网站标识、中间版权与备案、右侧公众号二维码。
+   原先横排的四枚广西网警徽标（.footer-badges）已撤下，标识区只留 conac 党政机关标识。 */
 .site-footer { background: var(--card); color: var(--muted); margin-top: 34px; padding: 26px 0; font-size: 0.88em; border-top: 1px solid var(--border); }
-.footer-inner { text-align: center; }
+.footer-inner { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 28px; }
 .footer-inner p { margin: 5px 0; }
 .footer-inner a { color: var(--link); }
 .footer-inner a:hover { color: var(--primary); }
-.footer-org { color: var(--text); font-weight: 600; }
+.footer-text { text-align: center; }
 .footer-icp { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
 .footer-copy a:hover { text-decoration: underline; }
 .footer-contact a { color: var(--link); }
@@ -666,10 +667,15 @@ body[data-font="large"] .news-list li { padding: 11px 0; }
 .footer-sep { display: inline-block; width: 1px; height: 0.9em; background: var(--border); margin: 0 12px; vertical-align: middle; }
 .footer-police { display: inline-flex; align-items: center; gap: 6px; }
 .footer-police img { width: 18px; height: 18px; display: block; }
-.footer-badges { display: flex; justify-content: center; align-items: flex-end; gap: 22px; margin-top: 16px; flex-wrap: wrap; }
-.footer-badges img { display: block; }
-.footer-badges .badge-tall { height: 70px; width: auto; }
-.footer-badges .badge-wide { height: 36px; width: auto; }
+.footer-note { color: var(--muted); }
+/* 左：党政机关网站标识（conac 红标，67×80 按原始尺寸渲染，不拉伸） */
+.footer-mark { justify-self: start; }
+.footer-mark a { display: block; }
+.footer-mark img { display: block; width: 67px; height: 80px; }
+/* 右：引导关注微信公众号的二维码 */
+.footer-qr { justify-self: end; text-align: center; }
+.footer-qr img { display: block; width: 120px; height: 120px; margin: 0 auto 6px; background: #fff; border: 1px solid var(--border); border-radius: 4px; }
+.footer-qr-text { color: var(--muted); line-height: 1.45; }
 
 /* 无障碍高对比 */
 body.high-contrast {
@@ -738,6 +744,11 @@ body.high-contrast .news-list li:last-child { border-bottom: 1px dashed #000; }
   .county-body { grid-template-columns: 1fr; }
 }
 @media (max-width: 640px) {
+  /* 页脚窄屏：标识、备案文案、二维码竖排居中 */
+  .footer-inner { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .footer-mark,
+  .footer-qr { justify-self: center; }
+  .footer-qr img { width: 108px; height: 108px; }
   /* 站头收窄态：窄屏横幅很矮，条带略增高度、标志按比例放大，保证站名仍可读 */
   :root { --mast-ratio-folded: 1920 / 260; }
   html.mast-folded .masthead-layers .mast-logo { width: 30%; }

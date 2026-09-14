@@ -85,13 +85,19 @@
     track.innerHTML = '<span class="marquee-text">' + esc(text) + '</span>';
   }
 
+  /* 页脚（2026-09-14 重构）：与首页 js/main.js 的 renderFooter 保持一致——
+     左挂党政机关网站标识，中间版权与备案，右侧微信公众号二维码；四枚广西网警徽标已撤下。 */
   function renderFooter(meta) {
     const box = el("footerBody");
     if (!box) return;
     box.innerHTML =
-      '<p class="footer-org">' + esc(meta.owner) + '</p>' +
+      '<div class="footer-mark">' +
+      '<a href="https://bszs.conac.cn/sitename?method=searchIndex" target="_blank" rel="noopener" ' +
+      'title="党政机关网站标识">' +
+      '<img src="images/gov-badge.png" alt="党政机关网站标识" width="67" height="80"></a>' +
+      '</div>' +
+      '<div class="footer-text">' +
       '<p>版权所有：' + esc(meta.owner) + '</p>' +
-      '<p>开发维护：河池市融媒体中心&nbsp;&nbsp;河池市数媒创新科技发展有限公司</p>' +
       '<p class="footer-copy"><a href="http://' + esc(meta.domain) + '" target="_blank" rel="noopener">' +
       esc(meta.copyright) + '</a></p>' +
       '<p class="footer-contact">投稿邮箱：<a href="mailto:' + esc(meta.contactEmail) + '">' +
@@ -100,12 +106,12 @@
       '<a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener">' + esc(meta.icp) + '</a>' +
       '<span class="footer-police"><img src="images/ghs.png" alt="公安备案徽标">' + esc(meta.police) + '</span>' +
       '</div>' +
-      '<p>建议使用 Chrome / Edge 等现代浏览器访问，分辨率 1280×768 及以上</p>' +
-      '<div class="footer-badges">' +
-      '<img class="badge-tall" src="images/td1.gif" alt="广西网络警察">' +
-      '<img class="badge-wide" src="images/td3.gif" alt="广西网警虚拟岗亭">' +
-      '<img class="badge-wide" src="images/baicp.gif" alt="广西网警网站备案">' +
-      '<img class="badge-tall" src="images/td2.gif" alt="广西网络警察">' +
+      '<p>开发维护：河池市融媒体中心&nbsp;&nbsp;河池市数媒创新科技发展有限公司</p>' +
+      '<p class="footer-note">建议使用 Chrome / Edge 等现代浏览器访问，分辨率 1280×768 及以上</p>' +
+      '</div>' +
+      '<div class="footer-qr">' +
+      '<img src="images/wechat-qr.jpg" alt="河池政协微信公众号二维码" width="120" height="120">' +
+      '<p class="footer-qr-text">扫码关注<br>河池政协微信公众号</p>' +
       '</div>';
   }
 
