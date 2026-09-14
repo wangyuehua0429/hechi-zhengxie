@@ -93,6 +93,21 @@ const CASES = [
     kind: "pager"
   },
   {
+    name: "栏目页·政协提案入口（501）",
+    page: "channel.html?id=501",
+    viewport: DESKTOP,
+    ready: "#proposalEntry:not([hidden])",
+    look: {
+      selectors: {
+        "#proposalEntry": 1,
+        "#listHeading": 1
+      },
+      textIncludes: ["进入提案填报系统"],
+      textExcludes: ["数据加载失败"]
+    },
+    expectProposalEntryHref: "/member"
+  },
+  {
     name: "站内检索·结果页（桌面 1440）",
     page: "search.html?q=" + encodeURIComponent("政协"),
     viewport: DESKTOP,
@@ -718,6 +733,16 @@ async function runCase(browser, base, c, opts) {
     }
     for (const s of look.textExcludes || []) {
       if (info.text.indexOf(s) !== -1) failures.push("出现不该有的文案「" + s + "」");
+    }
+
+    // 5b) 「政协提案」栏目组的提案系统入口：链接必须直达提案门户
+    if (c.expectProposalEntryHref) {
+      const href = await page.locator("#proposalEntry").first().getAttribute("href");
+      if (href !== c.expectProposalEntryHref) {
+        failures.push("提案系统入口链接是 " + href + "，应为 " + c.expectProposalEntryHref);
+      } else {
+        notes.push("提案系统入口 → " + href);
+      }
     }
 
     // 6) 分页：点第 2 页后列表仍有内容，且页码文案同步

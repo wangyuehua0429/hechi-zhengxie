@@ -58,6 +58,12 @@
     const heading = el("listHeading");
     if (heading) heading.textContent = name;
     document.title = name + " · 广西河池政协网";
+    // 「政协提案」一级栏目（501 及其子栏目）给一个直达提案系统的入口
+    const entry = el("proposalEntry");
+    if (entry) {
+      const group = String(channel.columnId || channel.type || "");
+      entry.hidden = group !== "501";
+    }
   }
 
   // 左侧栏：栏目按钮（仅多栏目时显示）

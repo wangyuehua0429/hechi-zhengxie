@@ -999,3 +999,18 @@ img.img-failed { visibility: hidden; }
   .article-gallery,
   .article-attach { page-break-inside: avoid; }
 }
+
+/* 政协提案栏目组的提案系统入口（channel.html 的 #proposalEntry，仅 501 组显示） */
+.panel-action {
+  margin-left: auto;
+  align-self: center;
+  padding: 5px 14px;
+  border: 1px solid var(--primary, #a51d22);
+  border-radius: 999px;
+  color: var(--primary, #a51d22);
+  font-size: 14px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.panel-action:hover { background: var(--primary, #a51d22); color: #fff; text-decoration: none; }
+.panel-action[hidden] { display: none; }

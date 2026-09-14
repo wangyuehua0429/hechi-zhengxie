@@ -22,6 +22,10 @@ final class Permissions
     public const PUBLISH_RUN = 'publish.run';
     public const USER_MANAGE = 'user.manage';
     public const LOG_VIEW = 'log.view';
+    public const PROPOSAL_VIEW = 'proposal.view';
+    public const PROPOSAL_REVIEW = 'proposal.review';
+    public const PROPOSAL_EXPORT = 'proposal.export';
+    public const MEMBER_MANAGE = 'member.manage';
 
     /**
      * 分组只为后台勾选界面的排版服务，不影响鉴权。
@@ -48,6 +52,12 @@ final class Permissions
             '系统' => [
                 self::USER_MANAGE => '用户与角色管理',
                 self::LOG_VIEW    => '操作日志查看',
+            ],
+            '提案' => [
+                self::PROPOSAL_VIEW   => '提案收件列表与提案详情查看',
+                self::PROPOSAL_REVIEW => '受理提案、退回补充',
+                self::PROPOSAL_EXPORT => '导出收件清单与提案表（Excel／Word）',
+                self::MEMBER_MANAGE   => '委员名册导入、账号开通与停用、重置密码',
             ],
         ];
     }

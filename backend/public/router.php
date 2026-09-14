@@ -5,6 +5,7 @@
  *
  *   /api/v1/*   内容接口（backend/public/index.php）
  *   /admin*     内容管理后台（同上）
+ *   /member*    政协委员提案门户（同上）
  *   /assets/*   /uploads/*   后台样式与上传文件（backend/public 下真实文件）
  *   其余路径     站点静态页（frontend/home，含 js/css/data/images）
  *   /article/ /channel/ /sitemap.xml   静态化发布产物（与部署时的 Nginx location 一致）
@@ -20,7 +21,7 @@ $path = parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH);
 $path = is_string($path) && $path !== '' ? $path : '/';
 
 // 接口与后台交给唯一入口
-if (str_starts_with($path, '/api/') || str_starts_with($path, '/admin')) {
+if (str_starts_with($path, '/api/') || str_starts_with($path, '/admin') || str_starts_with($path, '/member')) {
     require __DIR__ . '/index.php';
     return;
 }

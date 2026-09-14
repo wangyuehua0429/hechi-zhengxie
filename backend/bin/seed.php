@@ -420,7 +420,7 @@ function seedHomeConfig(Db $db, int $siteId, array $home, string $now): string
 
     if ((int) $db->scalar('SELECT COUNT(*) FROM cms_home_banner WHERE site_id = :s', ['s' => $siteId]) === 0) {
         $banners = [
-            ['hero-1', '提案填报系统', 'images/2026091102.jpg', 'channel.html?id=501'],
+            ['hero-1', '提案填报系统', 'images/2026091102.jpg', '/member'],
             ['hero-2', '协商在河池', 'images/2025030102.jpg', 'https://www.gxhczx.gov.cn/zl20220331/'],
             ['body-1', '政治协商', 'images/chatu.gif', ''],
             ['body-2', '党史学习教育专栏', 'images/head_i.jpg', 'https://www.gxhczx.gov.cn/zl20210331'],

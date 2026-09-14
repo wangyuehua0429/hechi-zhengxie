@@ -55,6 +55,17 @@ if ($homeChildren !== []) {
 if ($canAny(['article.edit', 'article.submit', 'article.review', 'article.publish', 'article.delete', 'article.restore'])) {
     $navItems['articles'] = ['label' => '稿件管理', 'url' => '/admin/articles', 'icon' => 'articles'];
 }
+// 提案管理：提案收件与委员账号分开授权（提案委有 review，办公室有人只管名单）
+$proposalChildren = [];
+if ($can('proposal.view')) {
+    $proposalChildren['proposals'] = ['label' => '提案收件', 'url' => '/admin/proposals'];
+}
+if ($can('member.manage')) {
+    $proposalChildren['members'] = ['label' => '委员管理', 'url' => '/admin/members'];
+}
+if ($proposalChildren !== []) {
+    $navItems['proposals'] = ['label' => '提案管理', 'icon' => 'articles', 'children' => $proposalChildren];
+}
 if ($can('user.manage')) {
     $navItems['users'] = ['label' => '用户管理', 'url' => '/admin/users', 'icon' => 'users'];
 }
@@ -68,6 +79,7 @@ $showRole = $roleText !== '' && $roleText !== $displayName;
 
 // 面包屑：章节名 → 地址，页面名取 <title> 里「·」之前的部分
 $homeCrumb = ['label' => '首页管理', 'url' => '/admin/nav'];
+$proposalCrumb = ['label' => '提案管理', 'url' => '/admin/proposals'];
 $sections = [
     'dashboard' => ['label' => '概览', 'url' => '/admin'],
     'articles'  => ['label' => '稿件管理', 'url' => '/admin/articles'],
@@ -79,6 +91,8 @@ $sections = [
     'banners'   => ['label' => '站内横幅', 'url' => '/admin/banners', 'parent' => $homeCrumb],
     'users'     => ['label' => '用户管理', 'url' => '/admin/users'],
     'logs'      => ['label' => '操作日志', 'url' => '/admin/logs'],
+    'proposals' => ['label' => '提案收件', 'url' => '/admin/proposals', 'parent' => $proposalCrumb],
+    'members'   => ['label' => '委员管理', 'url' => '/admin/members', 'parent' => $proposalCrumb],
     'health'    => ['label' => '接口状态', 'url' => '/admin/health'],
 ];
 $section = $sections[$current] ?? null;

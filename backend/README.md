@@ -15,7 +15,8 @@ backend/
 │   ├── redirects.php       旧地址 301：生成 sys_url_redirect、Nginx 片段与核对 CSV
 │   ├── scan-content.php    只读体检：扫存量正文里的可疑标签，给出清洗前后预览，不改库
 │   ├── fix-orig-title.php  存量修复：正文题区收进「原标题」三列，题区行统一首行空两格
-│   └── user.php            后台账号管理（create / passwd / disable / list）
+│   ├── user.php            后台账号管理（create / passwd / disable / list）
+│   └── member.php          委员账号管理（create / passwd / reset / disable / list）
 ├── config/config.php       运行配置（读环境变量，本地默认 SQLite）
 ├── public/
 │   ├── index.php           接口唯一入口
@@ -26,19 +27,24 @@ backend/
 │   └── editor/             正文富文本编辑器：SunEditor 3.3.3 预构建包（MIT）+ 本项目接线脚本
 ├── routes/api.php          /api/v1 路由表
 ├── routes/admin.php        后台路由表（/admin/*，会话 + CSRF）
+├── routes/member.php       委员门户路由表（/member/*，独立会话 zx_member）
 ├── src/
 │   ├── Admin/              后台：Auth / Csrf / Flash / View + 首页四类与稿件、栏目、用户等控制器
 │   ├── Api/                health / home / channels / articles / search 控制器
-│   ├── Content/            正文清洗（HtmlSanitizer，HTMLPurifier 白名单）与展示归一化（BodyNormalizer）、稿库状态机与权限码
-│   ├── Http/               Request / Response / HtmlResponse / RedirectResponse / Router / ApiException / LegacyRedirect（旧地址 301 判定）
+│   ├── Content/            正文清洗（HtmlSanitizer，HTMLPurifier 白名单）与展示归一化（BodyNormalizer）、稿库与提案状态机、权限码
+│   ├── Http/               Request / Response / HtmlResponse / FileResponse（二进制下载）/ RedirectResponse / Router / ApiException / LegacyRedirect（旧地址 301 判定）
+│   ├── Member/             委员门户：MemberAuth（独立会话）/ MemberView / PortalController / ProposalController
+│   ├── Proposal/           提案导出与名册导入：WordExporter / XlsxExporter / OfficePackage / MemberImporter
 │   ├── Publish/            Publisher（静态化）· StaticPaths（栏目页路径）· RedirectMap（301 映射与产物）
-│   ├── Repository/         栏目、稿件、首页模块仓储（SQL 只写在这里）
+│   ├── Repository/         栏目、稿件、首页模块、委员、提案仓储（SQL 只写在这里）
 │   └── Support/            Config / Db / Json / Migrator
 ├── storage/                运行时目录（SQLite 文件、发布产物、HTMLPurifier 定义缓存，不入库）
+│                           提案附件落在 storage/proposals/，不在 webroot 下，只能经鉴权下载
 ├── vendor/htmlpurifier/    自托管第三方件：HTMLPurifier 4.19.0（LGPL-2.1，未改本体）
 └── templates/
     ├── page.php            静态页模板（正式模板待阶段 C 用 frontend/home 结构替换）
-    └── admin/              后台模板（layout / login / dashboard / articles / article_edit / channels / channel_edit / nav / slides / sections / banners / users / roles / logs / message）
+    ├── admin/              后台模板（layout / login / dashboard / articles / article_edit / channels / channel_edit / nav / slides / sections / banners / users / roles / logs / proposals / proposal_show / members / member_import / message）
+    └── member/             委员门户模板（layout / home / password / proposals / proposal_form / proposal_show / message）
 ```
 
 ## 本地跑通（SQLite，无需 Docker）
@@ -194,6 +200,43 @@ php backend/bin/fix-orig-title.php --show=64049   # 看单篇整理前后的正�
 > 本地走 HTTP，生产必须 HTTPS；`APP_DEBUG=0` 时接口不回显内部错误信息。
 
 > 稿库（草稿／待审／退回／已发布／已撤回／回收站）的完整设计——状态流转、权限矩阵、数据模型改动与分期排期，见 [docs/稿库与内容状态设计.md](../docs/稿库与内容状态设计.md)。当前实现只有草稿／已发布／已下线三态。
+
+## 政协委员提案系统（/member）
+
+主站内的独立门户：委员用提案委开通的账号登录后在线填写提交提案，提案委在后台收件、受理或退回补充。**账号表、会话与页面外壳都与内容管理后台分开**——委员账号在 `sys_member`，门户会话名是 `zx_member`，委员拿不到任何后台权限码，因此进不了 `/admin`。
+
+门户首页（`/member`）是独立版式：甲方给的底图铺满整页，登录框浮在图上，下方接“登录指南”；这一页不套门户外壳（站头／页脚会让整幅底图断开），其余页面才用 `templates/member/layout.php`。
+
+```bash
+# 迁移会建出四张表（sys_member / cms_proposal / cms_proposal_attachment / cms_proposal_log）
+php backend/bin/migrate.php
+
+# 服务起来后：门户首页在 http://127.0.0.1:8080/member
+# 提案委用后台账号登录 /admin，侧栏「提案管理」里导名册、收件、受理
+```
+
+上手指路：先在 `/admin/members/import` 下载 CSV 模板填好委员名册（表头 `姓名,手机号,界别,专委会,单位及职务,届次,备注`，UTF-8 与 GBK 都能识别）并上传，系统为每人生成随机初始密码，**下载一次性密码清单**线下发下去；委员首次登录必须先改密，之后才能填写提案。
+
+**登录不进去先查这里**：门户首页 `/member` 能打开但登录总说“登录名或密码不正确”，九成是库里还没有委员账号——`sys_member` 是空的（新装或刚迁移完都是这样）。先用后台导入名册，或者用命令补开一个账号：
+
+```bash
+php backend/bin/member.php list                                  # 看有没有委员账号
+php backend/bin/member.php create 13800000000 'Member#2026' 张三 中国共产党 提案委员会 13800000000
+php backend/bin/member.php reset 13800000000                     # 忘了密码：生成新密码并打印一次
+php backend/bin/member.php disable 13800000000                   # 停用
+```
+
+用命令行建的账号同样要首登改密。注意 `/member` 是 PHP 路由：必须经 PHP 入口访问（本地 `php -S 127.0.0.1:8080 -t backend/public backend/public/router.php`，生产走 Nginx 的 `location /member`）。直接在静态预览（`python3 -m http.server` 起的 `frontend/home`、GitHub Pages）里点 `/member` 必然是 404，那只是静态托管，没有后端。
+
+几处实现要点：
+
+1. **三态流转**：已提交 → 已受理／已退回；退回后委员可改稿重交，状态回到已提交。状态定义在 `backend/src/Content/ProposalWorkflow.php`，与稿件状态机同一写法。
+2. **附件不进 webroot**：提案附件落在 `backend/storage/proposals/{提案号}/`，下载走带鉴权的路由，直链取不到。
+3. **越权即 404**：委员取提案一律按“提案号 + 本人账号”查，取不到不区分“不存在”与“不是你的”。
+4. **导出靠 zip 扩展**：Excel 收件清单与 Word 提案表由 `backend/src/Proposal/` 手写 OOXML 生成，生产镜像已在 `deploy/php/Dockerfile` 里装上 `zip`；环境缺该扩展时导出入口给出明确错误。
+5. **不写静态页、不进 sitemap、不开对外接口**：提案数据只在门户与后台之间流转。
+
+完整设计（表结构、路由、权限码、导入与导出口径、安全隔离）见 [../docs/提案系统设计说明.md](../docs/提案系统设计说明.md)，端到端检查见 `node tests/proposal-check.mjs`。
 
 ## 发稿后前台看不到？按这个顺序查
 

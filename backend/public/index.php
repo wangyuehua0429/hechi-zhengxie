@@ -10,6 +10,7 @@ declare(strict_types=1);
 require_once dirname(__DIR__) . '/src/bootstrap.php';
 
 use HechiZx\Http\ApiException;
+use HechiZx\Http\FileResponse;
 use HechiZx\Http\HtmlResponse;
 use HechiZx\Http\LegacyRedirect;
 use HechiZx\Http\RedirectResponse;
@@ -37,9 +38,14 @@ if ($isAdmin) {
     (require dirname(__DIR__) . '/routes/admin.php')($router, $db, $config);
 }
 
+$isMember = str_starts_with($request->path(), '/member');
+if ($isMember) {
+    (require dirname(__DIR__) . '/routes/member.php')($router, $db, $config);
+}
+
 // 旧地址 301：Nginx 把旧路径形态转到这里（规则见发布目录 redirects/nginx-301.conf），
 // 命中 sys_url_redirect 的精确映射就跳转并累计命中数，未命中继续往下走 404。
-if (!$isAdmin && !str_starts_with($request->path(), '/api/')) {
+if (!$isAdmin && !$isMember && !str_starts_with($request->path(), '/api/')) {
     $legacy = new LegacyRedirect(new RedirectMap($db, (int) $config->get('site.site_id', 1)));
     $redirect = $legacy->handle($request);
     if ($redirect !== null) {
@@ -51,7 +57,7 @@ if (!$isAdmin && !str_starts_with($request->path(), '/api/')) {
 try {
     $result = $router->dispatch($request);
 
-    if ($result instanceof HtmlResponse || $result instanceof RedirectResponse) {
+    if ($result instanceof HtmlResponse || $result instanceof RedirectResponse || $result instanceof FileResponse) {
         $result->send();
     } else {
         $maxAge = $request->path() === '/api/v1/health' ? 0 : (int) $config->get('api.cache_max_age', 0);
@@ -69,6 +75,17 @@ try {
             'message' => $e->getMessage(),
             'backUrl' => '/admin',
         ], '提示')->send();
+    } elseif ($isMember) {
+        $view = new HechiZx\Member\MemberView((string) $config->get('paths.templates'), [
+            'siteName' => (string) $config->get('site.name'),
+            'member'   => null,
+        ]);
+        $view->page('member/message', [
+            'current' => '',
+            'heading' => $e->status() === 404 ? '页面不存在' : '操作未完成',
+            'message' => $e->getMessage(),
+            'backUrl' => '/member',
+        ], '提示', $e->status())->send();
     } else {
         Response::error($e->errorCode(), $e->getMessage(), $e->status());
     }
