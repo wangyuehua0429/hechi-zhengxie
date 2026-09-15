@@ -10,6 +10,9 @@
   // 用户偏好“减弱动态效果”：不自动轮播/滚动/换图，仍可手动浏览
   const prefersReducedMotion = () =>
     window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // 顶部「暂停动效」总开关（js/motion-toggle.js 切 html.motion-paused）：
+  // 与系统级 prefers-reduced-motion 分开——前者是用户在页面里的显式选择，随时可切
+  const motionPaused = () => document.documentElement.classList.contains("motion-paused");
   const esc = (s) => String(s == null ? "" : s)
     .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
@@ -373,13 +376,21 @@
         if (b) { showSlide(+b.dataset.slide); reconcileCarousel(); }
       });
       if (pb) pb.addEventListener("click", function () {
-        state.autoOn = !state.autoOn;
+        // 总开关停在「已暂停」时，这个按钮显示的是播放：点它等于恢复自动动效
+        if (motionPaused()) {
+          if (window.SITE_MOTION) window.SITE_MOTION.apply(false, true);
+          state.autoOn = true;
+        } else {
+          state.autoOn = !state.autoOn;
+        }
         reconcileCarousel();
       });
       if (hero) {
         hero.addEventListener("mouseenter", function () { state.hovering = true; reconcileCarousel(); });
         hero.addEventListener("mouseleave", function () { state.hovering = false; reconcileCarousel(); });
       }
+      // 顶部「暂停动效」总开关变化：重算轮播计时器与播放/暂停按钮态
+      document.addEventListener("site:motionchange", function () { reconcileCarousel(); });
       // 窗口尺寸变化会影响标题折行数，需重算摘要 clamp（节流到每帧一次）
       var clampRaf = null;
       window.addEventListener("resize", function () {
@@ -390,22 +401,24 @@
     reconcileCarousel();
   }
 
-  // 依据状态收敛定时器与进度胶囊：autoOn 且未悬停时才计时轮播
+  // 依据状态收敛定时器与进度胶囊：autoOn、未悬停、且没被「暂停动效」总开关停掉时才计时轮播
   function reconcileCarousel() {
     if (state.slideTimer) { clearInterval(state.slideTimer); state.slideTimer = null; }
-    const timing = state.autoOn && !state.hovering && state.slideCount > 1;
+    const on = state.autoOn && !motionPaused();
+    const timing = on && !state.hovering && state.slideCount > 1;
     if (timing) {
-      state.slideTimer = setInterval(function () { showSlide(state.slideIdx + 1); }, 3000);
+      // 6 秒：1440 宽下摘要有 4–5 行，原先 3 秒还没读完就翻页（2026-09-15 放慢）
+      state.slideTimer = setInterval(function () { showSlide(state.slideIdx + 1); }, 6000);
     }
     const hero = el("heroCarousel");
     const pb = el("carouselPause");
-    if (hero) hero.dataset.playing = state.autoOn ? "1" : "0";
+    if (hero) hero.dataset.playing = on ? "1" : "0";
     if (pb) {
       const single = state.slideCount <= 1;
-      const on = state.autoOn && !single;
+      const playing = on && !single;
       pb.hidden = single;
-      pb.setAttribute("aria-pressed", on ? "true" : "false");
-      pb.setAttribute("aria-label", on ? "暂停轮播" : "播放轮播");
+      pb.setAttribute("aria-pressed", playing ? "true" : "false");
+      pb.setAttribute("aria-label", playing ? "暂停轮播" : "播放轮播");
     }
   }
 
@@ -427,11 +440,14 @@
       '<span class="leader-role">主&nbsp;席</span></div></div>';
     // 副主席 / 秘书长 可切换标签
     html += '<div class="leader-tabs" role="tablist" aria-label="政协领导">' +
-      '<button type="button" class="leader-tab active" data-tab="vice" role="tab" aria-selected="true">副主席</button>' +
-      '<button type="button" class="leader-tab" data-tab="sec" role="tab" aria-selected="false">秘书长</button>' +
+      '<button type="button" id="leadersTab-vice" class="leader-tab active" data-tab="vice" role="tab"' +
+      ' aria-selected="true" aria-controls="leadersPanel-vice" tabindex="0">副主席</button>' +
+      '<button type="button" id="leadersTab-sec" class="leader-tab" data-tab="sec" role="tab"' +
+      ' aria-selected="false" aria-controls="leadersPanel-sec" tabindex="-1">秘书长</button>' +
       '</div>';
     // 副主席面板
-    html += '<div class="leader-panel active" data-panel="vice" role="tabpanel">';
+    html += '<div class="leader-panel active" id="leadersPanel-vice" data-panel="vice"' +
+      ' role="tabpanel" aria-labelledby="leadersTab-vice">';
     const viceItems = leaders.viceChairmen.map(function (v) {
       return '<a class="leader-vice" href="' + esc(link(v.url)) + '" title="' + esc(v.name) + '">' +
         '<img src="' + esc(abs(v.img)) + '" alt="' + esc(v.name) + '"><span>' + esc(v.name) + '</span></a>';
@@ -440,7 +456,8 @@
     html += '</div>';
     // 秘书长面板
     const sg = leaders.secretaryGeneral;
-    html += '<div class="leader-panel" data-panel="sec" role="tabpanel" hidden>' +
+    html += '<div class="leader-panel" id="leadersPanel-sec" data-panel="sec"' +
+      ' role="tabpanel" aria-labelledby="leadersTab-sec" hidden>' +
       '<div class="leader-sec">' +
       '<img src="' + esc(abs(sg.img)) + '" alt="秘书长 ' + esc(sg.name) + '">' +
       '<div><a href="' + esc(link(sg.url)) + '"><span class="leader-name">' + esc(sg.name) + '</span></a>' +
@@ -455,21 +472,41 @@
     // 标签切换
     const tabs = body.querySelectorAll(".leader-tab");
     const panels = body.querySelectorAll(".leader-panel");
-    tabs.forEach(function (tab) {
-      tab.addEventListener("click", function () {
-        const target = tab.dataset.tab;
-        tabs.forEach(function (t) {
-          const on = t === tab;
-          t.classList.toggle("active", on);
-          t.setAttribute("aria-selected", on ? "true" : "false");
-        });
-        panels.forEach(function (p) {
-          const on = p.dataset.panel === target;
-          p.classList.toggle("active", on);
-          p.hidden = !on;
-        });
+    function selectLeaderTab(tab) {
+      const target = tab.dataset.tab;
+      tabs.forEach(function (t) {
+        const on = t === tab;
+        t.classList.toggle("active", on);
+        t.setAttribute("aria-selected", on ? "true" : "false");
+        t.setAttribute("tabindex", on ? "0" : "-1");
       });
+      panels.forEach(function (p) {
+        const on = p.dataset.panel === target;
+        p.classList.toggle("active", on);
+        p.hidden = !on;
+      });
+    }
+    tabs.forEach(function (tab) {
+      tab.addEventListener("click", function () { selectLeaderTab(tab); });
     });
+    // 方向键在副主席／秘书长之间移动（与上面两个模块一致的说法）
+    const leaderTabList = body.querySelector(".leader-tabs");
+    if (leaderTabList) {
+      leaderTabList.addEventListener("keydown", function (e) {
+        const list = Array.prototype.slice.call(tabs);
+        const cur = list.indexOf(e.target);
+        if (cur < 0) return;
+        let next = -1;
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (cur + 1) % list.length;
+        else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (cur - 1 + list.length) % list.length;
+        else if (e.key === "Home") next = 0;
+        else if (e.key === "End") next = list.length - 1;
+        if (next < 0) return;
+        e.preventDefault();
+        list[next].focus();
+        selectLeaderTab(list[next]);
+      });
+    }
   }
 
   function listHtml(items, dated) {
@@ -514,17 +551,46 @@
         const on = b === btn;
         b.classList.toggle("active", on);
         b.setAttribute("aria-selected", on ? "true" : "false");
+        b.setAttribute("tabindex", on ? "0" : "-1");   // 漫游焦点：整组只留一个 Tab 停靠点
       });
+      listEl.setAttribute("aria-labelledby", btn.id);
       renderList(tabs[i]);
     }
     tabsEl.innerHTML = tabs.map(function (t, i) {
-      return '<button type="button" class="zxdt-tab' + (i === 0 ? ' active' : '') + '" role="tab" aria-selected="' + (i === 0 ? 'true' : 'false') + '">' + esc(t.title) + '</button>';
+      return '<button type="button" id="' + tabId + '-tab-' + i + '"' +
+        ' class="zxdt-tab' + (i === 0 ? ' active' : '') + '"' +
+        ' role="tab" aria-selected="' + (i === 0 ? 'true' : 'false') + '"' +
+        ' aria-controls="' + listId + '" tabindex="' + (i === 0 ? '0' : '-1') + '">' +
+        esc(t.title) + '</button>';
     }).join("");
+    // 列表本身就是面板：补 role 与关联，读屏才知道这组标签控制的是哪块内容
+    listEl.setAttribute("role", "tabpanel");
+    if (tabs[0]) listEl.setAttribute("aria-labelledby", tabId + "-tab-0");
     const btns = tabsEl.querySelectorAll(".zxdt-tab");
     btns.forEach(function (btn, i) {
       btn.addEventListener("click", function () { activate(btn, i); });
       if (onHover) btn.addEventListener("mouseenter", function () { activate(btn, i); });
     });
+    // 方向键在标签间移动、Home/End 到首尾（移动即切换，与鼠标悬停即切换的手感一致）。
+    // 只绑一次：tabsEl 是页面里的常驻元素，重复渲染时不能再叠一层监听。
+    if (!tabsEl.dataset.keysBound) {
+      tabsEl.dataset.keysBound = "1";
+      tabsEl.addEventListener("keydown", function (e) {
+        // 现取现查：这样即便将来重复渲染，监听里拿到的也是当前这批按钮
+        const list = Array.prototype.slice.call(tabsEl.querySelectorAll(".zxdt-tab"));
+        const cur = list.indexOf(e.target);
+        if (cur < 0) return;
+        let next = -1;
+        if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (cur + 1) % list.length;
+        else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (cur - 1 + list.length) % list.length;
+        else if (e.key === "Home") next = 0;
+        else if (e.key === "End") next = list.length - 1;
+        if (next < 0) return;
+        e.preventDefault();
+        list[next].focus();
+        activate(list[next], next);
+      });
+    }
     if (tabs[0]) renderList(tabs[0]);
     // 所有标签都没有稿件 → 整个模块撤下
     toggleModule(listEl, tabs.some(function (t) { return t.items.length > 0; }));
@@ -854,7 +920,8 @@
       const max = Math.max(0, track.scrollWidth - container.clientWidth);
       const dt = (now - last) / 1000;
       last = now;
-      if (!paused && !dwelling && max > 2) {
+      // 顶层「暂停动效」开着时，逐帧照旧跑但不再位移：恢复时从当前位置接着走，不跳帧
+      if (!paused && !dwelling && !motionPaused() && max > 2) {
         pos += speed * dt;
         if (pos >= max) {
           pos = max;
@@ -889,6 +956,28 @@
     });
   }
 
+  /* 回到顶部：与详情页 js/detail.js 的 initBackTop 同款（滚过 0.8 屏后出现，减弱动态时不走平滑滚动）。
+     首页手机上整页约 9900px，之前滚到底没有任何回程入口，而内页一直都有这个按钮。 */
+  function initBackTop() {
+    if (document.querySelector(".to-top")) return;   // 兜底防重复插入
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "to-top";
+    btn.title = "回到顶部";
+    btn.setAttribute("aria-label", "回到顶部");
+    btn.textContent = "↑";
+    btn.hidden = true;
+    btn.addEventListener("click", function () {
+      window.scrollTo({ top: 0, behavior: prefersReducedMotion() ? "auto" : "smooth" });
+    });
+    document.body.appendChild(btn);
+
+    const sync = function () { btn.hidden = window.scrollY < window.innerHeight * 0.8; };
+    window.addEventListener("scroll", sync, { passive: true });
+    window.addEventListener("resize", sync);
+    sync();
+  }
+
   // 顶部：底图每 3 秒轮换（文字图层固定）
   function initMasthead() {
     const bgs = Array.from(document.querySelectorAll(".masthead-layers .mast-bg"));
@@ -896,6 +985,7 @@
     if (prefersReducedMotion()) return; // 减弱动态：固定首张背景图，不做轮换
     let idx = 0;
     setInterval(function () {
+      if (motionPaused()) return;   // 「暂停动效」总开关：底图停在当前一张
       bgs[idx].classList.remove("active");
       idx = (idx + 1) % bgs.length;
       bgs[idx].classList.add("active");
@@ -1007,6 +1097,7 @@
       renderFooter(d.meta);
       initMarquees();
       initMasthead();
+      initBackTop();
     } catch (err) {
       console.error("首页数据加载失败:", err);
       showDataError();

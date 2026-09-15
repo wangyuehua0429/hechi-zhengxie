@@ -6,6 +6,7 @@
   <meta name="description" content="广西河池政协网 - 中国人民政治协商会议河池市委员会官方门户">
   <title>广西河池政协网 · 首页</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/motion-toggle.js"></script>
   <script>
     /* 由栏目页/详情页点“首页”回来时，站头先按收缩态渲染，再由 js/header-fold.js
        播放展开动画，避免全幅站头在换页瞬间闪现；直接打开首页不触发。 */
@@ -32,6 +33,7 @@
           <button type="button" data-font="large" aria-label="放大字号">A+</button>
         </div>
         <button type="button" class="contrast-btn" id="contrastBtn" aria-label="切换高对比度">无障碍</button>
+        <button type="button" class="motion-btn" id="motionBtn" aria-label="暂停页面自动动效" aria-pressed="false">暂停动效</button>
       </div>
     </div>
   </div>
@@ -61,10 +63,12 @@
         <span></span><span></span><span></span>
       </button>
     </div>
-    <nav class="site-nav" id="siteNav">
+    <nav class="site-nav" id="siteNav" aria-label="主导航">
       <div class="container nav-wrap">
         <a class="nav-home" id="navHome" aria-label="返回首页"></a>
-        <div class="nav-rows" id="navRows" role="menubar" aria-label="主导航"></div>
+        <!-- 这里原本写 role="menubar"，但子项是普通 <a>、没有 menuitem，也没有方向键支持：
+           读屏会进入菜单模式却操作不了。一排栏目链接用 <nav> 的默认语义即可（2026-09-15）。 -->
+        <div class="nav-rows" id="navRows"></div>
       </div>
     </nav>
 
@@ -91,6 +95,10 @@
   </div>
 
   <main id="main">
+    <!-- 首页此前没有任何 h1：站名只是站头图里的位图 + 品牌栏里的 <strong>，而品牌栏
+         （.header-inner）在宽屏是 display:none，读屏与搜索引擎都拿不到页面主题。
+         这里给一个读屏可见、视觉隐藏的站点标题（图案站徽标站的通行做法，2026-09-15 修）。 -->
+    <h1 class="sr-only">广西河池政协网</h1>
     <div class="container page-container">
 
       <!-- 首屏：要闻轮播 + 政协领导 -->

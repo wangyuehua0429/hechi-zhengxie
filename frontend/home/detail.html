@@ -8,6 +8,7 @@
   <link rel="icon" href="favicon.ico">
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/inner.css">
+  <script src="js/motion-toggle.js"></script>
 </head>
 <body data-font="default">
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -27,6 +28,7 @@
           <button type="button" data-font="large" aria-label="放大字号">A+</button>
         </div>
         <button type="button" class="contrast-btn" id="contrastBtn" aria-label="切换高对比度">无障碍</button>
+        <button type="button" class="motion-btn" id="motionBtn" aria-label="暂停页面自动动效" aria-pressed="false">暂停动效</button>
       </div>
     </div>
   </div>
@@ -56,10 +58,10 @@
         <span></span><span></span><span></span>
       </button>
     </div>
-    <nav class="site-nav" id="siteNav">
+    <nav class="site-nav" id="siteNav" aria-label="主导航">
       <div class="container nav-wrap">
         <a class="nav-home" id="navHome" aria-label="返回首页"></a>
-        <div class="nav-rows" id="navRows" role="menubar" aria-label="主导航"></div>
+        <div class="nav-rows" id="navRows"></div>
       </div>
     </nav>
   </header>

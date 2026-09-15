@@ -121,6 +121,8 @@
     if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     let idx = 0;
     setInterval(function () {
+      // 顶部「暂停动效」总开关（js/motion-toggle.js 切 html.motion-paused）：底图停在当前一张
+      if (document.documentElement.classList.contains("motion-paused")) return;
       bgs[idx].classList.remove("active");
       idx = (idx + 1) % bgs.length;
       bgs[idx].classList.add("active");

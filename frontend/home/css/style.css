@@ -92,10 +92,13 @@ h1, h2, h3, h4 { margin: 0; line-height: 1.3; }
   border-radius: 4px; padding: 2px 7px; cursor: pointer; font-size: 0.9em;
 }
 .font-tools button.active { background: var(--primary); border-color: var(--primary); color: #fff; }
-.contrast-btn {
+.contrast-btn,
+.motion-btn {
   border: 1px solid var(--border); background: var(--card); color: var(--text);
   border-radius: 4px; padding: 3px 9px; cursor: pointer;
 }
+/* 动效总开关：按下态＝已暂停自动动效，用主色实心，与「无障碍」按钮同款式同尺寸 */
+.motion-btn[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
 /* ============ 站点头部 ============ */
 .site-header { background: transparent; }
 .masthead {
@@ -226,7 +229,10 @@ html.mast-folded .masthead-layers .mast-slogan { opacity: 0; visibility: hidden;
   animation: marquee 36s linear infinite; font-size: 0.95em;
 }
 .marquee-track span { padding-right: 48px; }
-.run-marquee:hover .marquee-track { animation-play-state: paused; }
+/* 滚条暂停的三个入口：鼠标移入、键盘焦点进入、顶部「暂停动效」总开关（html.motion-paused） */
+.run-marquee:hover .marquee-track,
+.run-marquee:focus-within .marquee-track,
+html.motion-paused .marquee-track { animation-play-state: paused; }
 @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
 
 /* 旧站条幅 → 克制化图文卡片 */
@@ -780,7 +786,8 @@ body.high-contrast .news-list li:last-child { border-bottom: 1px dashed #000; }
   .carousel-title a { font-size: 1.12em; }
   /* 摘要减为 2 行，让出高度容纳标题第 3 行（标题在移动端不截断） */
   .carousel-summary { -webkit-line-clamp: 2; }
-  .carousel-nav { left: 12px; right: 12px; width: auto; bottom: 210px; gap: 6px; }
+  /* 序号块放大到 44px 后一行会超宽，收窄左右内边距与间距，保证 6 个序号 + 播放键同排 */
+  .carousel-nav { left: 8px; right: 8px; width: auto; bottom: 210px; gap: 4px; }
   .carousel-dot { width: 24px; height: 24px; font-size: 0.86em; }
   .carousel-pause { width: 24px; height: 24px; }
   .carousel-arrow.next { right: 0; }
@@ -789,9 +796,23 @@ body.high-contrast .news-list li:last-child { border-bottom: 1px dashed #000; }
   .run-bar-inner { flex-direction: column; align-items: stretch; gap: 8px; }
   .run-search { width: 100%; }
   .run-search input[type="text"] { flex: 1; min-width: 0; }
-  .run-search select { flex: 0 0 auto; width: 60px; min-width: 60px; padding: 6px 2px 6px 6px; }
+  /* 检索范围下拉按内容宽度显示：原先固定 60px，「标题＋正文」被截成「标题」，
+     用户看不出还有别的范围可选（2026-09-15 修） */
+  .run-search select { flex: 0 0 auto; width: auto; min-width: 0; padding: 6px 6px; }
   .run-search button { flex: 0 0 auto; width: 54px; min-width: 54px; padding: 6px 0; }
   .image-flow { width: 46vw; margin-right: 12px; }
+  /* 触摸目标：适老化按钮、轮播序号与播放键放大到 44px（WCAG 2.5.5 AAA 的尺寸），
+     手机是主要阅读场景，手指点 24×24 的序号块太容易点错（2026-09-15 修）。
+     顶栏「适老化」三字标签在小屏收起，腾出宽度让四个按钮仍排在一行。 */
+  .font-tools > span { display: none; }
+  .font-tools button { min-width: 44px; min-height: 44px; padding: 0 8px; }
+  .contrast-btn,
+  .motion-btn { min-height: 44px; padding: 0 12px; }
+  .carousel-dot { width: 44px; height: 44px; border-radius: 6px; }
+  .carousel-pause { width: 44px; height: 44px; }
+  /* 不让 flex 把这两类控件压窄：44px 是给手指用的，压到 32px 就白改了 */
+  .carousel-dot,
+  .carousel-pause { flex: 0 0 auto; }
 }
 @media (max-width: 420px) {
   .container { padding: 0 12px; }
@@ -800,6 +821,22 @@ body.high-contrast .news-list li:last-child { border-bottom: 1px dashed #000; }
   .member-gallery-item { width: 44vw; margin-right: 12px; }
   .member-gallery-item img { width: 44vw; }
 }
+
+/* ---------- 回到顶部（首页） ----------
+   与内页 css/inner.css 的 .to-top 视觉一致：详情页早就有这个按钮，首页整页
+   6223px（手机 9904px）却没有回程路，改完两处保持一致（2026-09-15）。 */
+.to-top {
+  position: fixed; right: 20px; bottom: 24px; z-index: 900;
+  display: grid; place-items: center;
+  width: 44px; height: 44px; padding: 0;
+  font: inherit; font-size: 1.05em; line-height: 1;
+  color: #fff; background: rgba(165, 29, 34, 0.88);
+  border: 0; border-radius: 50%; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); cursor: pointer;
+}
+.to-top:hover { background: var(--primary); }
+.to-top[hidden] { display: none; }
+/* 打印时不带出这个悬浮按钮（内页 css/inner.css 的打印块里也有同一条） */
+@media print { .to-top { display: none !important; } }
 
 /* 图片加载失败占位 */
 .img-fallback {
