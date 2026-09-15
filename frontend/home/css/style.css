@@ -59,7 +59,10 @@ h1, h2, h3, h4 { margin: 0; line-height: 1.3; }
   position: absolute; left: -999px; top: 0;
   background: var(--primary); color: #fff; padding: 8px 14px; z-index: 999;
 }
-.skip-link:focus { left: 8px; top: 8px; }
+/* 跳转链接本身是红底白字：焦点与悬停时都要锁住字色，否则被全局 a:hover 改成红字，
+   红底红字 1.0:1 完全看不见（2026-09-15 修，与导航「首页」格同一根因）。 */
+.skip-link:focus,
+.skip-link:hover { left: 8px; top: 8px; color: #fff; }
 :focus-visible { outline: 3px solid #4a90d9; outline-offset: 2px; border-radius: 3px; }
 /* 仅供读屏：轮换图摘要视觉截断后，完整文字仍可被辅助技术读取 */
 .sr-only {
@@ -186,7 +189,11 @@ html.mast-folded .masthead-layers .mast-slogan { opacity: 0; visibility: hidden;
   transition: transform 0.18s ease, background-color 0.15s ease;
 }
 .nav-home svg { display: block; }
-.nav-home:hover { background: var(--primary-dark); }
+/* 悬停时底色转深，字色必须显式锁成白色：全局 a:hover 会把字色改成主色，
+   落在深红底上只有 1.39:1，「首页」两字与图标几乎看不见（2026-09-15 修）。 */
+.nav-home:hover { background: var(--primary-dark); color: #fff; }
+/* 导航区（红底）里的链接悬停一律白字：把这条约定写显式，避免再被全局 a:hover 盖成红字 */
+.site-nav a:hover { color: #fff; }
 .nav-rows { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .nav-row { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); }
 .nav-row a {
@@ -589,6 +596,14 @@ body[data-font="large"] .news-list li { padding: 11px 0; }
 }
 .county-region:hover { fill: rgba(255, 255, 255, 0.25); filter: url(#countyFeather); }
 .county-region.active { fill: rgba(165, 29, 34, 0.28); transform: scale(1.1); filter: url(#countyFeather); }
+/* 键盘焦点：SVG 多边形拿不到浏览器默认焦点环，这里显式给描边＋高亮 */
+.county-region:focus-visible {
+  outline: 2px solid var(--link); outline-offset: 1px;
+  fill: rgba(255, 255, 255, 0.25);
+}
+/* 「暂未开通」的县区：不给可点的指针，悬停只做极轻反馈，避免看起来能点却没反应 */
+.county-region.is-disabled { cursor: default; }
+.county-region.is-disabled:hover { fill: rgba(0, 0, 0, 0.08); }
 .county-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .county-tag {
   border: 1px solid var(--border); border-radius: 6px; padding: 8px 6px; text-align: center;
@@ -630,10 +645,13 @@ body[data-font="large"] .news-list li { padding: 11px 0; }
 /* 专题横条 */
 .topic-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .topic-item {
-  position: relative; border-radius: var(--radius); overflow: hidden; background: #eee; display: block;
+  position: relative; border-radius: var(--radius); overflow: hidden; background: var(--card); display: block;
   border: 1px solid transparent; box-shadow: var(--shadow-card);
 }
-.topic-item img { width: 100%; aspect-ratio: 360 / 78; object-fit: cover; object-position: center; filter: saturate(0.86); transition: transform 0.3s; }
+/* 专题横幅整幅显示（contain）：四张原图比例并不一致——243×60、1200×150、1500×170。
+   原先按容器比例 cover 裁切，1200×150 那张横向要切掉约 42%，横幅两端的字被切没
+   （2026-09-15 修）。要恢复满幅观感，需甲方按同一比例重出图。 */
+.topic-item img { width: 100%; aspect-ratio: 360 / 78; object-fit: contain; object-position: center; filter: saturate(0.86); transition: transform 0.3s; }
 .topic-item:hover img { transform: scale(1.04); }
 
 /* 河池风光 */

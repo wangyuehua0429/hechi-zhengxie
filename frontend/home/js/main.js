@@ -656,29 +656,54 @@
     if (dyn) dyn.innerHTML = listHtml(countyZx.dynamic.slice(0, Math.max(0, countyZx.dynamic.length - 2)), false);
   }
 
-  // 县区地图：用 SVG 多边形覆盖，悬停/点击高亮，点击跳转子站
+  /* 县区地图：用 SVG 多边形覆盖，悬停/点击高亮，点击跳转子站。
+   * 键盘可用性（2026-09-15）：多边形才是真正的点击层——<area> 在 Chromium 里
+   * focus() 不动、进不了 Tab 序，所以每个区块自己带 role/tabindex/aria-label，
+   * 支持回车与空格；.county-svg 也随之去掉 aria-hidden（焦点元素不能藏在它里面）。
+   * 库内 url 为 "#" 的四个县区（金城江／宜州／巴马／凤山）旧站也没给出站点地址，
+   * 不编造地址：标 aria-disabled 并在悬停提示「暂未开通」，免得点了没反应像是坏了。 */
   function initCountyMap() {
     const map = document.querySelector("map#imgMap");
     const svg = document.querySelector(".county-svg");
     if (!map || !svg) return;
     const svgNS = "http://www.w3.org/2000/svg";
+
+    function activate(poly) {
+      svg.querySelectorAll(".county-region").forEach(function (p) {
+        p.classList.remove("active");
+      });
+      const url = poly.getAttribute("data-url");
+      if (url) {
+        poly.classList.add("active");
+        window.open(url, "_blank", "noopener");
+      } else {
+        window.alert(poly.getAttribute("data-title") + "暂未开通独立站点。");
+      }
+    }
+
     map.querySelectorAll("area").forEach(function (area) {
       const nums = area.getAttribute("coords").split(",").map(Number);
       const pts = [];
       for (let i = 0; i < nums.length; i += 2) pts.push(nums[i] + "," + nums[i + 1]);
       const href = area.getAttribute("href");
+      const url = (href && href !== "#") ? href : "";
+      const name = area.getAttribute("alt") || "";
       const poly = document.createElementNS(svgNS, "polygon");
       poly.setAttribute("points", pts.join(" "));
-      poly.setAttribute("class", "county-region");
-      poly.setAttribute("data-title", area.getAttribute("alt") || "");
-      poly.setAttribute("data-url", (href && href !== "#") ? href : "");
-      poly.addEventListener("click", function () {
-        svg.querySelectorAll(".county-region").forEach(function (p) {
-          p.classList.remove("active");
-        });
-        poly.classList.add("active");
-        const url = poly.getAttribute("data-url");
-        if (url) window.open(url, "_blank", "noopener");
+      poly.setAttribute("class", "county-region" + (url ? "" : " is-disabled"));
+      poly.setAttribute("data-title", name);
+      poly.setAttribute("data-url", url);
+      poly.setAttribute("tabindex", "0");
+      poly.setAttribute("role", "link");
+      poly.setAttribute("title", url ? name + "（点击进入）" : name + "：暂未开通独立站点");
+      poly.setAttribute("aria-label", url ? "进入" + name : name + "，暂未开通独立站点");
+      if (!url) poly.setAttribute("aria-disabled", "true");
+      poly.addEventListener("click", function () { activate(poly); });
+      poly.addEventListener("keydown", function (e) {
+        if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+          e.preventDefault();
+          activate(poly);
+        }
       });
       svg.appendChild(poly);
     });
