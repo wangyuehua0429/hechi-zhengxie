@@ -55,10 +55,13 @@ tools/migrate/out/
 # 换数据源重跑时上一版产物留在 out-<日期>/ 作对拍基线，同样不入库
 tools/migrate/out-*/
 # .claude/、.playwright-mcp/、.playwright-cli/ 为 Claude Code、Playwright MCP／CLI 的会话与快照文件；
+# .impeccable/ 是 impeccable 技能在仓库根写下的评审产物（critique 报告、detect 结果留档），
+# 与前三者同属本机调试与评审痕迹，不是项目源码；
 # /*.png 只忽略仓库根目录的调试截图，站内图片在 frontend/home/images/ 下不受影响
 .claude/
 .playwright-mcp/
 .playwright-cli/
+.impeccable/
 /*.png
 # Added by code-review-graph
 .code-review-graph/
