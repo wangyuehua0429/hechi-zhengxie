@@ -602,6 +602,10 @@ body[data-font="large"] .news-list li { padding: 11px 0; }
 }
 .county-region:hover { fill: rgba(255, 255, 255, 0.25); filter: url(#countyFeather); }
 .county-region.active { fill: rgba(165, 29, 34, 0.28); transform: scale(1.1); filter: url(#countyFeather); }
+/* Chromium（Edge 尤其明显）会给拿到焦点的 SVG 多边形画默认焦点环，且鼠标点击后
+   :focus-visible 为 false 也照样画——点县区地图就会留下一个黑框。这里只在非键盘
+   聚焦时显式关掉描边，键盘走下面的 :focus-visible，鼠标点完不再留框。 */
+.county-region:focus:not(:focus-visible) { outline: none; }
 /* 键盘焦点：SVG 多边形拿不到浏览器默认焦点环，这里显式给描边＋高亮 */
 .county-region:focus-visible {
   outline: 2px solid var(--link); outline-offset: 1px;
