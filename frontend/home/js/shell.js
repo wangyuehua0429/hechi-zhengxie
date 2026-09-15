@@ -21,6 +21,7 @@
     if (/^(https?:)?\/\//.test(u)) return u;
     if (u.startsWith("//")) return "https:" + u;
     if (/^\/?(?:channel|detail)\.html(?:[?#]|$)/.test(u)) return u;   // 站内内页：本站地址，不能补旧站域名
+    if (/^\/(?:member|admin|search\.html|article\/|channel\/)/.test(u)) return u;   // 本站路由：同上（与 js/site-links.js、js/main.js 同规则）
     if (u.startsWith("/")) return site + u;
     if (/^(\.\/|\.\.\/|images\/|data:|channel\.html|detail\.html)/.test(u)) return u;
     return site + "/" + u;

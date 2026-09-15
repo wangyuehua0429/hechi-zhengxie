@@ -26,12 +26,17 @@
   // 旧站绝对地址补偿：相对路径拼域名。
   // 例外：站内内页（channel.html / detail.html）属于本站地址，有/无前导斜杠都原样保留——
   // 内容接口给的就是这两种写法，补成旧站域名后点开的地址会与后台设置不一致（旧站没有这些页）。
+  // 本站路由同理：/member、/admin 等由 router.php 与 nginx 提供，补旧站域名会让首页
+  // 「提案填报系统」条幅指到旧站的 /member（不存在），点开就是 404。
+  // 注：这条规则在 js/site-links.js、js/shell.js 里各有一份，改动要三处同步。
+  const LOCAL_ROUTE = /^\/(?:member|admin|search\.html|article\/|channel\/)/;
   const LOCAL_PAGE = /^\/?(?:channel|detail)\.html(?:[?#]|$)/;
   function abs(u) {
     if (!u || u === "#") return u;
     if (/^(https?:)?\/\//.test(u)) return u;
     if (u.startsWith("//")) return "https:" + u;
     if (LOCAL_PAGE.test(u)) return u;
+    if (LOCAL_ROUTE.test(u)) return u;
     if (u.startsWith("/")) return site + u;
     if (/^(\.\/|\.\.\/|images\/|data:)/.test(u)) return u;
     return site + "/" + u;

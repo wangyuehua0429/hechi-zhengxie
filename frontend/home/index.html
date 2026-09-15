@@ -106,6 +106,10 @@
         <div class="hero-main">
           <div class="hero-carousel" id="heroCarousel" aria-roledescription="轮播"></div>
           <div class="banner-strip" aria-label="专题条幅">
+            <!-- 「提案填报系统」条幅：接口可用时由 cms_home_banner 的 hero-1 覆盖（现为本站
+                 /member，直达提案系统）；这条写死的地址只在接口不可用时生效，所以留在
+                 「政协提案」栏目页上——纯静态托管（GitHub Pages 这类没有 PHP 的环境）
+                 没有 /member 这个应用，写成 /member 会 404，栏目页则始终打得开。 -->
             <a class="banner-item" data-banner="hero-1" href="channel.html?id=501">
               <img src="images/2026091102.jpg" alt="提案填报系统">
             </a>

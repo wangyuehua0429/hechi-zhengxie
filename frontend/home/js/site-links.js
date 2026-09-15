@@ -42,11 +42,18 @@
   var channelMap = {};
   var articleMap = {};
 
+  // 本站路由：由 backend/public/router.php 与 nginx 的 location /member、/admin 提供，
+  // 另外 /article/、/channel/ 是发布器产出的静态页地址。这些以 / 开头的地址必须原样保留，
+  // 不能补旧站域名——否则首页「提案填报系统」条幅会指到旧站的 /member（不存在），
+  // 点开就是 404（2026-09-15 修）。
+  var LOCAL_ROUTE = /^\/(?:member|admin|search\.html|article\/|channel\/)/;
+
   function abs(u) {
     if (!u || u === "#") return u;
     if (/^(https?:)?\/\//.test(u)) return u;
     if (u.startsWith("//")) return "https:" + u;
     if (/^\/?(?:channel|detail)\.html(?:[?#]|$)/.test(u)) return u;   // 站内内页：本站地址，不能补旧站域名
+    if (LOCAL_ROUTE.test(u)) return u;                                // 本站路由：同上
     if (u.startsWith("/")) return site + u;
     if (/^(\.\/|\.\.\/|images\/|data:|channel\.html|detail\.html)/.test(u)) return u;
     return site + "/" + u;
