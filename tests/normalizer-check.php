@@ -14,6 +14,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/backend/src/bootstrap.php';
 
 use HechiZx\Content\BodyNormalizer;
+use HechiZx\Content\AuthorSignature;
 use HechiZx\Content\HtmlSanitizer;
 
 $failures = 0;
@@ -39,9 +40,9 @@ function skip(string $name, string $reason): void
 }
 
 /** 走一遍真实出口顺序：先清洗，再归一化 */
-function normalize(string $html, string $title = ''): string
+function normalize(string $html, string $title = '', string $author = ''): string
 {
-    return BodyNormalizer::normalize(HtmlSanitizer::clean($html), $title);
+    return BodyNormalizer::normalize(HtmlSanitizer::clean($html), $title, $author);
 }
 
 /* ---------------------------------------------------------------- 空段 */
@@ -252,6 +253,55 @@ check(
         && str_contains($preserved, '<ul><li>列表项</li></ul>')
         && str_contains($preserved, '<blockquote>引用</blockquote>'),
     $preserved
+);
+
+/* ---------------------------------------------------------------- 末尾署名归口作者栏 */
+
+// 旧站正文结尾普遍带「（黄荞丹 覃可论）」「口黄正华」这类署名，与标题下的作者栏重复
+$signParen = normalize('<p>正文第一段。</p><div>（黄荞丹 覃可论）</div>', '', '黄荞丹 覃可论');
+check(
+    '末尾署名：与作者栏一致的括号署名被删（顺带清掉空块）',
+    !str_contains($signParen, '黄荞丹') && $signParen === '<p>正文第一段。</p>',
+    $signParen
+);
+
+$signMarker = normalize('<div>正文第一段。口黄正华<br> （文章刊登于广西政协报 2023年7月18日 3版）</div>', '', '黄正华');
+check(
+    '末尾署名：方框署名被删，后面的出处说明保留',
+    !str_contains($signMarker, '口黄正华') && str_contains($signMarker, '文章刊登于广西政协报'),
+    $signMarker
+);
+
+$signLabel = normalize('<div>正文第一段。(作者：本报首席记者 罗昌亮)</div>', '', '罗昌亮');
+check('末尾署名：带「作者：」标签的署名被删', !str_contains($signLabel, '罗昌亮'), $signLabel);
+
+$signKeepMismatch = normalize('<div>正文第一段。（李八）</div>', '', '钱七');
+check('末尾署名：与作者栏不一致的署名不删', str_contains($signKeepMismatch, '（李八）'), $signKeepMismatch);
+
+$signKeepRole = normalize('<div>正文第一段。口潘秋琳<br>（作者系河池市政协副主席）</div>', '', '潘秋琳');
+check(
+    '末尾署名：署名删掉、职务说明行保留',
+    !str_contains($signKeepRole, '口潘秋琳') && str_contains($signKeepRole, '作者系河池市政协副主席'),
+    $signKeepRole
+);
+
+$signKeepWire = normalize('<div>正文第一段。（新华社北京10月15日电 记者赵超 徐扬）</div>', '', '赵超 徐扬');
+check('末尾署名：通讯社电头保留', str_contains($signKeepWire, '新华社北京10月15日电'), $signKeepWire);
+
+// 只在末尾 160 个可见字符内找署名：正文中间（离末尾更远）的同名括号不动
+$filler = str_repeat('这是一段较长的正文。', 20);
+$signMid = normalize('<div>正文（黄正华）里提到的人名不动。' . $filler . '</div><div>结尾一段。</div>', '', '黄正华');
+check('末尾署名：正文中间（窗口外）的同名括号不动', str_contains($signMid, '（黄正华）'), mb_substr($signMid, 0, 40));
+
+$signEmptyAuthor = normalize('<div>正文第一段。（黄正华）</div>', '', '');
+check('末尾署名：作者栏为空时不猜不删', str_contains($signEmptyAuthor, '（黄正华）'), $signEmptyAuthor);
+
+check(
+    '末尾署名：作者栏为空时可从「口姓名」「（作者：X）」取名',
+    AuthorSignature::extractName('<div>正文一段。口潘剑</div>') === '潘剑'
+        && AuthorSignature::extractName('<div>正文一段。(作者：本报评论员)</div>') === '本报评论员'
+        && AuthorSignature::extractName('<div>正文一段。（作者系河池市政协副主席）</div>') === '',
+    '潘剑 / 本报评论员 / 空'
 );
 
 fwrite(STDOUT, "\n共 " . $total . " 项，" . ($failures === 0 ? '全部通过' : $failures . " 项失败")

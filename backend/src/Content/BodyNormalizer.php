@@ -18,6 +18,8 @@ namespace HechiZx\Content;
  *   一律改写会造成约 89% 破图，所以只对「本地确实有文件」的资源改写；
  * - 标题抄在首行：1058 篇正文以加粗标题行开头，其中与 h1 标题一字不差的那部分会在页面上
  *   同一句话出现两次，只把这种「完全重复」的首行去掉；引题属于正文内容，留在正文开头第一行。
+ * - 末尾署名：旧站正文结尾普遍带「(黄荞丹 覃可论)」「口黄正华」这类署名，与标题下的作者栏重复，
+ *   按 {@see AuthorSignature} 的口径删掉（只删与作者栏对得上的，职务说明与图片署名不动）。
  *
  * 调用位置：`Api\ArticleController::show()` 与 `Publish\Publisher`，都紧跟
  * {@see HtmlSanitizer::clean()} 之后。后台编辑回填读的是库里的原文，不经过这里。
@@ -62,9 +64,14 @@ final class BodyNormalizer
     /**
      * 归一化一段正文（不改库，只作用于展示出口；标题只用于判断首行是否完全重复）。
      */
-    public static function normalize(string $html, string $title = ''): string
+    public static function normalize(string $html, string $title = '', string $author = ''): string
     {
         $html = trim($html);
+        if ($html === '') {
+            return '';
+        }
+        // 末尾署名先按字符串删（署名可能跨 <div>/<br> 节点），删空的块交给下面的 dropEmptyBlocks
+        $html = AuthorSignature::strip($html, $author);
         if ($html === '') {
             return '';
         }

@@ -83,12 +83,12 @@
 | `source` / `author` / `editor` | string | 来源／作者／编辑 |
 | `views` | string | 阅读量 |
 | `summary` | string | 摘要 |
-| `content` | string | 正文 HTML：先过白名单清洗，再过展示归一化（去空段、裁多余首部空格、拍平嵌套块、资源地址改写、按题区规则处理标题重复行） |
+| `content` | string | 正文 HTML：先过白名单清洗，再过展示归一化（去空段、裁多余首部空格、拍平嵌套块、资源地址改写、删掉与作者栏重复的末尾署名、按题区规则处理标题重复行） |
 | `images` | array | 正文图片路径，2 张以上前端出图集灯箱；已剔除视频文件（旧库图集记录里有 mp4），并做与正文同一套地址改写 |
 | `attachments` | array | 附件 `{name, url, ext}` |
 | `hasBody` | bool | 是否已有正文；`false` 表示列表可见但正文未录入，前端给说明块而非空正文 |
 
-**正文归一化（2026-09-14）**：接口与发布器（`Publish\Publisher`）都对清洗后的正文调用 `Content\BodyNormalizer`，
+**正文归一化（2026-09-14，末尾署名口径 2026-09-15）**：接口与发布器（`Publish\Publisher`）都对清洗后的正文调用 `Content\BodyNormalizer`，
 两处输出同构，库里的 `cms_article.content_html` 保持原样（后台编辑回填读的仍是原文）。规则与实测依据见
 [../backend/README.md](../backend/README.md) 的“正文出口归一化”一节。
 

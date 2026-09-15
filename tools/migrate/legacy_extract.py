@@ -58,6 +58,18 @@ LEGACY_UPLOAD_PREFIX = 'uploads/legacy/'
 # Title1 在主站这批领导稿里是空的；只有这些字样才当职务，避免把"编辑：刁海音"当职务。
 ROLE_MARKERS = ('主席', '秘书长', '主任', '党组')
 
+# 正文末尾署名：判据与 PHP 侧 backend/src/Content/AuthorSignature.php 保持一致
+# （旧站正文结尾普遍带「（黄荞丹 覃可论）」「口黄正华」这类署名，与作者栏重复）
+SIGN_TAIL_CHARS = 160
+SIGN_MARKERS = '口□◇■◎○'
+SIGN_LABELS = ['本版图片均由', '本报记者', '首席记者', '见习记者', '摄影报道', '本版图片',
+               '作者', '摄影', '报道', '供稿', '记者', '通讯员', '图文', '文/图', '图/文', '文', '图', '摄']
+SIGN_KEEP = ('系', '单位', '来源', '原载', '刊登', '转自')
+SIGN_ORG_TAILS = ('社', '报', '会', '协', '网', '厅', '局', '委', '部', '室', '站', '台', '校', '院',
+                  '中心', '公司', '集团', '单位', '频道', '协会', '委员会', '办公厅', '研究院', '工作室')
+SIGN_NAME_STOP = ('新华社', '中新社', '人民日报', '广西日报', '河池日报', '本报', '综合', '转载',
+                  '壮族', '汉族', '毛南族', '仫佬族', '苗族', '侗族', '瑶族', '回族', '京族', '水族', '彝族', '女', '男')
+
 MANIFEST_HEADER = ['url', 'target', 'status', 'bytes', 'sha256', 'error']
 
 # 抓旧站页面用（ASCII UA；中文写进 UA 会让 urllib 抛 UnicodeEncodeError）
@@ -245,6 +257,219 @@ def clean_body(raw, media_map):
     if media_map:
         text = MEDIA_ATTR.sub(_rewrite_attr(media_map), text)
     return text.strip()
+
+
+# ---------------------------------------------------------------- 末尾署名
+
+def text_map(raw):
+    """HTML → (纯文本, 每个字符对应的原文区间)。
+
+    旧库正文里换行、<br>、空段很多，按字节估算的位置跟可见文字对不上；这里把每个可见字符
+    映射回它在原文里的下标区间，定位到署名后就能精确回删。与 PHP 侧 textMap() 同口径。
+    """
+    text, spans, offset = [], [], 0
+    while offset < len(raw):
+        lt = raw.find('<', offset)
+        chunk_end = len(raw) if lt < 0 else lt
+        if chunk_end > offset:
+            chunk = raw[offset:chunk_end]
+            # 只收可见字符（理由见 PHP 侧 textMap）：旧库正文里的换行与全角空格会把署名挤出窗口
+            for token in re.finditer(r'&[#a-zA-Z0-9]{2,8};|[^\s\u00a0\u2000-\u200b\u202f\u205f\u3000]', chunk):
+                piece = token.group(0)
+                decoded = html.unescape(piece) if piece.startswith('&') else piece
+                for char in decoded:
+                    text.append(char)
+                    spans.append((offset + token.start(), offset + token.end()))
+        if lt < 0:
+            break
+        gt = raw.find('>', lt)
+        offset = len(raw) if gt < 0 else gt + 1
+    return ''.join(text), spans
+
+
+def _squash(text):
+    return re.sub(r'[\s\u3000\u00a0\u2002\u2003\u2009、,，·•/／:：]+', '', text or '')
+
+
+def _collapse(text):
+    text = re.sub(r'[\u00a0\u2002\u2003\u2009\u3000]+', ' ', text or '')
+    return re.sub(r'\s+', ' ', text).strip()
+
+
+def _sign_tokens(author, min_length=1):
+    tokens = []
+    for token in re.split(r'[\s\u3000\u00a0、,，]+', (author or '').strip()):
+        token = re.sub(r'等+$', '', token)
+        if len(token) >= min_length:
+            tokens.append(token)
+    return tokens
+
+
+def _drop_sign_labels(text):
+    labels = sorted(SIGN_LABELS, key=len, reverse=True)
+    for _ in range(4):
+        before = text
+        for label in labels:
+            if text == label:
+                return text
+            if text.startswith(label):
+                text = text[len(label):]
+            if text.endswith(label):
+                text = text[:-len(label)]
+        text = text.strip(' \t\n\r、,，·:：/／（）()《》')
+        if text == before:
+            break
+    return text
+
+
+def _name_like(text):
+    return bool(text) and len(text) <= 12 and re.fullmatch(r'[\u4e00-\u9fa5·•]+', text) is not None
+
+
+def _matches_author(inner, author):
+    raw = _collapse(inner)
+    if any(mark in raw for mark in SIGN_KEEP):
+        return False
+    if '电' in raw and ('记者' in raw or '新华社' in raw):
+        return False
+    text, target = _drop_sign_labels(_squash(raw)), _squash(author)
+    if not text or not target:
+        return False
+    if text == target:
+        return True
+    if len(text) >= 2 and text in target:
+        return True
+    tokens = _sign_tokens(author, 2)
+    if not tokens:
+        return False
+    extra = text
+    for token in tokens:
+        if token not in extra:
+            return False
+        extra = extra.replace(token, '', 1)
+    return extra == '' or _name_like(extra)
+
+
+def _marker_pattern(author):
+    tokens = _sign_tokens(author)
+    if not tokens:
+        return None
+    parts = ['\\s*'.join(re.escape(char) for char in token) for token in tokens]
+    run = r'[\s、，,·/／]*'.join(parts)
+    return re.compile('[' + SIGN_MARKERS + '](' + run + r')(\s*(?:图\s*/\s*文|文\s*/\s*图|图文|摄影报道|报道|摄))?')
+
+
+def signature_spans(raw, author):
+    """正文末尾与作者栏对得上的署名区间（字符下标，[起, 止)），与 PHP 侧同口径。"""
+    if not (author or '').strip():
+        return []
+    text, _ = text_map(raw)
+    if not text:
+        return []
+    tail_from = max(0, len(text) - SIGN_TAIL_CHARS)
+    tail = text[tail_from:]
+    spans = []
+    hits = [m for m in re.finditer(r'[（(]([^（()）]{1,60})[)）]', tail) if _matches_author(m.group(1), author)]
+    if hits:
+        last = hits[-1]
+        spans.append((tail_from + last.start(), tail_from + last.end()))
+    pattern = _marker_pattern(author)
+    if pattern is not None:
+        hits = list(pattern.finditer(tail))
+        if hits:
+            last = hits[-1]
+            spans.append((tail_from + last.start(), tail_from + last.end()))
+    if not spans:
+        return []
+    spans.sort()
+    merged = []
+    for span in spans:
+        if merged and span[0] <= merged[-1][1]:
+            merged[-1] = (merged[-1][0], max(merged[-1][1], span[1]))
+            continue
+        merged.append(span)
+    return merged
+
+
+def extract_author_name(raw):
+    """作者栏为空时从末尾署名里取名字：「口姓名」或「（作者：X）」，取不到返回空串。"""
+    text, mapping = text_map(raw)
+    tail = text[-SIGN_TAIL_CHARS:]
+    match = re.search(r'[（(]\s*作者\s*[：:]?\s*([^（()）]{1,20}?)\s*[)）]\s*$', tail)
+    if match:
+        start = len(text) - len(tail) + match.start(1)
+        # 「作者：本报首席记者 罗昌亮」→「罗昌亮」：署名标签在填入作者栏前先去掉
+        name = _drop_sign_labels(_squash(_raw_between(raw, mapping, start, start + len(match.group(1)))))
+        if not any(mark in name for mark in SIGN_KEEP) and _name_like(name):
+            return name
+    match = re.search('[' + SIGN_MARKERS + r']\s*([\u4e00-\u9fa5·]{2,10})\s*$', tail)
+    if match:
+        return match.group(1)
+    # 末尾就是一个光括号姓名（「（韦立辉）」「（韦瑞展 袁文展）」）：挡住民族成分、通稿署名与机构名。
+    # 姓名回原 HTML 里取：文本映射去掉了空白，直接读文本会把「韦瑞展 袁文展」粘成一个词
+    match = re.search(r'[（(]([^（()）]{2,12}?)[)）]\s*$', tail)
+    if match:
+        start = len(text) - len(tail) + match.start(1)
+        name = _raw_between(raw, mapping, start, start + len(match.group(1)))
+        if _looks_like_person_name(name):
+            return name
+    return ''
+
+
+def _raw_between(raw, mapping, start, end):
+    """把「纯文本里的片段」还原成原始 HTML 里的文字（保留词间空格，去标签、压空白）。"""
+    byte_from, _ = mapping[start]
+    _, byte_to = mapping[end - 1]
+    return _collapse(re.sub(r'<[^>]+>', '', raw[byte_from:byte_to]))
+
+
+def _looks_like_person_name(text):
+    """括号里的文字是否像一个／组人名（1～3 个 2～4 字的姓名，且不是机构名与常见非人名）。"""
+    if not text or text in SIGN_NAME_STOP:
+        return False
+    if any(text.endswith(tail) for tail in SIGN_ORG_TAILS):
+        return False
+    tokens = [t for t in re.split(r'[\s\u3000]+', text) if t]
+    if not tokens or len(tokens) > 3:
+        return False
+    for token in tokens:
+        # 文本映射已去掉空白，「韦瑞展 袁文展」在这里是 6 个字，所以上限放到 8
+        if not (2 <= len(token) <= 8) or re.fullmatch(r'[\u4e00-\u9fa5·]+', token) is None:
+            return False
+    return True
+
+
+def strip_author_signature(raw, author):
+    """删掉正文末尾与作者栏重复的署名，返回 (新正文, 入库用的作者栏)。
+
+    判据同 PHP 侧 AuthorSignature；作者栏为空时先从末尾署名取名（「口潘剑」「（作者：X）」），
+    取到就回填作者栏再删，取不到则一个字节都不动。
+    """
+    author = (author or '').strip()
+    effective = author
+    if not author:
+        effective = extract_author_name(raw)
+        if not effective:
+            return raw, author
+    spans = signature_spans(raw, effective)
+    if not spans:
+        return raw, author
+    _, mapping = text_map(raw)
+    out = raw
+    for start, end in reversed(spans):
+        out = out[:mapping[start][0]] + out[mapping[end - 1][1]:]
+    return tidy_tail(out), effective
+
+
+def tidy_tail(raw):
+    """删署名后留下的空块与多余空白（`<div>（黄炼）</div>` 这种壳子不再占位），同 PHP 侧 tidyTail()。"""
+    while True:
+        before = raw
+        raw = re.sub(r'<(div|p|span|strong|b)\b[^>]*>(?:\s|&nbsp;|&#\d+;|<br\s*/?>)*</\1>\s*$',
+                     '', raw, flags=re.I)
+        raw = re.sub(r'(?:\s|<br\s*/?>)+$', '', raw, flags=re.I)
+        if raw == before:
+            return raw
 
 
 def _rewrite_attr(media_map):
@@ -797,7 +1022,8 @@ def cmd_render(args):
         print('提示：清单 %d 条里本地一个都没找到。--local-check 按仓库根目录的相对路径找文件，'
               '请在仓库根目录运行，或确认图片是否真的拷到了 backend/public/uploads/legacy/ 下。' % total_rows,
               file=sys.stderr)
-    articles, stats = [], {'rendered': 0, 'images': 0, 'attachments': 0, 'media_rewritten': 0, 'content_chars': 0}
+    articles, stats = [], {'rendered': 0, 'images': 0, 'attachments': 0, 'media_rewritten': 0,
+                           'content_chars': 0, 'signature_stripped': 0, 'author_filled': 0}
 
     with open(args.infile, encoding='utf-8') as handle:
         for line in handle:
@@ -806,6 +1032,13 @@ def cmd_render(args):
                 continue
             record = json.loads(line)
             body = clean_body(record['content_raw'], media_map)
+            # 末尾署名归口作者栏：删掉与作者栏重复的署名；作者栏为空的按能确定的署名回填
+            clean_body_text, author = strip_author_signature(body, record['author'])
+            if clean_body_text != body:
+                stats['signature_stripped'] += 1
+            if author != record['author']:
+                stats['author_filled'] += 1
+            body = clean_body_text
             images = [u for u in media_urls(body) if not ATTACH_EXT.search(u)]
             attachments = []
             for match in MEDIA_ATTR.finditer(record['content_raw']):
@@ -839,7 +1072,7 @@ def cmd_render(args):
                 'content_html': body,
                 'has_body': 1 if body.strip() else 0,
                 'source': record['source'],
-                'author': record['author'],
+                'author': author,
                 'editor': record['editor'],
                 'published_at': record['published_at'],
                 'views': record['views'],
@@ -870,6 +1103,8 @@ def cmd_render(args):
 
     print('渲染 %d 篇；正文图片 %d 张（其中 %d 张已改写为站内地址）、附件 %d 条、正文合计 %d 字'
           % (stats['rendered'], stats['images'], stats['media_rewritten'], stats['attachments'], stats['content_chars']))
+    print('末尾署名：删除署名 %d 篇、按署名回填作者栏 %d 篇'
+          % (stats['signature_stripped'], stats['author_filled']))
     if args.manifest:
         extra = ('，其中按本地文件判定可用 %d 条' % local_ready) if args.local_check else ''
         print('媒体清单：可用 %d 条%s，不可用 %d 条（不可用的保留原地址）'

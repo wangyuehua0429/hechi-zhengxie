@@ -12,8 +12,8 @@
 | `sanitize-check.mjs` | 正文清洗端到端：保存 → 接口 → 静态页，以及后台安全响应头 | 31 | 本机有 PHP |
 | `editor-check.mjs` | 正文富文本编辑器（挂载、取值同步、图片上传、站内地址还原、原标题三行带首行空两格） | 62 | 本机有 PHP |
 | `redirect-check.mjs` | 旧地址 301 映射与栏目静态页路径（发布器路径唯一性、目标产物校验、运行期 301、入口层 301、部署配置、归档不出页不登记 301、发布清理旧页、失效映射清理） | 54 | 本机有 PHP |
-| `migrate-check.mjs` | 旧库迁移两段式（口径筛选、清洗与媒体改写、入库、幂等、本地图认账、多行 INSERT／gzip、删除同步与转归档，用 fixture，不联网） | 45 | 本机有 PHP 与 python3 |
-| `normalizer-check.php` | 正文展示归一化（去空段、裁首部缩进、拍平嵌套、资源地址改写、正文题区与标题重复、图集过滤） | 27 | 本机有 PHP |
+| `migrate-check.mjs` | 旧库迁移两段式（口径筛选、清洗与媒体改写、末尾署名归口、入库、幂等、本地图认账、多行 INSERT／gzip、删除同步与转归档，用 fixture，不联网） | 49 | 本机有 PHP 与 python3 |
+| `normalizer-check.php` | 正文展示归一化（去空段、裁首部缩进、拍平嵌套、资源地址改写、正文题区与标题重复、末尾署名归口、图集过滤） | 36 | 本机有 PHP |
 | `proposal-check.mjs` | 政协委员提案系统（名册导入、委员登录与首登改密、提交与校验、收件退回受理、改稿重交、越权与附件隔离、Excel／Word 导出、停用账号） | 63 | 本机有 PHP |
 
 ## 前端页面回归检查（check-pages.mjs）
@@ -236,7 +236,7 @@ node tests/redirect-check.mjs --keep   # 保留临时库、发布产物与临时
 ## 旧库迁移检查（migrate-check.mjs）
 
 ```bash
-node tests/migrate-check.mjs          # 45 项
+node tests/migrate-check.mjs          # 49 项
 node tests/migrate-check.mjs --keep   # 保留临时目录便于排查
 ```
 
@@ -244,6 +244,7 @@ node tests/migrate-check.mjs --keep   # 保留临时目录便于排查
 
 - **口径筛选**：范围内 5 篇（904×3、902×1、202×1）；未映射 Type 只进 `unmapped.csv`；县区与口径不符的稿件跳过；公开年限切分点为 2023-11-20。
 - **清洗与改写**：正文去掉 `font`／`span`／内联样式；图片改写为 `/uploads/legacy/...` 并登记图集；正文附件登记为附件下载项；`From` 去掉日期版面；`Title1` 在领导稿落 `role`、其余落 `summary`；`Order` 只在领导稿落 `sort_no`。
+- **末尾署名归口**：与作者栏一致的末尾括号署名被删（`（张三）`），作者栏为空时按“口姓名”回填作者栏并删署名，与作者栏不一致的署名保留。
 - **本地图认账**：文件没到位时正文保留旧站外链（不改写成死链）；用 `render --local-check` 按清单 `target` 检查本地文件，到位的才改写成 `/uploads/legacy/...`，缺的那一张继续保留旧链接。
 - **入库**：`--dry-run` 不写库且给出报告；`--commit` 写入状态／公开范围／栏目主归属／图集／附件，次要表合并进首页整块，互动条目按年限进 `archive`，并写操作日志、回滚清单与报告。
 - **幂等与拦截**：连跑两次条数不变；栏目不存在的条目被挡下且退出码非 0。

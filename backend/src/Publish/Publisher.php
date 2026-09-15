@@ -196,7 +196,8 @@ final class Publisher
                 // 出口归一化：静态页与 data/article.json 快照走同一份结果，口径见 BodyNormalizer 注释
                 $article['content'] = BodyNormalizer::normalize(
                     HtmlSanitizer::clean((string) $article['content']),
-                    (string) $article['title']
+                    (string) $article['title'],
+                    (string) ($article['author'] ?? '')
                 );
                 $article['images'] = BodyNormalizer::normalizeImages((array) $article['images']);
                 $articles[] = $article;
@@ -250,6 +251,9 @@ final class Publisher
         $meta = '发布时间：' . htmlspecialchars(substr((string) ($article['dateText'] ?? $article['date']), 0, 10), ENT_QUOTES);
         if (($article['source'] ?? '') !== '') {
             $meta .= '　来源：' . htmlspecialchars((string) $article['source'], ENT_QUOTES);
+        }
+        if (($article['author'] ?? '') !== '') {
+            $meta .= '　作者：' . htmlspecialchars((string) $article['author'], ENT_QUOTES);
         }
         $html = '<p class="meta">' . $meta . '</p>';
         // 正文在 articlesWithBody() 里已过白名单并归一化（静态页与快照同一份结果），这里直接输出

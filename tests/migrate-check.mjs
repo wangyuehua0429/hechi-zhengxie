@@ -67,10 +67,10 @@ function phpEval(php, env, code) {
 
 /** 小样本旧库的 rd_news 行：覆盖主站口径内/外、已审/未审、新老年限、领导、未映射、县区 */
 const FIXTURE_NEWS_ROWS = [
-  "(9001, '市政协开展专题协商', '导语一句', NULL, 'http://gxhczx.gov.cn/uploadfiles/20260101/9001.jpg', '<div><span style=\"font-size:14px\"><font color=\"red\">正文第一段</font></span></div><p>&nbsp;</p><p><img src=\"http://gxhczx.gov.cn/uploadfiles/20260101/9001-1.jpg\" width=\"600\"></p><p><a href=\"http://gxhczx.gov.cn/uploadfiles/20260101/9001.docx\">附件下载</a></p>', 1, 22, 1, 1, 904, 128, 0, 1767225600, '河池日报 2026/1/2 1版', '张三', '李四')",
-  "(9002, '早年的一篇稿件', '', NULL, '', '<p>旧稿正文</p>', 1, 22, 0, 1, 904, 20, 0, 1588320000, '本站', '', '')",
+  "(9001, '市政协开展专题协商', '导语一句', NULL, 'http://gxhczx.gov.cn/uploadfiles/20260101/9001.jpg', '<div><span style=\"font-size:14px\"><font color=\"red\">正文第一段</font></span></div><p>&nbsp;</p><p><img src=\"http://gxhczx.gov.cn/uploadfiles/20260101/9001-1.jpg\" width=\"600\"></p><p><a href=\"http://gxhczx.gov.cn/uploadfiles/20260101/9001.docx\">附件下载</a></p><p>（张三）</p>', 1, 22, 1, 1, 904, 128, 0, 1767225600, '河池日报 2026/1/2 1版', '张三', '李四')",
+  "(9002, '早年的一篇稿件', '', NULL, '', '<p>旧稿正文。口赵六</p>', 1, 22, 0, 1, 904, 20, 0, 1588320000, '本站', '', '')",
   "(9003, '未审稿件', '', NULL, '', '<p>未审正文</p>', 0, 22, 0, 0, 904, 3, 0, 1748736000, '本站', '', '')",
-  "(9004, '全国政协要闻', '', NULL, '', '<p>区外稿件</p>', 1, 55, 0, 0, 902, 55, 0, 1767225600, '全国政协网', '', '')",
+  "(9004, '全国政协要闻', '', NULL, '', '<p>区外稿件。（李八）</p>', 1, 55, 0, 0, 902, 55, 0, 1767225600, '全国政协网', '钱七', '')",
   "(9005, '口径不符的 902 稿', '', NULL, '', '<p>不应入库</p>', 1, 22, 0, 0, 902, 5, 0, 1767225600, '本站', '', '')",
   "(9006, '未映射栏目稿件', '', NULL, '', '<p>待甲方确认栏目</p>', 1, 22, 0, 0, 7101, 7, 0, 1767225600, '本站', '', '')",
   "(9007, '县区稿件', '', NULL, '', '<p>县区内容本期不迁</p>', 1, 3, 0, 0, 306, 9, 0, 1767225600, '本站', '', '')",
@@ -237,6 +237,19 @@ function main() {
       byId.get(9008).role === "副主席" && byId.get(9008).sort_no === 3 && byId.get(9008).summary === "");
     check("非领导稿：Title1 落 summary",
       byId.get(9001).summary === "导语一句" && byId.get(9001).role === "");
+    check("末尾署名：与作者栏一致的括号署名被删除",
+      first && !first.content_html.includes("张三") && first.author === "张三",
+      (first?.content_html || "").slice(-60));
+    check("末尾署名：作者栏为空时按「口姓名」回填作者栏并删除署名",
+      byId.get(9002).author === "赵六" && !byId.get(9002).content_html.includes("口赵六"),
+      byId.get(9002)?.author || "");
+    check("末尾署名：与作者栏不一致的署名保留",
+      byId.get(9004).content_html.includes("（李八）") && byId.get(9004).author === "钱七",
+      (byId.get(9004)?.content_html || "").slice(-40));
+    const renderStats = JSON.parse(readFileSync(path.join(outDir, "render_stats.json"), "utf8"));
+    check("末尾署名：render 报表记下删除与回填条数",
+      renderStats.signature_stripped === 2 && renderStats.author_filled === 1,
+      JSON.stringify({ stripped: renderStats.signature_stripped, filled: renderStats.author_filled }));
 
     if (targets.length > 0) writeFileSync(targets[0], "fake-image");
 

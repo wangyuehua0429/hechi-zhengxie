@@ -58,7 +58,8 @@ final class ArticleController
         // 归一化只发生在出口，库里的 content_html 保持原样，后台编辑回填不受影响。
         $article['content'] = BodyNormalizer::normalize(
             HtmlSanitizer::clean((string) ($article['content'] ?? '')),
-            (string) $article['title']
+            (string) $article['title'],
+            (string) ($article['author'] ?? '')
         );
         // 图集出口只留图片：旧库里有 50 条图集记录是 mp4，前台会渲染成空白格
         $article['images'] = BodyNormalizer::normalizeImages((array) ($article['images'] ?? []));
