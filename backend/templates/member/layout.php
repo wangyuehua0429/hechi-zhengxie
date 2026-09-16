@@ -32,7 +32,7 @@ $current = $current ?? '';
       <a class="m-brand" href="/member">
         <span class="m-brand-mark" aria-hidden="true">提案</span>
         <span class="m-brand-text">
-          <strong>河池市政协提案系统</strong>
+          <strong>政协委员在线提交提案系统</strong>
           <small><?= hechi_e($siteName) ?></small>
         </span>
       </a>

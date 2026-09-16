@@ -19,6 +19,7 @@ declare(strict_types=1);
 
 <p class="m-note">共 <?= (int) $total ?> 件提案。</p>
 
+<?php if ($total > 0 || $status !== ''): ?>
 <nav class="m-chips" aria-label="按状态筛选">
   <?php
   $chips = ['' => '全部'] + \HechiZx\Content\ProposalWorkflow::places();
@@ -28,6 +29,7 @@ declare(strict_types=1);
     <a href="<?= hechi_e($url) ?>"<?= (string) $key === $status ? ' class="active" aria-current="true"' : '' ?>><?= hechi_e($label) ?></a>
   <?php endforeach; ?>
 </nav>
+<?php endif; ?>
 
 <?php if ($rows === []): ?>
   <p class="m-empty">还没有提案。点右上角「填写提案」开始填写。</p>
@@ -40,7 +42,6 @@ declare(strict_types=1);
         <th scope="col">类别</th>
         <th scope="col">状态</th>
         <th scope="col">提交时间</th>
-        <th scope="col">操作</th>
       </tr>
     </thead>
     <tbody>
@@ -49,14 +50,14 @@ declare(strict_types=1);
         <tr>
           <td>
             <a href="/member/proposal/<?= (int) $row['proposal_id'] ?>"><?= hechi_e((string) $row['title']) ?></a>
+            <span class="m-sub">提案号 <?= (int) $row['proposal_id'] ?></span>
             <?php if ($statusKey === 'returned' && trim((string) $row['returned_reason']) !== ''): ?>
               <span class="m-sub">退回意见：<?= hechi_e((string) $row['returned_reason']) ?></span>
             <?php endif; ?>
           </td>
-          <td><?= hechi_e((string) $row['category']) ?></td>
-          <td><span class="m-badge m-badge-<?= hechi_e($statusKey) ?>"><?= hechi_e(\HechiZx\Content\ProposalWorkflow::label($statusKey)) ?></span></td>
-          <td><?= hechi_e((string) ($row['submitted_at'] ?? '')) ?></td>
-          <td><a href="/member/proposal/<?= (int) $row['proposal_id'] ?>">查看</a></td>
+          <td data-label="类别"><?= hechi_e((string) $row['category']) ?></td>
+          <td data-label="状态"><span class="m-badge m-badge-<?= hechi_e($statusKey) ?>"><?= hechi_e(\HechiZx\Content\ProposalWorkflow::label($statusKey)) ?></span></td>
+          <td data-label="提交时间"><?= hechi_e((string) ($row['submitted_at'] ?? '')) ?></td>
         </tr>
       <?php endforeach; ?>
     </tbody>

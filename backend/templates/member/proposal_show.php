@@ -39,6 +39,7 @@ $proposalId = (int) $proposal['proposal_id'];
 <section class="m-card">
   <h2>提案信息</h2>
   <dl class="m-meta">
+    <dt>提案号</dt><dd><?= $proposalId ?></dd>
     <dt>提案人</dt><dd><?= hechi_e((string) $proposal['proposer_name']) ?>
       （<?= hechi_e(\HechiZx\Content\ProposalWorkflow::proposerTypeLabel((string) $proposal['proposer_type'])) ?>）</dd>
     <dt>界别</dt><dd><?= hechi_e((string) $proposal['sector']) ?></dd>
@@ -52,7 +53,7 @@ $proposalId = (int) $proposal['proposal_id'];
       <dt>集体名称</dt><dd><?= hechi_e((string) $proposal['collective_name']) ?></dd>
     <?php endif; ?>
     <?php if (trim((string) ($proposal['reviewed_at'] ?? '')) !== ''): ?>
-      <dt>办理时间</dt><dd><?= hechi_e((string) $proposal['reviewed_at']) ?></dd>
+      <dt><?= $statusKey === 'returned' ? '退回时间' : '受理时间' ?></dt><dd><?= hechi_e((string) $proposal['reviewed_at']) ?></dd>
     <?php endif; ?>
   </dl>
 </section>
@@ -66,11 +67,9 @@ $proposalId = (int) $proposal['proposal_id'];
   <div class="m-body"><?= nl2br(hechi_e((string) $proposal['suggestion_text'])) ?></div>
 </section>
 
-<section class="m-card">
-  <h2>附件</h2>
-  <?php if ($attachments === []): ?>
-    <p class="m-note">没有附件。</p>
-  <?php else: ?>
+<?php if ($attachments !== []): ?>
+  <section class="m-card">
+    <h2>附件</h2>
     <ul class="m-files">
       <?php foreach ($attachments as $attachment): ?>
         <li>
@@ -79,8 +78,8 @@ $proposalId = (int) $proposal['proposal_id'];
         </li>
       <?php endforeach; ?>
     </ul>
-  <?php endif; ?>
-</section>
+  </section>
+<?php endif; ?>
 
 <section class="m-card">
   <h2>办理记录</h2>

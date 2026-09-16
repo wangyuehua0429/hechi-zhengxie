@@ -52,16 +52,18 @@ declare(strict_types=1);
 
         <button type="submit" class="m-btn m-btn-primary">登录</button>
       </form>
+
+      <p class="m-login-help">忘记密码、或提示账号不存在，请联系提案委员会办公室重置。</p>
     </section>
 
     <section class="m-guide" aria-labelledby="guideTitle">
       <h2 id="guideTitle">登录指南</h2>
       <ol>
-        <li>账号由提案委员会统一开通，登录名一般是委员本人的手机号，初始密码由提案委员会另行告知。</li>
-        <li>首次登录后须先修改密码，改完才能填写与提交提案。</li>
-        <li>密码连续输错 5 次会锁定 15 分钟；忘记密码或提示账号不存在，请联系提案委员会办公室重置。</li>
+        <li>账号由提案委员会统一开通，登录名一般是手机号，初始密码另行告知。</li>
+        <li>首次登录须先修改密码，改完才能填写与提交提案。</li>
+        <li>密码连续输错 5 次会锁定 15 分钟，请稍后再试。</li>
         <li>提案内容不对外公开，只有本人与提案委员会可以查看。</li>
-        <li>电脑端推荐使用 Chrome、Edge 浏览器；手机端与微信内置浏览器同样可以打开。</li>
+        <li>提案提交后，可在「我的提案」里查看办理状态与提案委意见。</li>
       </ol>
     </section>
   </main>

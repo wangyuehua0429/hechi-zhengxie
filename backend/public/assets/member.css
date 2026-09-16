@@ -36,6 +36,12 @@ a { color: var(--m-red-dark); }
 }
 .skip-link:focus { left: 8px; top: 8px; z-index: 10; }
 
+/* 统一的键盘焦点环：从本机调色板取色，不用浏览器默认蓝环 */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--m-red);
+  outline-offset: 2px;
+}
+
 .m-visually-hidden {
   position: absolute;
   width: 1px;
@@ -111,7 +117,8 @@ a { color: var(--m-red-dark); }
   color: var(--m-muted);
   font: inherit;
   cursor: pointer;
-  padding: 4px 2px;
+  /* 触摸目标不小于 44px：文字按钮靠内边距撑开，不再是一条细线 */
+  padding: 10px 2px;
 }
 .m-link-btn:hover { color: var(--m-red); text-decoration: underline; }
 
@@ -192,9 +199,15 @@ a { color: var(--m-red-dark); }
 }
 .m-form textarea { resize: vertical; line-height: 1.7; }
 .m-form input:focus, .m-form select:focus, .m-form textarea:focus {
-  outline: 2px solid rgba(184, 28, 34, 0.35);
+  outline: 2px solid var(--m-red);
+  outline-offset: 2px;
   border-color: var(--m-red);
 }
+.m-form select { min-height: 44px; }
+.m-form input[type="file"] { padding: 10px 0; }
+.m-form .m-req { color: var(--m-red); font-weight: 400; margin-left: 2px; }
+.m-form .m-count { float: right; color: var(--m-muted); font-size: 13px; font-weight: 400; }
+.m-form .m-count-over { color: var(--m-error); font-weight: 600; }
 .m-form fieldset {
   border: 1px solid var(--m-line);
   border-radius: var(--m-radius);
@@ -242,7 +255,10 @@ a { color: var(--m-red-dark); }
 
 .m-chips { display: flex; gap: 10px; flex-wrap: wrap; margin: 12px 0 16px; }
 .m-chips a {
-  padding: 5px 14px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 5px 16px;
   border: 1px solid var(--m-line);
   border-radius: 999px;
   background: #fff;
@@ -267,6 +283,10 @@ a { color: var(--m-red-dark); }
   vertical-align: middle;
 }
 .m-table th { background: #f2f3f5; font-size: 14px; }
+/* 状态列给徽章留出实宽（3 字 13px + 内边距 + 边框 ≈ 61px），避免折成两行椭圆；
+   提交时间不折行，日期与时分秒保持一行 */
+.m-table th:nth-child(3), .m-table td:nth-child(3) { width: 104px; }
+.m-table th:nth-child(4), .m-table td:nth-child(4) { width: 150px; white-space: nowrap; }
 .m-table tr:last-child td { border-bottom: 0; }
 
 .m-pager { display: flex; gap: 14px; align-items: center; margin-top: 16px; color: var(--m-muted); }
@@ -278,6 +298,7 @@ a { color: var(--m-red-dark); }
   border-radius: 999px;
   font-size: 13px;
   border: 1px solid currentColor;
+  white-space: nowrap;
 }
 .m-badge-submitted { color: #9a5b00; }
 .m-badge-accepted { color: var(--m-ok); }
@@ -295,13 +316,16 @@ a { color: var(--m-red-dark); }
 .m-flash-ok { border-color: #b7dfc8; background: #f2fbf6; color: #14603a; }
 .m-flash-error, .m-notice-error { border-color: #f0c2bd; background: #fdf4f3; color: var(--m-error); }
 .m-notice-warn { border-color: #f0d9ae; background: #fffaf0; color: #7a4a00; }
+/* 提示条里的按钮（如草稿的「恢复／丢弃」）单独占一行，不挤在文字后面 */
+.m-notice .m-btn { margin: 8px 8px 0 0; }
 
 /* 详情 */
 .m-meta { display: grid; grid-template-columns: 110px 1fr; gap: 6px 16px; margin: 0; }
 .m-meta dt { color: var(--m-muted); }
 .m-meta dd { margin: 0; }
 
-.m-body { white-space: pre-wrap; line-height: 1.8; }
+/* 模板已用 nl2br() 换行，这里不再叠加 pre-wrap，否则段间空行会被放大一倍 */
+.m-body { line-height: 1.75; }
 
 .m-files { margin: 0; padding-left: 20px; }
 .m-files li { margin-bottom: 6px; }
@@ -325,10 +349,28 @@ a { color: var(--m-red-dark); }
 @media (max-width: 520px) {
   .m-main { padding: 0 14px; }
   .m-head-inner { padding: 10px 14px; }
-  .m-table th:nth-child(2), .m-table td:nth-child(2),
-  .m-table th:nth-child(4), .m-table td:nth-child(4) { display: none; }
   .m-meta { grid-template-columns: 1fr; }
   .m-meta dt { margin-top: 6px; }
+}
+
+/* 窄屏：列表从表格改为一行一件的清单，列名由 data-label 带出，不再隐藏整列 */
+@media (max-width: 767px) {
+  .m-table, .m-table tbody, .m-table tr, .m-table td { display: block; }
+  .m-table thead { display: none; }
+  .m-table { border: 0; background: transparent; }
+  .m-table tr {
+    background: #fff;
+    border: 1px solid var(--m-line);
+    border-radius: var(--m-radius);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .m-table td { border: 0; padding: 0; }
+  .m-table td + td { margin-top: 2px; }
+  .m-table td[data-label] { font-size: 14px; }
+  .m-table td[data-label]::before { content: attr(data-label) "："; color: var(--m-muted); }
+  .m-table th:nth-child(3), .m-table td:nth-child(3),
+  .m-table th:nth-child(4), .m-table td:nth-child(4) { width: auto; white-space: normal; }
 }
 
 /* ---------- 门户首页：整幅底图 + 浮在图上的登录框 + 登录指南 ---------- */
@@ -370,8 +412,8 @@ a { color: var(--m-red-dark); }
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  /* 桌面一屏放得下：底图整幅不动，卡片与指南都在视口内 */
-  padding: clamp(88px, 20vh, 200px) 20px 28px;
+  /* 桌面一屏放得下：底图整幅不动，卡片与指南都在视口内（1280×720 也放得下） */
+  padding: clamp(72px, 14vh, 140px) 20px 28px;
 }
 
 .m-login-card {
@@ -390,6 +432,7 @@ a { color: var(--m-red-dark); }
 
 .m-login-card form > label:first-of-type { margin-top: 4px; }
 .m-login-card .m-btn { width: 100%; margin-top: 20px; }
+.m-login-help { margin: 14px 0 0; color: var(--m-muted); font-size: 13px; line-height: 1.7; }
 
 .m-guide {
   width: min(560px, 100%);

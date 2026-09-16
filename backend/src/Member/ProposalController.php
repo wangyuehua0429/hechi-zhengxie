@@ -338,6 +338,9 @@ final class ProposalController extends MemberController
             'attachments' => $proposalId === 0 ? [] : $this->proposals->attachments($proposalId),
             'maxCount'    => self::ATTACHMENT_MAX_COUNT,
             'maxMb'       => (int) (self::ATTACHMENT_MAX_BYTES / 1048576),
+            // 字数上限只在这里定义一次，前端计数与提示都取它，避免与校验规则脱节
+            'titleMax'    => self::TITLE_MAX,
+            'textMax'     => self::TEXT_MAX,
         ], $proposalId === 0 ? '填写提案' : '修改提案', $status);
     }
 
