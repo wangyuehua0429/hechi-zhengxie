@@ -26,6 +26,9 @@ return [
         'code'    => getenv('SITE_CODE') ?: 'main',
         'name'    => getenv('SITE_NAME') ?: '广西河池政协网',
         'domain'  => getenv('SITE_DOMAIN') ?: 'www.gxhczx.gov.cn',
+        // 委员门户登录页的对外联系电话：默认取官网页脚公开的「联系电话」
+        // （frontend/home/data/home.json 的 meta.contactPhone），可用环境变量覆盖
+        'contact_phone' => getenv('SITE_CONTACT_PHONE') ?: '0778-2320180',
     ],
 
     'db' => [

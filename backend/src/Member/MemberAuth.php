@@ -77,42 +77,62 @@ final class MemberAuth
     /**
      * 登录。返回 [成功?, 提示语]；提示语对「账号不存在」与「密码错误」保持一致，不泄露账号是否存在。
      *
+     * 登录标识按「登录名（本人姓名）→ 手机号 → 姓名」取候选，重名或手机号撞车时会命中多行：
+     * 谁的密码对就登谁，不猜账号；账号的停用与锁定状态只在密码正确时才告诉本人，
+     * 密码错一律回到同一句提示，避免把「这个标识有账号」「账号被锁了」变成免费的存在性断言。
+     *
      * @return array{ok:bool,message:string}
      */
-    public function attempt(string $loginName, string $password): array
+    public function attempt(string $identifier, string $password): array
     {
-        $row = $this->members->findByLogin($loginName);
-        if ($row === null) {
-            return ['ok' => false, 'message' => '登录名或密码不正确。'];
+        $failed = ['ok' => false, 'message' => '登录名或密码不正确。'];
+
+        $candidates = $this->members->findByIdentifier($identifier);
+        if ($candidates === []) {
+            return $failed;
         }
-        if ((string) $row['status'] !== 'enabled') {
+
+        $matched = null;
+        foreach ($candidates as $candidate) {
+            if (password_verify($password, (string) $candidate['password_hash'])) {
+                $matched = $candidate;
+                break;
+            }
+        }
+
+        if ($matched === null) {
+            // 失败次数只记在主候选（登录名／手机号精确命中的那一行）上；已锁定的账号不再续期，
+            // 否则持续的错误尝试会把锁定一直延长下去
+            $primary = $candidates[0];
+            $lockedUntil = (string) ($primary['locked_until'] ?? '');
+            if ($lockedUntil === '' || strtotime($lockedUntil) <= time()) {
+                $attempts = (int) $primary['failed_attempts'] + 1;
+                $until = null;
+                if ($attempts >= self::MAX_ATTEMPTS) {
+                    $until = date('Y-m-d H:i:s', time() + self::LOCK_MINUTES * 60);
+                    $attempts = 0;
+                }
+                $this->members->registerFailedAttempt((int) $primary['member_id'], $attempts, $until);
+            }
+
+            return $failed;
+        }
+
+        if ((string) $matched['status'] !== 'enabled') {
             return ['ok' => false, 'message' => '该账号已停用，请联系提案委。'];
         }
 
-        $lockedUntil = (string) ($row['locked_until'] ?? '');
+        $lockedUntil = (string) ($matched['locked_until'] ?? '');
         if ($lockedUntil !== '' && strtotime($lockedUntil) > time()) {
             $minutes = (int) ceil((strtotime($lockedUntil) - time()) / 60);
             return ['ok' => false, 'message' => '连续输错次数过多，请 ' . max(1, $minutes) . ' 分钟后再试。'];
         }
 
-        if (!password_verify($password, (string) $row['password_hash'])) {
-            $attempts = (int) $row['failed_attempts'] + 1;
-            $until = null;
-            $message = '登录名或密码不正确。';
-            if ($attempts >= self::MAX_ATTEMPTS) {
-                $until = date('Y-m-d H:i:s', time() + self::LOCK_MINUTES * 60);
-                $attempts = 0;
-                $message = '连续输错 ' . self::MAX_ATTEMPTS . ' 次，账号已锁定 ' . self::LOCK_MINUTES . ' 分钟。';
-            }
-            $this->members->registerFailedAttempt((int) $row['member_id'], $attempts, $until);
-            return ['ok' => false, 'message' => $message];
-        }
-
         session_regenerate_id(true);
-        $_SESSION[self::SESSION_KEY] = (int) $row['member_id'];
+        $_SESSION[self::SESSION_KEY] = (int) $matched['member_id'];
         $this->cached = null;
-        $this->members->touchLogin((int) $row['member_id']);
-        $this->log('member.login', (string) $row['member_id'], ['name' => (string) $row['name']]);
+        $this->members->touchLogin((int) $matched['member_id']);
+        $this->log('member.login', (string) $matched['member_id'], ['name' => (string) $matched['name']]);
 
         return ['ok' => true, 'message' => ''];
     }

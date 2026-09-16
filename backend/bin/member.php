@@ -23,6 +23,7 @@ declare(strict_types=1);
 require dirname(__DIR__) . '/src/bootstrap.php';
 
 use HechiZx\Proposal\MemberImporter;
+use HechiZx\Repository\MemberRepository;
 use HechiZx\Support\Db;
 
 $args = $argv;
@@ -40,17 +41,31 @@ $usage = <<<TXT
   php backend/bin/member.php disable <登录名>
   php backend/bin/member.php enable <登录名>
 
-登录名默认取手机号；创建后须在提案门户 http://<域名>/member 登录，首次登录会要求改密。
+登录名建议取委员本人姓名（重名的补序号，如 张三2）；创建后须在提案门户 http://<域名>/member 登录，
+首次登录会要求改密。
 TXT;
 
-/** 取委员行，找不到时打印提示并退出 */
-$requireMember = static function (Db $db, string $login): array {
-    $row = $db->selectOne('SELECT * FROM sys_member WHERE login_name = :l', ['l' => $login]);
-    if ($row === null) {
-        fwrite(STDERR, '没找到委员账号：' . $login . "\n");
+/** 按登录标识（登录名/手机号/姓名）取委员行；找不到或撞到多个同名时打印提示并退出 */
+$requireMember = static function (Db $db, string $identifier): array {
+    $candidates = (new MemberRepository($db))->findByIdentifier($identifier);
+    if ($candidates === []) {
+        fwrite(STDERR, '没找到委员账号：' . $identifier . "\n");
         exit(1);
     }
-    return $row;
+    if (count($candidates) > 1) {
+        fwrite(STDERR, "该标识对应多个账号，请改用唯一登录名重试：\n");
+        foreach ($candidates as $candidate) {
+            fwrite(STDERR, sprintf(
+                "  #%d %s（登录名 %s，手机号 %s）\n",
+                $candidate['member_id'],
+                (string) $candidate['name'],
+                (string) $candidate['login_name'],
+                (string) ($candidate['mobile'] ?? '')
+            ));
+        }
+        exit(1);
+    }
+    return $candidates[0];
 };
 
 switch ($command) {

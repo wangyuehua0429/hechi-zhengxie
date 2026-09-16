@@ -219,10 +219,11 @@ async function main() {
         && portal.text.includes('name="login_name"')
         && portal.text.includes("登录指南"),
       "状态 " + portal.status);
-    check("门户页把整幅底图当页面底板（自带文档，不套后台式外壳）",
+    check("门户页把整幅底纹当页面底板（自带文档，不套后台式外壳）",
       portal.text.includes('class="m-portal-bg"')
-        && portal.text.includes("/assets/member/header.jpg")
+        && portal.text.includes("/assets/member/header-art.jpg")
         && portal.text.includes("/assets/member.css")
+        && portal.text.includes('class="m-portal-title-main"')
         && portal.text.indexOf("m-head") === -1);
 
     for (const url of ["/member/proposals", "/member/proposal/new", "/member/password"]) {
@@ -285,10 +286,12 @@ async function main() {
 
     const credentials = await admin.get("/admin/members/credentials.csv");
     check("导入后可下载一次性初始密码清单",
-      credentials.status === 200 && credentials.text.includes("姓名,登录名,初始密码") && credentials.text.includes("13800000001"),
+      credentials.status === 200 && credentials.text.includes("姓名,登录名,初始密码"),
       "状态 " + credentials.status);
-    const passwordA = (/13800000001,([A-Za-z0-9]+)/.exec(credentials.text) || [])[1] || "";
-    const passwordB = (/13800000002,([A-Za-z0-9]+)/.exec(credentials.text) || [])[1] || "";
+    check("登录名取委员本人姓名（清单两列都是姓名）",
+      /^张三,张三,/m.test(credentials.text) && /^李四,李四,/m.test(credentials.text));
+    const passwordA = (/^张三,张三,([A-Za-z0-9]+)/m.exec(credentials.text) || [])[1] || "";
+    const passwordB = (/^李四,李四,([A-Za-z0-9]+)/m.exec(credentials.text) || [])[1] || "";
     check("清单里两个账号都有密码", passwordA.length >= 8 && passwordB.length >= 8);
 
     const credentialsAgain = await admin.get("/admin/members/credentials.csv");
@@ -309,6 +312,16 @@ async function main() {
     const dupPage = await admin.get("/admin/members/import");
     check("手机号重复的行被挡下并说明原因",
       dupPage.text.includes("手机号重复") && dupPage.text.includes("第 2 行"));
+
+    const dupNameCsv = "姓名,手机号,界别,专委会,单位及职务,届次,备注\n张三,13800000004,教育界,教科卫体委员会,河池市某某中学教师,五届,与前面重名\n";
+    const dupNameToken = csrfToken((await admin.get("/admin/members/import")).text);
+    await admin.upload("/admin/members/import", { _token: dupNameToken }, [
+      { field: "roster", filename: "dup-name.csv", content: Buffer.from(dupNameCsv, "utf8"), type: "text/csv" }
+    ]);
+    const dupNameCredentials = await admin.get("/admin/members/credentials.csv");
+    check("重名委员的登录名自动补序号（张三2）",
+      dupNameCredentials.status === 200 && /^张三,张三2,/m.test(dupNameCredentials.text),
+      "状态 " + dupNameCredentials.status);
 
     const gbkCsv = "姓名,手机号,界别,专委会,单位及职务,届次,备注\n周七,13800000003,教育界,教科卫体委员会,河池市某某中学教师,五届,\n";
     const gbkBuffer = toGbk(php, gbkCsv, tmpRoot);
@@ -391,6 +404,53 @@ async function main() {
       changed.status === 302 && (changed.headers.get("location") || "") === "/member/proposals");
     const listAfterChange = await memberA.get("/member/proposals");
     check("改密后可正常打开我的提案", listAfterChange.status === 200 && listAfterChange.text.includes("我的提案"));
+
+    const byName = makeClient(base);
+    const byNamePage = await byName.get("/member/login");
+    const byNameRes = await byName.post("/member/login", {
+      _token: csrfToken(byNamePage.text),
+      login_name: "张三",
+      password: MEMBER_PASSWORD
+    });
+    check("委员可用本人姓名登录",
+      byNameRes.status === 302 && (byNameRes.headers.get("location") || "") === "/member/proposals",
+      "状态 " + byNameRes.status + " → " + (byNameRes.headers.get("location") || ""));
+
+    const byMobile = makeClient(base);
+    const byMobilePage = await byMobile.get("/member/login");
+    const byMobileRes = await byMobile.post("/member/login", {
+      _token: csrfToken(byMobilePage.text),
+      login_name: "13800000001",
+      password: MEMBER_PASSWORD
+    });
+    check("登记的手机号仍可作备用登录标识",
+      byMobileRes.status === 302 && (byMobileRes.headers.get("location") || "") === "/member/proposals",
+      "状态 " + byMobileRes.status + " → " + (byMobileRes.headers.get("location") || ""));
+
+    const dupNamePw = (/^张三,张三2,([A-Za-z0-9]+)/m.exec(dupNameCredentials.text) || [])[1] || "";
+    const bySharedName = makeClient(base);
+    const bySharedNamePage = await bySharedName.get("/member/login");
+    const bySharedNameRes = await bySharedName.post("/member/login", {
+      _token: csrfToken(bySharedNamePage.text),
+      login_name: "张三",
+      password: dupNamePw
+    });
+    check("重名委员用本人姓名＋自己密码登录（不猜账号）",
+      bySharedNameRes.status === 302 && (bySharedNameRes.headers.get("location") || "") === "/member/password",
+      "状态 " + bySharedNameRes.status + " → " + (bySharedNameRes.headers.get("location") || ""));
+
+    const legacyCreate = runPhp(php, "backend/bin/member.php", env, ["create", "13800000009", "legacy-pass-2026", "测试委员"]);
+    check("能用命令行造出「登录名≠姓名」的老形态账号", legacyCreate.status === 0, legacyCreate.stderr.trim().split("\n")[0]);
+    const byLegacyName = makeClient(base);
+    const byLegacyNamePage = await byLegacyName.get("/member/login");
+    const byLegacyNameRes = await byLegacyName.post("/member/login", {
+      _token: csrfToken(byLegacyNamePage.text),
+      login_name: "测试委员",
+      password: "legacy-pass-2026"
+    });
+    check("老账号（登录名是手机号）仍可用本人姓名登录",
+      byLegacyNameRes.status === 302 && (byLegacyNameRes.headers.get("location") || "") === "/member/password",
+      "状态 " + byLegacyNameRes.status + " → " + (byLegacyNameRes.headers.get("location") || ""));
 
     // ---------- 四、提交提案 ----------
     const formPage = await memberA.get("/member/proposal/new");

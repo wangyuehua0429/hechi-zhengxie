@@ -373,12 +373,15 @@ a { color: var(--m-red-dark); }
   .m-table th:nth-child(4), .m-table td:nth-child(4) { width: auto; white-space: normal; }
 }
 
-/* ---------- 门户首页：整幅底图 + 浮在图上的登录框 + 登录指南 ---------- */
-/* 底色取底图下缘的中位色，竖屏（底图按宽度完整铺开）时接缝看不出来 */
+/* ---------- 门户首页：整幅底纹 + 浮在图上的标题与登录框 + 登录指南 ---------- */
+/* 底图 header-art.jpg 是 header.jpg 裁掉烧进图里的标题带之后的纹样，标题改由真实文本承担，
+   所以这里可以放心用 cover：任何比例都不会再切到字，也不会出现图与底色的接缝。
+   底色与前景按「底图加载失败」的降级路径配：浅字压在深红上，底图加载失败时正文仍可读 */
 .m-portal {
   margin: 0;
   min-height: 100vh;
-  background-color: #b30203;
+  background-color: #8c0a10;
+  color: #fff;
 }
 
 .m-portal-bg {
@@ -387,22 +390,18 @@ a { color: var(--m-red-dark); }
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center 20%;
+  object-position: center;
   z-index: 0;
 }
 
-/* 竖屏/方屏：底图按宽度完整铺在顶部，标题不被裁掉，其余留给底色 */
-@media (max-aspect-ratio: 1 / 1) {
-  .m-portal-bg { object-fit: contain; object-position: center top; }
-}
-
-/* 压一层自上而下渐深的遮罩：下方白卡片与指南文字都压得住 */
+/* 压一层自上而下渐深的遮罩：顶部给金色标题托底，整幅底图最亮处也够对比度，
+   下方白卡片与指南文字也都压得住 */
 .m-portal-shade {
   position: fixed;
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.20) 55%, rgba(0, 0, 0, 0.42) 100%);
+  background: linear-gradient(180deg, rgba(70, 0, 0, 0.26) 0%, rgba(0, 0, 0, 0.22) 55%, rgba(0, 0, 0, 0.44) 100%);
 }
 
 .m-portal-main {
@@ -411,17 +410,42 @@ a { color: var(--m-red-dark); }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  /* 桌面一屏放得下：底图整幅不动，卡片与指南都在视口内（1280×720 也放得下） */
-  padding: clamp(72px, 14vh, 140px) 20px 28px;
+  gap: 14px;
+  /* 卡片起点不按视口高度算：标题在文档流里，卡片跟着它走，任何窗口高度都不会再压到标题；
+     登录卡与规则、电话在常见笔记本高度内即可见，指南允许滚动 */
+  padding: clamp(20px, 4vh, 40px) 20px 24px;
+}
+
+/* 标题是真实文本：前身是烧进 header.jpg 的位图字，缩放、读屏、翻译都拿不到它 */
+.m-portal-title {
+  margin: 0 0 2px;
+  text-align: center;
+  color: #fedc8c;
+}
+
+.m-portal-title-main {
+  display: block;
+  font-size: clamp(22px, 2.6vw, 32px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.m-portal-title-sub {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.88);
 }
 
 .m-login-card {
   width: min(420px, 100%);
-  padding: 24px 26px 26px;
+  padding: 20px 24px 22px;
   background: rgba(255, 255, 255, 0.96);
+  /* 门户底色是深红、前景是浅色，白卡要显式把正文色拉回深色，否则文字白底白字 */
+  color: var(--m-text);
   border-radius: 10px;
-  box-shadow: 0 18px 40px rgba(60, 0, 0, 0.28);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.26);
 }
 
 .m-login-card h2 {
@@ -431,12 +455,24 @@ a { color: var(--m-red-dark); }
 }
 
 .m-login-card form > label:first-of-type { margin-top: 4px; }
-.m-login-card .m-btn { width: 100%; margin-top: 20px; }
-.m-login-help { margin: 14px 0 0; color: var(--m-muted); font-size: 13px; line-height: 1.7; }
+/* 字段说明跟标签同一行，不再多占一行高度（门户首屏高度紧张） */
+.m-label-note { font-weight: 400; font-size: 13px; color: var(--m-muted); }
+.m-login-card .m-btn { width: 100%; margin-top: 16px; }
+/* 锁定规则紧贴主按钮：它决定「要不要再试一次」，放在卡片外等于让人去别处找 */
+.m-login-rule {
+  margin: 14px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--m-line);
+  color: var(--m-muted);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.m-login-help { margin: 6px 0 0; color: var(--m-muted); font-size: 13px; line-height: 1.7; }
+.m-login-help a { font-weight: 600; white-space: nowrap; }
 
 .m-guide {
   width: min(560px, 100%);
-  padding: 18px 22px 20px;
+  padding: 16px 20px 18px;
   border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 10px;
   background: rgba(70, 0, 2, 0.42);
@@ -444,17 +480,30 @@ a { color: var(--m-red-dark); }
 }
 
 .m-guide h2 {
-  margin: 0 0 10px;
+  margin: 0 0 8px;
   font-size: 16px;
   color: #fff;
 }
 
 .m-guide ol { margin: 0; padding-left: 20px; }
-.m-guide li { margin-bottom: 6px; font-size: 14px; line-height: 1.8; }
+.m-guide li { margin-bottom: 4px; font-size: 14px; line-height: 1.8; break-inside: avoid; }
 .m-guide li:last-child { margin-bottom: 0; }
 
+/* 宽屏把 4 条指南排成两列：比登录卡宽一档，既把首屏高度压回来，也维持「上窄下宽」的稳定节奏 */
+@media (min-width: 1000px) {
+  .m-guide { width: min(880px, 100%); }
+  .m-guide ol { column-count: 2; column-gap: 32px; }
+}
+
+.m-portal-sign {
+  margin: 0;
+  text-align: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.82);
+}
+
 @media (max-width: 520px) {
-  .m-portal-main { padding: 88px 14px 36px; }
-  .m-login-card { padding: 20px 18px 22px; }
-  .m-guide { padding: 16px 18px 18px; }
+  .m-portal-main { padding: 24px 14px 24px; }
+  .m-login-card { padding: 18px 18px 20px; }
+  .m-guide { padding: 15px 18px 16px; }
 }

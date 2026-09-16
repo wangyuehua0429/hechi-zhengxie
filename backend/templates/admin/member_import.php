@@ -22,7 +22,8 @@ declare(strict_types=1);
   <p class="muted">
     模板是 CSV 文件，用 Excel 或 WPS 双击打开即可编辑。表头固定为：
     <?php foreach ($headers as $index => $header): ?><?= $index > 0 ? '、' : '' ?><code><?= hechi_e($header) ?></code><?php endforeach; ?>。
-    姓名与手机号必填；登录名默认取手机号，没有手机号的由系统生成 <code>hczx</code> 加 4 位序号。
+    姓名必填；登录名取委员本人姓名，重名的自动补序号（<code>张三</code>、<code>张三2</code>）。
+    手机号建议填写（留空则该委员只能用姓名登录），名册内手机号不得重复。
   </p>
   <p><a class="btn" href="/admin/members/import/template.csv">下载导入模板</a></p>
 </div>

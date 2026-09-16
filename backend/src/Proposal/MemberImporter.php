@@ -11,7 +11,8 @@ use RuntimeException;
  * 委员名册导入：CSV → 账号。
  *
  * 模板表头固定为「姓名,手机号,界别,专委会,单位及职务,届次,备注」，上传的 CSV 自动识别
- * UTF-8／GBK 与 BOM；登录名默认取手机号，缺手机号时生成 hczx + 4 位序号。
+ * UTF-8／GBK 与 BOM；登录名取委员本人姓名，重名的依次补 2、3…（张三、张三2），
+ * 手机号只作联系方式与备用登录标识，不再当登录名。
  * 初始密码当场返回给调用方（一次性下载清单），库里只存 password_hash，不落明文。
  */
 final class MemberImporter
@@ -65,7 +66,6 @@ final class MemberImporter
 
         $created = [];
         $failed = [];
-        $sequence = count($usedLogins);
         foreach (array_slice($rows, 1) as $index => $cells) {
             $line = $index + 2; // 表头占第 1 行，数据从第 2 行起
             $row = [];
@@ -87,11 +87,8 @@ final class MemberImporter
                 continue;
             }
 
-            $login = $mobile !== '' ? $mobile : $this->nextLogin($usedLogins, $sequence);
-            if (isset($usedLogins[$login])) {
-                $failed[] = ['line' => $line, 'name' => $name, 'reason' => '登录名已被占用：' . $login];
-                continue;
-            }
+            // 登录名就是本人姓名；重名的补序号，保证 login_name 唯一
+            $login = $this->nextLoginName($usedLogins, $name);
 
             $password = self::randomPassword();
             $this->members->create([
@@ -191,13 +188,19 @@ final class MemberImporter
         return isset($map['name'], $map['mobile']) ? $map : [];
     }
 
-    /** @param array<string, bool> $used */
-    private function nextLogin(array $used, int &$sequence): string
+    /**
+     * 登录名取姓名；重名时依次补 2、3…（张三、张三2、张三3）。
+     *
+     * @param array<string, bool> $used 已占用的登录名
+     */
+    private function nextLoginName(array $used, string $name): string
     {
-        do {
-            $sequence++;
-            $candidate = 'hczx' . str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
-        } while (isset($used[$candidate]));
+        $candidate = $name;
+        $suffix = 1;
+        while (isset($used[$candidate])) {
+            $suffix++;
+            $candidate = $name . $suffix;
+        }
 
         return $candidate;
     }

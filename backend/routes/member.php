@@ -28,8 +28,9 @@ return static function (Router $router, Db $db, Config $config): void {
     $auth->startSession();
 
     $view = new MemberView((string) $config->get('paths.templates'), [
-        'siteName' => (string) $config->get('site.name'),
-        'member'   => $auth->member(),
+        'siteName'     => (string) $config->get('site.name'),
+        'contactPhone' => (string) $config->get('site.contact_phone', ''),
+        'member'       => $auth->member(),
     ]);
 
     $portal = new PortalController($auth, $view, $db, $siteId, $members, $proposals, $storageRoot);

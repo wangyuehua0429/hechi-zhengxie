@@ -46,6 +46,33 @@ final class MemberRepository
         return $this->db->selectOne('SELECT * FROM sys_member WHERE login_name = :l', ['l' => $loginName]);
     }
 
+    /**
+     * 按登录标识取候选账号，按「登录名（本人姓名）→ 手机号 → 姓名」定序。
+     *
+     * 登录名与手机号在导入时判重、姓名不判重，所以重名或手机号撞车时这里会返回多行；
+     * 调用方用密码决定登哪个账号（谁的密码对就登谁），不在这里擅自挑一个。
+     *
+     * @return list<array<string,mixed>> 命中登录名的排最前，同层按 member_id
+     */
+    public function findByIdentifier(string $identifier): array
+    {
+        $identifier = trim($identifier);
+        if ($identifier === '') {
+            return [];
+        }
+
+        // PDO 关闭了模拟预处理，同名占位符不能复用，所以每个位置各用一个名字（i1…i5）
+        return $this->db->select(
+            'SELECT * FROM sys_member
+             WHERE login_name = :i1 OR mobile = :i2 OR name = :i3
+             ORDER BY CASE WHEN login_name = :i4 THEN 0 WHEN mobile = :i5 THEN 1 ELSE 2 END, member_id',
+            [
+                'i1' => $identifier, 'i2' => $identifier, 'i3' => $identifier,
+                'i4' => $identifier, 'i5' => $identifier,
+            ]
+        );
+    }
+
     public function loginExists(string $loginName): bool
     {
         return $this->db->scalar('SELECT member_id FROM sys_member WHERE login_name = :l', ['l' => $loginName]) !== null;
