@@ -255,8 +255,14 @@ html.motion-paused .marquee-track { animation-play-state: paused; }
    flex/grid 项，容器 gap 会变成双份（22 + 0 + 22），页面就会出现莫名的空档。 */
 [hidden] { display: none !important; }
 .card-body .banner-single { margin: 14px 0 0; border-radius: var(--radius); }
-/* 首屏条幅：按原图比例（355×76）显示，不再纵向拉伸填满剩余高度 */
-.hero-main .banner-strip { margin: auto 0 0; flex: 0 0 auto; }
+/* 首屏条幅：按原图比例（355×76）显示，不再纵向拉伸填满剩余高度。
+   上外边距必须是 0：`.hero` 用 align-items: stretch，左栏常被右栏（政协领导卡）撑高，
+   条幅若写成 `margin: auto 0 0`，多出来的高度会整块落在轮换图与条幅之间（1151px 宽时空档达 168px）。
+   多出的高度改由轮换图吸收（见 .hero-carousel 的 flex），条幅紧贴其下并与右栏底对齐。 */
+.hero-main .banner-strip { margin: 0; flex: 0 0 auto; }
+/* 轮播为空时 collapseEmptyBlocks() 会把轮播框标成 hidden，左栏只剩条幅——
+   这一态下把多出的高度仍旧放回条幅上方，条幅与右栏底对齐，不在下面留一段空档。 */
+.hero-carousel[hidden] + .banner-strip { margin-top: auto; }
 .hero-main .banner-strip a { aspect-ratio: 355 / 76; }
 
 .run-search { flex: 0 0 auto; display: flex; align-items: stretch;
@@ -363,7 +369,9 @@ body[data-font="large"] .news-list li { padding: 11px 0; }
 .hero-side .section-card { flex: 1; margin-bottom: 0; }
 .hero-carousel {
   position: relative; border-radius: var(--radius); overflow: hidden; background: var(--card);
-  box-shadow: var(--shadow); flex: 0 0 auto; aspect-ratio: 838 / 352; padding: 12px;
+  /* flex 0 0 → 1 1：单栏时高度仍由 aspect-ratio 决定；两栏时吸收左栏比右栏矮的那部分，
+     避免轮换图与首屏条幅之间出现空档（图片仍是 object-fit: cover，只是裁切位置随之变化）。 */
+  box-shadow: var(--shadow); flex: 1 1 auto; aspect-ratio: 838 / 352; padding: 12px;
 }
 .carousel-track { position: relative; height: 100%; }
 .carousel-slide {
