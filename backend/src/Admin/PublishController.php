@@ -56,9 +56,10 @@ final class PublishController extends AdminController
             $html = $publisher->publishHtml();
             $this->log('publish.all', 'site', (string) $this->siteId, $html);
             Flash::set('ok', sprintf(
-                '发布完成：静态页 %d 个（首页 1 + 栏目 %d + 详情 %d）、清理失效页 %d 个，输出到 %s',
+                '发布完成：静态页 %d 个（首页 1 + 栏目 %d + 栏目分页 %d + 详情 %d）、清理失效页 %d 个，输出到 %s',
                 $html['html_pages'] ?? 0,
                 $html['channels'] ?? 0,
+                $html['channel_pages'] ?? 0,
                 $html['articles'] ?? 0,
                 $html['pruned'] ?? 0,
                 $this->outDir

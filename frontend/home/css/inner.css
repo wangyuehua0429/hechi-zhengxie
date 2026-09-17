@@ -223,6 +223,27 @@ a.county-link:hover { border-color: var(--primary); color: var(--primary); }
   font-weight: 600;
 }
 .pager button:disabled { color: #b9bec6; cursor: not-allowed; }
+/* 静态栏目页的分页是真实链接（无 JS 也能翻页），与按钮态共用同一套外观 */
+.pager a {
+  min-width: 36px;
+  padding: 7px 11px;
+  font: inherit;
+  font-size: 0.9em;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.pager a:hover { border-color: var(--primary); color: var(--primary); }
+.pager a.is-active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+.pager .pager-disabled { min-width: 36px; padding: 7px 11px; font-size: 0.9em; color: #b9bec6; }
 .pager .pager-info { margin-left: 8px; font-size: 0.86em; color: var(--muted); }
 .pager .pager-gap { padding: 0 2px; color: var(--muted); font-size: 0.9em; }
 

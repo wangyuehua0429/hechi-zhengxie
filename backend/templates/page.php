@@ -160,6 +160,134 @@ $navLink = static function (array $item) use ($esc): string {
       </nav>
     <?php endif; ?>
 
+    <?php if ($kind === 'channel'): ?>
+      <?php
+      // 栏目页：与动态端 js/channel.js 同一套标记——左栏（子栏目按钮 + 最新新闻 + 图片新闻）
+      // + 右栏（panel-head + 列表 + pager）。分页是真实链接，无 JS 也能翻页。
+      $panel = (array) ($channelPanel ?? []);
+      $pageNo = max(1, (int) ($panel['page'] ?? 1));
+      $pageCount = max(1, (int) ($panel['pages'] ?? 1));
+      $pageTotal = (int) ($panel['total'] ?? 0);
+      $pageBase = (string) ($panel['base'] ?? '#');
+      $pageUrl = static fn (int $n): string => $n <= 1 ? $pageBase : $pageBase . 'page-' . $n . '.html';
+      $window = [];
+      foreach ([1, $pageNo - 1, $pageNo, $pageNo + 1, $pageCount] as $candidate) {
+          if ($candidate >= 1 && $candidate <= $pageCount) {
+              $window[$candidate] = true;
+          }
+      }
+      ksort($window);
+      // 图集／视频／专题／互动是整幅卡片版式，与动态端一样不设左栏
+      $fullWidth = in_array((string) ($panel['layout'] ?? 'list'), ['gallery', 'video', 'topic', 'interactive'], true);
+      ?>
+      <div class="container inner-layout <?= $fullWidth ? 'inner-layout--full' : 'inner-layout--left' ?>" id="innerLayout">
+        <?php if (!$fullWidth): ?>
+        <aside class="inner-side" id="innerSide">
+          <?php if (($panel['siblings'] ?? []) !== []): ?>
+            <nav class="channel-buttons" aria-label="子栏目">
+              <?php foreach ((array) $panel['siblings'] as $sibling): ?>
+                <?php $isCurrent = (string) ($sibling['url'] ?? '') === $pageBase; ?>
+                <?php if ($isCurrent): ?>
+                  <span class="channel-btn is-active" aria-current="true"><?= $esc((string) ($sibling['label'] ?? '')) ?></span>
+                <?php else: ?>
+                  <a class="channel-btn" href="<?= $esc((string) ($sibling['url'] ?? '#')) ?>"><?= $esc((string) ($sibling['label'] ?? '')) ?></a>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            </nav>
+          <?php endif; ?>
+          <section class="side-card">
+            <div class="side-head"><h3>最新新闻</h3></div>
+            <div class="side-body">
+              <ul class="side-list side-list--plain">
+                <?php if ($latestItems === []): ?>
+                  <li class="empty-state">暂无新闻。</li>
+                <?php else: ?>
+                  <?php foreach ($latestItems as $item): ?>
+                    <li><a href="<?= $esc((string) ($item['url'] ?? '')) ?>"><?= $esc((string) ($item['title'] ?? '')) ?></a></li>
+                  <?php endforeach; ?>
+                <?php endif; ?>
+              </ul>
+            </div>
+          </section>
+          <?php if ($thumbItems !== []): ?>
+            <section class="side-card">
+              <div class="side-head"><h3>图片新闻</h3></div>
+              <div class="side-thumbs">
+                <?php foreach ($thumbItems as $item): ?>
+                  <a href="<?= $esc((string) ($item['url'] ?? '')) ?>" title="<?= $esc((string) ($item['title'] ?? '')) ?>">
+                    <img src="<?= $esc((string) ($item['img'] ?? '')) ?>" alt="<?= $esc((string) ($item['title'] ?? '')) ?>" loading="lazy">
+                    <span><?= $esc((string) ($item['title'] ?? '')) ?></span>
+                  </a>
+                <?php endforeach; ?>
+              </div>
+            </section>
+          <?php endif; ?>
+        </aside>
+        <?php endif; ?>
+
+        <div class="inner-main">
+          <section class="panel" aria-labelledby="listHeading">
+            <div class="panel-head">
+              <h2 id="listHeading"><?= $esc((string) ($panel['name'] ?? $heading)) ?></h2>
+              <span class="panel-count" id="listCount">
+                <?= ($panel['leaders'] ?? false) === true
+                  ? '共 ' . $pageTotal . ' 位'
+                  : ($pageCount > 1
+                    ? '共 ' . $pageTotal . ' 条 · 第 ' . $pageNo . '/' . $pageCount . ' 页'
+                    : '已显示全部 ' . $pageTotal . ' 条') ?>
+              </span>
+              <?php if (($panel['proposal'] ?? false) === true): ?>
+                <a class="panel-action" href="/member">进入提案填报系统</a>
+              <?php endif; ?>
+            </div>
+            <?php if (($panel['counties'] ?? []) !== []): ?>
+              <nav class="county-links" aria-label="县（区）政协站点">
+                <span class="county-link is-active" aria-current="true">全部</span>
+                <?php foreach ((array) $panel['counties'] as $county): ?>
+                  <?php $countyUrl = (string) ($county['url'] ?? ''); ?>
+                  <?php if ($countyUrl !== ''): ?>
+                    <a class="county-link" href="<?= $esc($countyUrl) ?>" target="_blank" rel="noopener"><?= $esc((string) ($county['name'] ?? '')) ?></a>
+                  <?php else: ?>
+                    <span class="county-link is-plain"><?= $esc((string) ($county['name'] ?? '')) ?></span>
+                  <?php endif; ?>
+                <?php endforeach; ?>
+              </nav>
+            <?php endif; ?>
+            <div class="panel-body" id="listWrap"><?= (string) $bodyHtml ?></div>
+            <?php if (($panel['hidePager'] ?? false) !== true): ?>
+            <nav class="pager" aria-label="分页导航">
+              <?php if ($pageCount <= 1): ?>
+                <span class="pager-info"><?= $esc('已显示全部 ' . $pageTotal . ' 条') ?></span>
+              <?php else: ?>
+                <?php if ($pageNo > 1): ?>
+                  <a href="<?= $esc($pageUrl($pageNo - 1)) ?>" aria-label="上一页">上一页</a>
+                <?php else: ?>
+                  <span class="pager-disabled" aria-hidden="true">上一页</span>
+                <?php endif; ?>
+                <?php $previous = null; ?>
+                <?php foreach (array_keys($window) as $n): ?>
+                  <?php if ($previous !== null && $n > $previous + 1): ?>
+                    <span class="pager-gap" aria-hidden="true">…</span>
+                  <?php endif; ?>
+                  <?php if ($n === $pageNo): ?>
+                    <a href="<?= $esc($pageUrl($n)) ?>" class="is-active" aria-current="page" aria-label="<?= $esc('第 ' . $n . ' 页') ?>"><?= $n ?></a>
+                  <?php else: ?>
+                    <a href="<?= $esc($pageUrl($n)) ?>" aria-label="<?= $esc('第 ' . $n . ' 页') ?>"><?= $n ?></a>
+                  <?php endif; ?>
+                  <?php $previous = $n; ?>
+                <?php endforeach; ?>
+                <?php if ($pageNo < $pageCount): ?>
+                  <a href="<?= $esc($pageUrl($pageNo + 1)) ?>" aria-label="下一页">下一页</a>
+                <?php else: ?>
+                  <span class="pager-disabled" aria-hidden="true">下一页</span>
+                <?php endif; ?>
+              <?php endif; ?>
+            </nav>
+            <?php endif; ?>
+          </section>
+        </div>
+      </div>
+    <?php else: ?>
     <div class="container inner-layout">
       <div class="inner-main">
         <article class="article-panel" id="articlePanel">
@@ -244,6 +372,7 @@ $navLink = static function (array $item) use ($esc): string {
         <?php endif; ?>
       </aside>
     </div>
+    <?php endif; ?>
   </main>
 
   <footer class="site-footer">
