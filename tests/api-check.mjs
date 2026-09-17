@@ -305,6 +305,25 @@ async function main() {
       (home.body?.home?.zxdt?.tabs || []).every((tab) => (tab.items || []).length > 0),
       JSON.stringify((home.body?.home?.zxdt?.tabs || []).map((t) => (t.items || []).length)));
 
+    // ---- 2026-09-17 独立评审 P2：首页出口的公开口径过滤要有回归断言
+    // 造一条归档稿 + 一个指向它的首页导航项，断言 /api/v1/home 里根本不出现它
+    // 只在本脚本自建临时库时造数据（--url 指向别人的服务时不动对方数据）
+    if (dbEnv) runPhp(php, "-r", dbEnv, [
+      "require 'backend/src/bootstrap.php';"
+        + " $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+        + " $db->execute(\"INSERT INTO cms_article (article_id, site_id, channel_type, title, content_html, published_at, status, public_scope, has_body)"
+        + " VALUES (999001, 1, '904', '归档稿不应出现在首页', '<p>x</p>', '2020-01-01 00:00:00', 'published', 'archive', 1)\");"
+        + " $row = $db->selectOne(\"SELECT payload_json FROM cms_home_block WHERE site_id = 1 AND block_key = 'nav'\");"
+        + " $nav = json_decode((string) $row['payload_json'], true);"
+        + " $nav[] = ['title' => '归档检查项', 'url' => '/article/999001.html', 'hidden' => false, 'channel' => ''];"
+        + " $db->execute(\"UPDATE cms_home_block SET payload_json = :p WHERE site_id = 1 AND block_key = 'nav'\", ['p' => json_encode($nav, JSON_UNESCAPED_UNICODE)]);"
+    ]);
+    const guarded = await fetchJson(base, "/api/v1/home");
+    const guardedText = JSON.stringify(guarded.body);
+    check("首页出口不输出归档稿的链接（公开口径过滤）",
+      !guardedText.includes("999001") && !guardedText.includes("归档检查项"),
+      guardedText.includes("999001") ? "归档稿 999001 出现在首页输出里" : "");
+
     // ---- 错误处理
     const missingChannel = await fetchJson(base, "/api/v1/channels/999999");
     check("未知栏目返回 404 not_found",

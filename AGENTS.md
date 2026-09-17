@@ -67,3 +67,13 @@ gives you structural context (callers, dependents, test coverage) that file sear
 4. **代码只认工作区**：验收跑当前工作区的代码，不用旧副本、打包产物或 `backend/storage/backup/` 里的历史库——备份只用于回滚，不用于开发调试。
 5. **写库前先备份**：直接改真库（导数据、批量改字段、跑修复脚本）前先拷一份到 `backend/storage/backup/hechi_zx-<YYYYMMDD-HHMMSS>.sqlite`，沿用仓库既有命名。
 6. **例外**：`node tests/*.mjs` 自带临时 SQLite、不碰真库，属有意隔离；引用其结论时写明数据源即可。
+
+## 内容来源与页面口径（2026-09-17起）
+
+**内容只有一个来源：库。快照是测试夹具，不是数据源；对外只有一套页面地址。**
+
+1. **前端不自动回退快照**：`frontend/home/js/data-source.js` 只走 `/api/v1`；`data/*.json` 仅在显式 `?api=0` 时使用（对照快照、纯静态预览）。接口挂了由页面提示加载失败，不得拿阶段A的样例数据顶现网内容。
+2. **生产路径不挂快照**：`docker-compose.yml` 不挂 `frontend/home/data`；`seed.php` 的全量灌库只用于开发与演示，生产只在老库升级补首页四类配置时用 `--home-only`。
+3. **发布默认只出静态页**：`php backend/bin/publish.php` 产 `/article/`、`/channel/`、`sitemap.xml`；`data/*.json` 只在 `--data-only` 时产出（离线预览与契约对拍），线上无消费者。
+4. **公开口径在出口兜住**：`HomeRepository` 的快照兜底条目与快照块（nav／leaders／topic／links等）里的稿件链接，只有库里“已发布 + `public_scope=public`”才对外输出；`public_scope=archive`（超出公开年限只留后台）不产静态页、不登记301、不得出现在首页与栏目页。
+5. **常设政务信息不按年限归档**：领导简介、机构设置、章程、委员名单这类长期有效内容保持 `public`；发现被年限规则误判时按第5条的备份流程改回并留操作日志。

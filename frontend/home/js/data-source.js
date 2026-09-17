@@ -1,11 +1,12 @@
-/* 数据源：优先走内容接口，接口不可用时自动回退到 data/*.json 静态快照。
+/* 数据源：内容只有一个来源——后端内容接口（库为准）。
  *
- * 为什么要回退：GitHub Pages 这类纯静态托管跑不了 PHP，回退后预览仍然可用；
- * 同时阶段 A 的快照就是接口契约原型，两者同构，页面渲染逻辑完全一致。
+ * 生产口径（2026-09-17 定）：**不再自动回退 data/*.json 快照**。接口探不通就按失败处理、
+ * 由页面给出提示，免得接口故障时把阶段 A 的样例数据当现网内容顶上去（首页此前连"演示数据"
+ * 标注都没有）。
  *
- * 覆盖开关（写在地址栏，存 sessionStorage 保持同一次访问一致）：
- *   ?api=1  强制走接口（接口挂了就报数据加载失败，便于排查）
- *   ?api=0  强制走静态快照（用于对照接口与快照的差异）
+ * 快照只留一个显式开关（写在地址栏，存 sessionStorage 保持同一次访问一致）：
+ *   ?api=1  强制走接口（与默认一致，用于把会话从静态模式切回来）
+ *   ?api=0  强制走静态快照（只用于对照接口与快照、GitHub Pages 这类纯静态预览）
  */
 (function () {
   "use strict";
@@ -41,7 +42,7 @@
     });
   }
 
-  // 自动模式先探一次 /health：它是接口独有的，静态托管上一定拿不到。
+  // 默认模式先探一次 /health：只为把接口故障留痕给页面提示，探不通也不回退静态快照。
   function resolvedMode() {
     if (modePromise) return modePromise;
     if (state.mode !== "auto") {
@@ -51,12 +52,15 @@
     }
     modePromise = getJSON(API_BASE + "/health")
       .then(function (data) {
-        state.resolved = data && data.status === "ok" ? "api" : "static";
+        if (!(data && data.status === "ok")) {
+          state.apiError = new Error("内容接口未就绪（/health 未返回 ok）");
+        }
+        state.resolved = "api";
         return state.resolved;
       })
       .catch(function (err) {
         state.apiError = err;
-        state.resolved = "static";
+        state.resolved = "api";
         return state.resolved;
       });
     return modePromise;
@@ -241,7 +245,7 @@
               if (!snapshotMatch(item, detail, needle, scope)) return;
               seen[id] = true;
               var hit = {
-                id: id, title: item.title, url: item.url || ("detail.html?id=" + id),
+                id: id, title: item.title, url: item.url || ("/article/" + id + ".html"),
                 date: item.date || "", datetime: item.datetime || item.date || "",
                 source: item.source || ""
               };
@@ -254,7 +258,7 @@
             if (seen[id]) return;
             var detail = texts[id];
             var item = {
-              id: id, title: detail.title, url: "detail.html?id=" + id,
+              id: id, title: detail.title, url: "/article/" + id + ".html",
               date: detail.date || "", datetime: detail.date || "", source: detail.source || ""
             };
             if (!snapshotMatch(item, detail, needle, scope)) return;
@@ -288,10 +292,11 @@
       return resolvedMode().then(function (mode) {
         var loader = loaders[name];
         return loader[mode](options).catch(function (err) {
-          // 接口返回 404 表示"确实没有这条内容"（未发布/已删除），不再回退旧快照，
-          // 否则会把已下线的内容重新显示出来。
-          if (mode === "api" && err && err.status === 404) {
-            return name === "article" ? null : [];
+          // 只有单篇稿件 404 才当"确实没有这条内容"（未发布／已删除）处理，不给页面报错；
+          // 首页与列表接口的 404 说明接口本身不在（例如只部署了静态文件），如实抛出去，
+          // 由页面提示加载失败——既不像以前那样翻快照，也不静默变成空列表。
+          if (mode === "api" && err && err.status === 404 && name === "article") {
+            return null;
           }
           throw err;
         });
@@ -301,15 +306,15 @@
 
   window.SITE_DATA = {
     apiBase: API_BASE,
-    /** 当前生效的数据源："api" / "static"，自动模式下探测后给出结论 */
+    /** 当前生效的数据源："api"（默认）/ "static"（仅在 ?api=0 时） */
     mode: function () { return state.resolved || state.mode; },
-    /** 供排查用：自动回退到静态时，这里能看到接口的错误原因 */
+    /** 供排查用：接口探不通时，这里能看到原因（页面据此提示加载失败） */
     apiError: function () { return state.apiError ? String(state.apiError.message || state.apiError) : ""; },
     home: function () { return load("home"); },
     channels: function (listSize) { return load("channels", { listSize: listSize }); },
     channelIndex: function (listSize) { return load("channelIndex", { listSize: listSize }); },
     article: function (id) { return load("article", { id: id }); },
-    /** 栏目页列表分页：{items, page, size, total, pages, demo}；接口不可用时回退快照的本地分页 */
+    /** 栏目页列表分页：{items, page, size, total, pages, demo}；只有 ?api=0 才走快照的本地分页 */
     articles: function (options) {
       options = options || {};
       var key = "articles:" + (options.channel || "") + ":" + (options.page || 1) + ":" + (options.size || 20);
@@ -319,7 +324,7 @@
         });
       });
     },
-    /** 站内检索：{items, page, size, total, pages, q, scope, demo}；接口不可用时回退快照本地检索 */
+    /** 站内检索：{items, page, size, total, pages, q, scope, demo}；只有 ?api=0 才走快照本地检索 */
     search: function (options) {
       options = options || {};
       var key = "search:" + (options.q || "") + ":" + (options.scope || "all") + ":" + (options.page || 1) +

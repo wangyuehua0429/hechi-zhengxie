@@ -10,7 +10,9 @@
   "use strict";
 
   const PAGE_SIZE = 20;
-  const LEGACY_SEARCH = "https://www.gxhczx.gov.cn/search.php";
+  // 旧站全站检索（search.php，含县（区）政协稿件）随旧站关停下线：县区稿件不在本站迁移范围，
+  // 这里只作说明，不再给旧站入口（2026-09-17 Step 3）。
+  const LEGACY_SEARCH_NOTE = "县（区）政协稿件不在本站检索范围";
 
   const el = (id) => document.getElementById(id);
   const esc = (s) => String(s == null ? "" : s)
@@ -58,10 +60,9 @@
       wrap.innerHTML = '<div class="empty-state search-empty">' +
         '没有找到与“' + esc(state.q) + '”相符的稿件。<br>' +
         (state.scope === "title"
-          ? '把检索范围改成“标题＋正文”再试一次，或'
-          : '换个关键词，或') +
-        '<a href="' + LEGACY_SEARCH + "?key=" + encodeURIComponent(state.q) +
-        '&type=1" target="_blank" rel="noopener">到旧站全站检索（含县（区）政协稿件）</a>。</div>';
+          ? '把检索范围改成“标题＋正文”再试一次。'
+          : '换个关键词再试一次。') +
+        LEGACY_SEARCH_NOTE + '。</div>';
       return;
     }
 
@@ -129,7 +130,6 @@
   function syncInputs() {
     el("q").value = state.q;
     el("scope").value = state.scope;
-    el("legacySearch").href = LEGACY_SEARCH + "?key=" + encodeURIComponent(state.q) + "&type=1";
   }
 
   function updateUrl(push) {

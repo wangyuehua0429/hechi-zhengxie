@@ -30,8 +30,9 @@ services:
       DB_USERNAME: hechi_zx
       DB_PASSWORD: hechi_zx_dev
     volumes:
+      # 内容以库为唯一来源：快照（frontend/home/data）是阶段 A 的演示与测试夹具，
+      # 不挂进运行环境，也不在生产跑 seed（2026-09-17 口径）。
       - ./backend:/var/www/backend
-      - ./frontend/home/data:/var/www/snapshots:ro
     depends_on:
       - db
 

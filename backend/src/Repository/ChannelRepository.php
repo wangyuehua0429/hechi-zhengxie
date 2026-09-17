@@ -6,6 +6,7 @@ namespace HechiZx\Repository;
 
 use HechiZx\Support\Db;
 use HechiZx\Support\Json;
+use HechiZx\Publish\StaticPaths;
 
 /**
  * 栏目仓储：输出结构与 frontend/home/data/channel.json 的单个栏目同构
@@ -246,7 +247,9 @@ final class ChannelRepository
         $item = [
             'id'       => (string) $row['article_id'],
             'title'    => (string) $row['title'],
-            'url'      => 'detail.html?id=' . (string) $row['article_id'],
+            // 对外唯一地址是发布器产出的静态详情页（2026-09-17 A1）：接口与页面都不再给
+            // `detail.html?id=` 这种只在原型期用过的地址。前端预览页仍存在，但只作后台预览。
+            'url'      => '/article/' . (string) $row['article_id'] . '.html',
             'date'     => $published !== '' ? substr($published, 0, 10) : '',
             'datetime' => $published,
             'source'   => (string) $row['source'],
@@ -409,19 +412,24 @@ final class ChannelRepository
     }
 
     /**
-     * 链接映射用的精简索引：[{type, ids}]，等价于前端的 data/channel-index.json。
-     * 视频、专题这类取自首页模块的栏目没有稿件 id，返回空数组。
+     * 链接映射用的精简索引：[{type, ids, path}]，等价于前端的 data/channel-index.json。
+     * 视频、专题这类取自首页模块的栏目没有稿件 id，返回空数组；
+     * `path` 是该栏目的静态页地址（对外唯一地址，规则见 Publish\StaticPaths）。
      *
-     * @return list<array{type: string, ids: list<string>}>
+     * @return list<array{type: string, ids: list<string>, path: string}>
      */
     public function indexMap(int $listSize = 50): array
     {
         $channels = $this->db->select(
-            'SELECT type_code, home_sourced FROM sys_channel
+            'SELECT type_code, slug, home_sourced FROM sys_channel
              WHERE site_id = :site AND status = :status
              ORDER BY sort_no ASC, channel_id ASC',
             ['site' => $this->siteId, 'status' => 'published']
         );
+        $paths = StaticPaths::channelPaths(array_map(
+            static fn (array $row): array => ['type' => (string) $row['type_code'], 'slug' => (string) $row['slug']],
+            $channels
+        ));
 
         $rows = $this->db->select(
             'SELECT ac.channel_type, ac.article_id
@@ -447,6 +455,7 @@ final class ChannelRepository
             $index[] = [
                 'type' => $type,
                 'ids'  => (int) $channel['home_sourced'] === 1 ? [] : ($ids[$type] ?? []),
+                'path' => $paths[$type] ?? '',
             ];
         }
         return $index;

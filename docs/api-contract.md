@@ -60,7 +60,7 @@
 | --- | --- | --- |
 | `id` | string | 稿件号 |
 | `title` | string | 标题 |
-| `url` | string | 详情地址；后端产出为 `/article/<id>.html`（静态化后），原型期仍可返回 `detail.html?id=<id>` |
+| `url` | string | 详情地址，**一律是发布器产出的对外唯一地址 `/article/<id>.html`**（2026-09-17起；原型期的 `detail.html?id=<id>` 只留给后台预览页） |
 | `date` | string | 发布时间 `YYYY-MM-DD HH:MM` |
 | `datetime` | string | `date` 的可排序形式 |
 | `source` | string | 来源 |
@@ -104,7 +104,9 @@
 
 > 其中 `zxdt`／`sxNews`／`zxMeeting`／`notice`／`bookCity`／`antiGang`／`zwhWork`／`partyGroups`／`theory`／`imageNews`／`scenery`／`memberWindow`／`countyZx` 的列表由后台“其他栏目”里配置的绑定栏目**实时从稿件表组装**（置顶在前、再按栏目内顺序、再按发布时间），不足条数时用 `cms_home_block` 的同名快照兜底；其余键仍来自快照。`slides` 改由 `cms_home_slide` 提供。
 
-> `slides[].url` 一律是**站内地址**（2026-09-12 起）：引用了稿件的条目返回 `detail.html?id=<稿件号>`；外链条目里若填的是旧站稿件地址（`news_view.php?id=`、`cq_view.php?id=`、`html/news-view-<id>.html`）且这篇已在新库公开发布，也会自动改写成新站详情页，只有真正的外部链接（或尚未入库的稿件）保持原样，避免点开落到空页。
+> `slides[].url` 一律是**站内地址**：引用了稿件的条目返回 `/article/<id>.html`；外链条目里若填的是旧站稿件地址（`news_view.php?id=`、`cq_view.php?id=`、`html/news-view-<id>.html`）且这篇已在新库公开发布，也会自动改写成同一个静态详情页地址，只有真正的外部链接（或尚未入库的稿件）保持原样，避免点开落到空页。
+>
+> **全站地址口径（2026-09-17，A1）**：栏目地址 `/channel/<目录名>/`、详情地址 `/article/<id>.html` 是对外唯一地址，由发布器产出、Nginx直出；`nav` 块里的旧站栏目地址在接口出口就换成了静态栏目页地址，指向旧站稿件页的条目也统一改成 `/article/<id>.html`。前端内页 `channel.html?id=`／`detail.html?id=` 自同日降级为后台预览与本地调试用，页面已加 `noindex`。
 
 响应：`{"home": { ... }}`
 
@@ -194,7 +196,9 @@
 
 ### 4.9 `GET /api/v1/channel-index`
 
-站内链接映射用的精简索引（前端 `js/site-links.js` 靠它把旧站地址改写成新版内页地址），等价于阶段 A 的 `data/channel-index.json`。
+站内链接映射用的精简索引（前端 `js/site-links.js` 靠它把旧站栏目地址改写成静态栏目页地址），等价于阶段A的 `data/channel-index.json`。
+
+每条含 `type`、`ids`、`path`：`path` 是发布器同一套规则（`Publish\StaticPaths`）算出的静态栏目页地址（如 `/channel/zhengxie-dongtai-904/`）。稿件地址不再依赖这份索引——前端对旧站稿件地址一律改写为 `/article/<id>.html`（2026-09-17 A1）。
 
 | 参数 | 默认 | 说明 |
 | --- | --- | --- |
@@ -229,10 +233,10 @@
 | 详情页 | `/article/<id>.html` | 正文静态 |
 
 **归档不出静态页**（2026-09-12）：只有 `status=published` 且 `public_scope=public` 且有正文的稿件才产出 `/article/<id>.html` 并进 sitemap；`public_scope=archive`（超出公开年限的历史稿）只留后台，旧地址返回 404。
-| 数据快照 | `/data/home.json`、`/data/channel.json`、`/data/article.json` | 与接口同构，供前端异步取数 |
+| 数据快照 | `/data/home.json`、`/data/channel.json`、`/data/article.json` | 与接口同构；**仅 `php backend/bin/publish.php --data-only` 产出**，默认发布不再产出（2026-09-17起，线上无消费者） |
 | 站点地图 | `/sitemap.xml` | 首页 + 栏目 + 详情 |
 
-发布触发：后台保存／下线 → 该稿件与所属栏目、首页增量刷新；全量重建走命令行（`php backend/bin/publish.php --all`）。
+发布触发：后台保存／下线 → 该稿件与所属栏目、首页增量刷新；全量重建走命令行（`php backend/bin/publish.php`，只出静态页与sitemap）。
 
 **栏目目录名**（2026-09-12 修正）：slug 唯一时用 `/channel/<slug>/`；slug 重复的一级栏目（如 902—906 都写 `zhengxie-dongtai`）补上栏目号，写成 `/channel/<slug>-<栏目号>/`。规则实现在 `backend/src/Publish/StaticPaths.php`。此前的写法会让 43 个栏目只产出 25 个静态页，已修正并纳入 `tests/redirect-check.mjs`。
 

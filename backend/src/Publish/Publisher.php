@@ -17,8 +17,9 @@ use HechiZx\Support\Json;
  * 由 Nginx 直出（路径约定见 docs/api-contract.md 第 5 节）。
  *
  * 本期范围：
- *   * data/*.json    与阶段 A 的快照同构，前端把取数地址换成接口或这组静态文件即可
  *   * *.html        由 backend/templates/page.php 渲染的最小可读页面
+ *   * data/*.json   与阶段 A 的快照同构，只在显式 `--data-only` 时产出（离线预览与契约对拍；
+ *                   默认发布不再产出，见 backend/bin/publish.php 顶部说明）
  * 正式模板（把 frontend/home 的结构搬进服务端）在阶段 C 内替换 templates/page.php，
  * 发布器的对外行为不变。
  */
@@ -26,6 +27,9 @@ final class Publisher
 {
     /** 数据快照里每个栏目带的列表条数：够前端自己分页，又不至于把快照撑大 */
     private const CHANNEL_LIST_SIZE = 50;
+
+    /** 侧栏「图片新闻」固定取这个栏目（与前端 js/shell.js 的 IMAGE_NEWS_TYPE 一致） */
+    private const IMAGE_NEWS_TYPE = '314';
 
     public function __construct(
         private Db $db,
@@ -76,14 +80,17 @@ final class Publisher
         // 栏目页地址统一由 StaticPaths 决定：slug 重复的一级栏目会补上栏目号，
         // 保证 43 个栏目 43 个路径，不互相覆盖（301 映射表也用同一份结果）。
         $channelPaths = StaticPaths::channelPaths($channels);
+        $shell = $this->shellData();
 
         // 首页
-        $this->write('index.html', $this->render([
+        $this->write('index.html', $this->render($shell + [
+            'kind'        => 'home',
             'title'       => $this->siteName,
             'description' => '中国人民政治协商会议河池市委员会官方网站',
             'heading'     => $this->siteName,
             'bodyHtml'    => $this->homeHtml($home),
             'canonical'   => '/',
+            'crumb'       => [],
         ]));
         $entries[] = ['loc' => '/', 'priority' => '1.0'];
         $keep[] = 'index.html';
@@ -92,12 +99,14 @@ final class Publisher
         foreach ($channels as $channel) {
             $channelPath = $channelPaths[(string) $channel['type']] ?? '/channel/' . $channel['type'] . '/';
             $path = ltrim($channelPath, '/') . 'index.html';
-            $this->write($path, $this->render([
+            $this->write($path, $this->render($shell + [
+                'kind'        => 'channel',
                 'title'       => $channel['inner'] . ' · ' . $this->siteName,
                 'description' => $channel['intro'] !== '' ? $channel['intro'] : $channel['inner'],
                 'heading'     => $channel['inner'],
                 'bodyHtml'    => $this->channelHtml($channel),
                 'canonical'   => $channelPath,
+                'crumb'       => $this->channelCrumb($channel, $channels, $channelPaths),
             ]));
             $entries[] = ['loc' => $channelPath, 'priority' => '0.8'];
             $keep[] = $path;
@@ -106,12 +115,21 @@ final class Publisher
         // 详情页
         foreach ($articles as $article) {
             $path = 'article/' . $article['id'] . '.html';
-            $this->write($path, $this->render([
+            $this->write($path, $this->render($shell + [
+                'kind'        => 'article',
                 'title'       => $article['title'] . ' · ' . $this->siteName,
-                'description' => $article['summary'],
+                'description' => trim((string) $article['summary']) !== '' ? $article['summary'] : $article['title'],
                 'heading'     => $article['title'],
-                'bodyHtml'    => $this->articleHtml($article),
+                'bodyHtml'    => (string) $article['content'],
                 'canonical'   => '/article/' . $article['id'] . '.html',
+                'crumb'       => $this->articleCrumb($article, $channels, $channelPaths),
+                'articleMeta' => [
+                    'date'   => substr((string) ($article['dateText'] ?? $article['date']), 0, 10),
+                    'source' => (string) ($article['source'] ?? ''),
+                    'author' => (string) ($article['author'] ?? ''),
+                ],
+                'editor'      => (string) ($article['editor'] ?? ''),
+                'attachments' => array_values((array) ($article['attachments'] ?? [])),
             ]));
             $entries[] = ['loc' => '/article/' . $article['id'] . '.html', 'priority' => '0.6'];
             $keep[] = $path;
@@ -127,6 +145,8 @@ final class Publisher
 
         return [
             'html_pages' => count($entries),
+            'channels'   => count($channels),
+            'articles'   => count($articles),
             'sitemap'    => 1,
             'pruned'     => $pruned,
         ];
@@ -244,31 +264,126 @@ final class Publisher
         return $html . '</ul>';
     }
 
-    /** @param array<string, mixed> $article */
-    private function articleHtml(array $article): string
+    /**
+     * 静态页外壳数据：站头导航、页脚备案信息与侧栏（最新新闻／图片新闻）。
+     * 结构与前端内页同源（frontend/home/js/shell.js 的 renderNav／renderFooter／paintSide），
+     * 静态页直接复用 frontend/home 的 CSS。
+     *
+     * @return array<string, mixed>
+     */
+    private function shellData(): array
     {
-        // 发布时间只到年月日（与前台详情页同口径，时分不上页面）
-        $meta = '发布时间：' . htmlspecialchars(substr((string) ($article['dateText'] ?? $article['date']), 0, 10), ENT_QUOTES);
-        if (($article['source'] ?? '') !== '') {
-            $meta .= '　来源：' . htmlspecialchars((string) $article['source'], ENT_QUOTES);
-        }
-        if (($article['author'] ?? '') !== '') {
-            $meta .= '　作者：' . htmlspecialchars((string) $article['author'], ENT_QUOTES);
-        }
-        $html = '<p class="meta">' . $meta . '</p>';
-        // 正文在 articlesWithBody() 里已过白名单并归一化（静态页与快照同一份结果），这里直接输出
-        $html .= '<div class="article-body">' . (string) $article['content'] . '</div>';
+        $blocks = $this->home()->blocks(['nav', 'meta']);
+        return [
+            // 导航地址在 HomeRepository 出口已经换成本站静态栏目页地址，这里直接用
+            'nav'    => is_array($blocks['nav'] ?? null) ? $blocks['nav'] : [],
+            'meta'   => is_array($blocks['meta'] ?? null) ? $blocks['meta'] : [],
+            'latest' => $this->latestNews(10),
+            'thumbs' => $this->imageNews(4),
+        ];
+    }
 
-        $attachments = $article['attachments'] ?? [];
-        if ($attachments !== []) {
-            $html .= '<h2>附件下载</h2><ul>';
-            foreach ($attachments as $file) {
-                $html .= '<li><a href="' . htmlspecialchars((string) $file['url'], ENT_QUOTES) . '">'
-                    . htmlspecialchars((string) $file['name'], ENT_QUOTES) . '</a></li>';
-            }
-            $html .= '</ul>';
+    /**
+     * @param list<array<string, mixed>> $channels
+     * @param array<string, string>      $channelPaths
+     * @return list<array{label:string, url:string}>
+     */
+    private function channelCrumb(array $channel, array $channels, array $channelPaths): array
+    {
+        $type = (string) $channel['type'];
+        $crumb = [['label' => '首页', 'url' => '/']];
+        $parent = (string) ($channel['columnId'] ?? '');
+        if ($parent !== '' && $parent !== $type && isset($channelPaths[$parent])) {
+            $crumb[] = ['label' => $this->channelLabel($channels, $parent), 'url' => $channelPaths[$parent]];
         }
-        return $html;
+        $crumb[] = ['label' => (string) $channel['inner'], 'url' => ''];
+        return $crumb;
+    }
+
+    /**
+     * @param array<string, mixed>       $article
+     * @param list<array<string, mixed>> $channels
+     * @param array<string, string>      $channelPaths
+     * @return list<array{label:string, url:string}>
+     */
+    private function articleCrumb(array $article, array $channels, array $channelPaths): array
+    {
+        $type = (string) ($article['channelType'] ?? '');
+        $crumb = [['label' => '首页', 'url' => '/']];
+        $channel = null;
+        foreach ($channels as $item) {
+            if ((string) $item['type'] === $type) {
+                $channel = $item;
+                break;
+            }
+        }
+        if ($channel !== null) {
+            $parent = (string) ($channel['columnId'] ?? '');
+            if ($parent !== '' && $parent !== $type && isset($channelPaths[$parent])) {
+                $crumb[] = ['label' => $this->channelLabel($channels, $parent), 'url' => $channelPaths[$parent]];
+            }
+            if (isset($channelPaths[$type])) {
+                $crumb[] = ['label' => (string) $channel['inner'], 'url' => $channelPaths[$type]];
+            }
+        } elseif ((string) ($article['channelName'] ?? '') !== '') {
+            $crumb[] = ['label' => (string) $article['channelName'], 'url' => ''];
+        }
+        $crumb[] = ['label' => '正文', 'url' => ''];
+        return $crumb;
+    }
+
+    /** @param list<array<string, mixed>> $channels */
+    private function channelLabel(array $channels, string $type): string
+    {
+        foreach ($channels as $channel) {
+            if ((string) $channel['type'] === $type) {
+                return (string) $channel['inner'];
+            }
+        }
+        return $type;
+    }
+
+    /**
+     * 侧栏「最新新闻」：各栏目稿件汇总，排除首页聚合栏目与领导简介（与前端 js/shell.js 同口径）。
+     *
+     * @return list<array{title:string, url:string}>
+     */
+    private function latestNews(int $limit): array
+    {
+        $rows = $this->db->select(
+            "SELECT a.article_id, a.title FROM cms_article a
+             WHERE a.site_id = :site AND a.status = 'published' AND a.public_scope = 'public' AND a.has_body = 1
+               AND NOT EXISTS (SELECT 1 FROM sys_channel c
+                               WHERE c.site_id = a.site_id AND c.type_code = a.channel_type
+                                 AND (c.home_sourced = 1 OR c.layout = 'leaders'))
+             ORDER BY a.published_at DESC, a.article_id DESC
+             LIMIT " . max(1, $limit),
+            ['site' => $this->siteId]
+        );
+        return array_map(static fn (array $row): array => [
+            'title' => (string) $row['title'],
+            'url'   => '/article/' . (string) $row['article_id'] . '.html',
+        ], $rows);
+    }
+
+    /** 侧栏「图片新闻」：只取图片新闻栏目（314）里有图的稿件 */
+    private function imageNews(int $limit): array
+    {
+        $rows = $this->db->select(
+            "SELECT article_id, title, thumb FROM cms_article
+             WHERE site_id = :site AND status = 'published' AND public_scope = 'public'
+               AND channel_type = :type AND thumb <> ''
+             ORDER BY published_at DESC, article_id DESC
+             LIMIT " . max(1, $limit),
+            ['site' => $this->siteId, 'type' => self::IMAGE_NEWS_TYPE]
+        );
+        return array_map(static fn (array $row): array => [
+            'title' => (string) $row['title'],
+            'url'   => '/article/' . (string) $row['article_id'] . '.html',
+            // 缩略图也要走正文同一套资源地址归一化：本地有文件走站内 /uploads/legacy，
+            // 没有的强制 https，避免静态页里再出现 http 旧站地址（混合内容）
+            'img'   => BodyNormalizer::normalizeResourceUrl((string) $row['thumb']),
+        ], $rows);
     }
 
     /** @param list<array{loc:string, priority:string}> $entries */

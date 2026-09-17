@@ -7,8 +7,9 @@
  * 的手工检查固化成一条可重复执行的命令，改前端后跑一遍即可。
  *
  * 用法：
- *   node tests/check-pages.mjs                     # 自起静态服务器（默认 8973 端口）
- *   node tests/check-pages.mjs --via-api           # 起 PHP 服务（站点+接口同源，需要 php），验证前端走接口
+ *   node tests/check-pages.mjs                     # 默认：起 PHP 服务（站点+接口同源，临时库 migrate+seed）
+ *   node tests/check-pages.mjs --static            # 快照调试模式：纯静态服务器 + 用例自动带 ?api=0
+ *   node tests/check-pages.mjs --via-api           # 同默认（保留旧命令），多跑“必须走接口”的断言用例
  *   node tests/check-pages.mjs --only 详情         # 只跑名字含“详情”的用例
  *   node tests/check-pages.mjs --url http://127.0.0.1:8899   # 检查已在跑的站点，不另起服务
  *   node tests/check-pages.mjs --headed            # 显示浏览器窗口，便于肉眼对照
@@ -438,7 +439,7 @@ const PUBLISH_CASES = [
 // ---------------------------------------------------------------- 参数与环境
 
 function parseArgs(argv) {
-  const opts = { url: "", port: 8973, only: "", headed: false, timeout: 20000, keep: false, browser: "", viaApi: false, publish: false };
+  const opts = { url: "", port: 8973, only: "", headed: false, timeout: 20000, keep: false, browser: "", viaApi: false, static: false, publish: false };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
     if (a === "--url") opts.url = String(argv[++i] || "").replace(/\/+$/, "");
@@ -448,6 +449,7 @@ function parseArgs(argv) {
     else if (a === "--headed") opts.headed = true;
     else if (a === "--keep") opts.keep = true;
     else if (a === "--via-api") opts.viaApi = true;
+    else if (a === "--static") opts.static = true;
     else if (a === "--publish") opts.publish = true;
     else if (a === "--browser") opts.browser = String(argv[++i] || "");
     else if (a === "--help" || a === "-h") opts.help = true;
@@ -467,7 +469,7 @@ function resolvePhp() {
  * 接口模式：临时 SQLite 库 + PHP 内置服务器，一个进程同时提供站点静态文件与 /api/v1。
  * 顺便把一篇已发布稿件改成草稿，用来验证"草稿不对外可见"。
  */
-async function startPhpServer(port) {
+async function startPhpServer(port, extraEnv = {}) {
   const php = resolvePhp();
   if (!php) {
     throw new Error("未找到 php：请先 brew install php，或用 --url 指向已启动的服务");
@@ -478,7 +480,8 @@ async function startPhpServer(port) {
     DB_DATABASE: path.join(tmpRoot, "pages.sqlite"),
     APP_ENV: "local",
     APP_DEBUG: "1",
-    PUBLISH_OUT: path.join(tmpRoot, "publish")
+    PUBLISH_OUT: path.join(tmpRoot, "publish"),
+    ...extraEnv
   };
   const migrate = spawnSync(php, ["backend/bin/migrate.php"], { cwd: REPO, env: { ...process.env, ...env }, encoding: "utf8" });
   const seed = spawnSync(php, ["backend/bin/seed.php"], { cwd: REPO, env: { ...process.env, ...env }, encoding: "utf8" });
@@ -661,7 +664,9 @@ async function runCase(browser, base, c, opts) {
     if (r.status() >= 400 && isLocal(r.url())) httpErrors.push("HTTP " + r.status() + " " + r.url());
   });
 
-  const url = new URL(c.page, base + "/").href;
+  const target = new URL(c.page, base + "/");
+  if (opts.static) target.searchParams.set("api", "0");
+  const url = target.href;
   try {
     // 发布产物里的图片指向旧站（慢，单请求约 10s），静态页用例只等文档加载完
     const resp = await page.goto(url, { waitUntil: c.waitUntil || "load", timeout: opts.timeout });
@@ -1032,7 +1037,7 @@ async function runCase(browser, base, c, opts) {
       if (m.videoWidth > m.bodyWidth + 1) failures.push("静态页视频 " + m.videoWidth + "px 超出正文 " + m.bodyWidth + "px");
       if (m.overflowX > 1) failures.push("静态页横向溢出 " + m.overflowX + "px");
       // 静态页与前台同口径：发布时间只到年月日
-      const staticMeta = await page.evaluate(() => (document.querySelector(".meta") || {}).textContent || "");
+      const staticMeta = await page.evaluate(() => (document.querySelector(".article-meta") || {}).textContent || "");
       if (/\d{2}:\d{2}/.test(staticMeta) || !/发布时间：\d{4}-\d{2}-\d{2}/.test(staticMeta)) {
         failures.push("静态页发布时间口径不对：「" + staticMeta.slice(0, 40) + "」");
       }
@@ -1052,7 +1057,7 @@ async function runCase(browser, base, c, opts) {
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
   if (opts.help) {
-    console.log("用法：node tests/check-pages.mjs [--url <base>] [--port 8973] [--only <关键词>] [--via-api] [--publish] [--browser chrome] [--headed] [--keep]");
+    console.log("用法：node tests/check-pages.mjs [--url <base>] [--port 8973] [--only <关键词>] [--static] [--via-api] [--publish] [--browser chrome] [--headed] [--keep]");
     return 0;
   }
 
@@ -1071,17 +1076,22 @@ async function main() {
   let server = null;
   let base = opts.url;
   let phpServer = null;
-  if (opts.viaApi && !base) {
-    phpServer = await startPhpServer(opts.port);
+  // --publish：发布产物放临时目录；没给 --url 时让同一个 PHP 服务按 PUBLISH_OUT 直出
+  // /article/、/channel/，与生产 Nginx 的“站点根 + 发布目录”两段式一致。
+  const publishRoot = opts.publish ? mkdtempSync(path.join(tmpdir(), "hechi-publish-")) : null;
+  if (base) {
+    console.log("检查目标：" + base);
+  } else if (opts.static) {
+    // 快照调试模式：纯静态托管只能靠 ?api=0 显式取快照（默认不再自动回退）
+    server = await startStaticServer(SITE_DIR, opts.port);
+    base = server.base;
+    console.log("静态服务器（快照调试模式，用例自动带 ?api=0）：" + base);
+  } else {
+    // 默认跑真站点形态：一个进程同时提供页面与 /api/v1（临时库 migrate + seed）
+    phpServer = await startPhpServer(opts.port, publishRoot ? { PUBLISH_OUT: publishRoot } : {});
     server = { child: phpServer.child };
     base = phpServer.base;
     console.log("站点与接口（同源）：" + base + " → frontend/home + /api/v1");
-  } else if (!base) {
-    server = await startStaticServer(SITE_DIR, opts.port);
-    base = server.base;
-    console.log("静态服务器：" + base + " → " + path.relative(REPO, SITE_DIR));
-  } else {
-    console.log("检查目标：" + base);
   }
 
   // 同一篇稿件的预期会随数据源变化（40029 在快照里公开、在开发库是归档；62212 在快照里无正文、
@@ -1098,7 +1108,9 @@ async function main() {
       apiAvailable = false;
     }
   }
-  const liveDb = apiAvailable && !opts.viaApi;
+  // 只有显式 --url 指向的目标才可能是开发库；脚本自建的临时库（默认路径）与快照同源，
+  // seededData 用例照跑。
+  const liveDb = apiAvailable && !!opts.url && !opts.viaApi;
   const selected = cases.filter((c) => {
     if (c.onlyApi) return opts.viaApi && !opts.url;
     if (c.seededData) return !liveDb;
@@ -1106,26 +1118,29 @@ async function main() {
     if (c.devOnly) return liveDb;
     return true;
   });
-  console.log("数据源：" + (apiAvailable ? "接口可用（/api/v1/health 正常）" : "接口不可用（走静态快照）"));
+  console.log("数据源：" + (apiAvailable ? "接口可用（/api/v1/health 正常）" : "接口不可用（?api=0 静态快照）"));
 
   const { browser, label } = await launchBrowser(chromium, opts);
   console.log("浏览器：" + label);
   const started = Date.now();
   const results = [];
   let publishServer = null;
-  let publishRoot = null;
   try {
     // Nginx 直出的静态详情页：临时发布一次，用静态服务跑同一套排版断言
     if (opts.publish) {
       const php = resolvePhp();
       if (!php) throw new Error("--publish 需要 php");
-      publishRoot = mkdtempSync(path.join(tmpdir(), "hechi-publish-"));
       const run = spawnSync(php, ["backend/bin/publish.php", "--out=" + publishRoot], { cwd: REPO, encoding: "utf8" });
       if (run.status !== 0) {
         throw new Error("发布失败：" + String(run.stderr || run.stdout || "").trim().split("\n").slice(-1)[0]);
       }
-      publishServer = await startStaticServer(publishRoot, opts.port + 1);
-      console.log("发布产物：" + publishRoot + " → " + publishServer.base);
+      if (opts.url) {
+        publishServer = await startStaticServer(publishRoot, opts.port + 1);
+        console.log("发布产物：" + publishRoot + " → " + publishServer.base + "（独立静态服务）");
+      } else {
+        publishServer = { base: base, child: { kill() {} } };
+        console.log("发布产物：" + publishRoot + " → " + base + "/article/…（与站点同源，走 router.php）");
+      }
     }
     for (const c of selected) {
       const r = await runCase(browser, base, c, opts);

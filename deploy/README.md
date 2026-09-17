@@ -17,13 +17,18 @@ php -S 127.0.0.1:8080 -t backend/public backend/public/router.php
 ```bash
 docker compose up -d --build      # 首次会拉镜像、建库、执行 database/migrations/mysql
 docker compose exec php php bin/migrate.php
-docker compose exec php php bin/seed.php --snapshots=/var/www/snapshots
+# 内容入库：正式环境走旧库迁移（tools/migrate），见docs/旧库迁移说明.md
+#   演示数据（阶段A快照）只用于开发环境，容器里不再挂载快照目录
 ```
 
 - 站点：<http://127.0.0.1:8080>（首页即站点页面），后台 <http://127.0.0.1:8080/admin>，接口自检 `/api/v1/health`
 - MySQL：`127.0.0.1:3307`，库 `hechi_zx`，账号见 `docker-compose.yml`（**示例口令，上线前必须换成密钥管理下发的强口令**）
 - Redis：`127.0.0.1:6380`
 - 静态化产物：`backend/storage/publish/`，由 Nginx 直出 `/article/`、`/channel/` 与 `/sitemap.xml`
+
+> 内容只有一个来源（MySQL）：快照（`frontend/home/data`）是阶段A的演示与测试夹具，已不挂进容器、
+> 也不在生产执行 `seed.php`（2026-09-17口径）。老库升级只需补首页四类初始配置时，用
+> `php backend/bin/seed.php --home-only`。
 
 > 站点页面、接口、后台同源：`/api` 与 `/admin` 交给同一个 PHP 入口，前端取数不需要跨域。
 

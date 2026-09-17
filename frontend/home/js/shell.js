@@ -22,7 +22,8 @@
     if (u.startsWith("//")) return "https:" + u;
     if (/^\/?(?:channel|detail)\.html(?:[?#]|$)/.test(u)) return u;   // 站内内页：本站地址，不能补旧站域名
     if (/^\/(?:member|admin|search\.html|article\/|channel\/)/.test(u)) return u;   // 本站路由：同上（与 js/site-links.js、js/main.js 同规则）
-    if (u.startsWith("/")) return site + u;
+    // 以 / 开头的是本站站点根路径，原样保留（补域名会把本站图片指到旧站）
+    if (u.startsWith("/")) return u;
     if (/^(\.\/|\.\.\/|images\/|data:|channel\.html|detail\.html)/.test(u)) return u;
     return site + "/" + u;
   }
@@ -99,7 +100,7 @@
       '</div>' +
       '<div class="footer-text">' +
       '<p>版权所有：' + esc(meta.owner) + '</p>' +
-      '<p class="footer-copy"><a href="http://' + esc(meta.domain) + '" target="_blank" rel="noopener">' +
+      '<p class="footer-copy"><a href="https://' + esc(meta.domain) + '" target="_blank" rel="noopener">' +
       esc(meta.copyright) + '</a></p>' +
       '<p class="footer-contact">投稿邮箱：<a href="mailto:' + esc(meta.contactEmail) + '">' +
       esc(meta.contactEmail) + '</a><span class="footer-sep"></span>联系电话：' + esc(meta.contactPhone) + '</p>' +
@@ -438,7 +439,7 @@
       .catch(function (err) {
         window.SITE.error = err;
         const box = el("footerBody");
-        if (box) box.innerHTML = '<p>站级数据加载失败，请通过本地静态服务器访问本页。</p>';
+        if (box) box.innerHTML = '<p>站级信息加载失败，请刷新重试。</p>';
         return null;
       });
   }

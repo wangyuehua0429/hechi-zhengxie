@@ -29,7 +29,8 @@
   // 本站路由同理：/member、/admin 等由 router.php 与 nginx 提供，补旧站域名会让首页
   // 「提案填报系统」条幅指到旧站的 /member（不存在），点开就是 404。
   // 注：这条规则在 js/site-links.js、js/shell.js 里各有一份，改动要三处同步。
-  const LOCAL_ROUTE = /^\/(?:member|admin|search\.html|article\/|channel\/)/;
+  // 含根路径 "/"：本地预览时点「首页」/友情链接本站在不该被送到正式域名去（2026-09-17 Step 3）
+  const LOCAL_ROUTE = /^\/(?:$|member|admin|search\.html|article\/|channel\/)/;
   const LOCAL_PAGE = /^\/?(?:channel|detail)\.html(?:[?#]|$)/;
   function abs(u) {
     if (!u || u === "#") return u;
@@ -37,7 +38,9 @@
     if (u.startsWith("//")) return "https:" + u;
     if (LOCAL_PAGE.test(u)) return u;
     if (LOCAL_ROUTE.test(u)) return u;
-    if (u.startsWith("/")) return site + u;
+    // 以 / 开头的是本站站点根路径（/uploads、/images、/article、/channel …），必须原样保留：
+    // 补上站点域名会把本站图片指到旧站去（2026-09-17 独立评审 P1）
+    if (u.startsWith("/")) return u;
     if (/^(\.\/|\.\.\/|images\/|data:)/.test(u)) return u;
     return site + "/" + u;
   }
@@ -892,7 +895,7 @@
       '</div>' +
       '<div class="footer-text">' +
       '<p>版权所有：' + esc(meta.owner) + '</p>' +
-      '<p class="footer-copy"><a href="http://' + esc(meta.domain) + '" target="_blank" rel="noopener">' + esc(meta.copyright) + '</a></p>' +
+      '<p class="footer-copy"><a href="https://' + esc(meta.domain) + '" target="_blank" rel="noopener">' + esc(meta.copyright) + '</a></p>' +
       '<p class="footer-contact">投稿邮箱：<a href="mailto:' + esc(meta.contactEmail) + '">' + esc(meta.contactEmail) + '</a>' +
       '<span class="footer-sep"></span>联系电话：' + esc(meta.contactPhone) + '</p>' +
       '<div class="footer-icp">' +
@@ -1068,12 +1071,15 @@
       fillBox("book", d.bookCity);
       fillBox("anti", d.antiGang);
       renderVideos(d.videos);
-      setMore("noticeMore", "https://www.gxhczx.gov.cn/news_list.php?id=302");
-      setMore("bookMore", "https://www.gxhczx.gov.cn/news_list.php?id=1301");
-      setMore("antiMore", "https://www.gxhczx.gov.cn/news_list.php?id=400");
-      setMore("videoMore", "https://www.gxhczx.gov.cn/news_list.php?id=316");
-      setMore("rankingMore", "https://www.gxhczx.gov.cn/top.php");
-      setMore("countyMore", "https://www.gxhczx.gov.cn/qy_list.php");
+      // 站内“更多”一律指向本站静态栏目页（2026-09-17 Step 3：不再有指向旧站的入口）
+      setMore("noticeMore", "/channel/gonggao-tongzhi/");
+      setMore("bookMore", "/channel/wangshang-shuyuan/");
+      setMore("antiMore", "/channel/saochu-heie/");
+      setMore("videoMore", "/channel/zhengxie-shipin/");
+      setMore("countyMore", "/channel/xianqu-zhengxie/");
+      // 「来稿排名」新站暂无对应页：收起“全部排名”入口，不指旧站 top.php（旧站关停后是死链）
+      const rankingMoreLink = el("rankingMore");
+      if (rankingMoreLink) rankingMoreLink.hidden = true;
       renderRanking(d.ranking);
       initRankingYear();
 
@@ -1145,7 +1151,7 @@
     const div = document.createElement("div");
     div.className = "section-card";
     div.style.cssText = "padding:30px;text-align:center;color:#8a6d3b;background:#fdf6e2;border-color:#ecd18b;";
-    div.innerHTML = "首页数据暂未加载（请通过本地静态服务器访问，例如 <code>python3 -m http.server</code>）。";
+    div.innerHTML = "首页内容加载失败，请刷新重试；若持续失败请联系网站管理员。";
     host.insertBefore(div, host.firstChild);
   }
 

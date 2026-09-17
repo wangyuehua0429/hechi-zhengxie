@@ -6,6 +6,8 @@ namespace HechiZx\Repository;
 
 use HechiZx\Support\Db;
 use HechiZx\Support\Json;
+use HechiZx\Content\BodyNormalizer;
+use HechiZx\Publish\StaticPaths;
 
 /**
  * 首页数据仓储。
@@ -18,6 +20,10 @@ use HechiZx\Support\Json;
  * 稿件模块的列表按「库内稿件优先、快照兜底」组装：先取绑定栏目下已发布稿件
  *（置顶在前、再按栏目内排序、再按发布时间），不足 page_size 时用同名快照里的历史条目补足，
  * 这样编辑发稿立刻出现在首页最前，同时不会因为稿件库里暂时没有而那些模块变空。
+ *
+ * 兜底条目同样受公开口径约束：只有「已发布 + public」的稿件才允许补进来。快照块里的
+ * 老条目多为超出公开年限的归档稿（2,145 篇只留后台、对公众不可见），不加这道校验会
+ * 绕过 sectionItems 的 SQL 过滤重新露到首页。
  */
 final class HomeRepository
 {
@@ -34,6 +40,12 @@ final class HomeRepository
 
     /** 003 迁移是否已应用（没应用时首页退回纯快照，绝不因为缺表把整站打挂） */
     private ?bool $homeTablesReady = null;
+
+    /** 稿件公开口径的查库缓存：快照兜底与出口过滤共用，避免同一个 id 反复查库 */
+    private array $articleVisibilityCache = [];
+
+    /** 栏目静态页地址缓存：栏目号 => /channel/<目录名>/（对外唯一地址，规则见 Publish\StaticPaths） */
+    private ?array $channelStaticPaths = null;
 
     public function __construct(private Db $db, private int $siteId)
     {
@@ -79,7 +91,16 @@ final class HomeRepository
             $blocks['banners'] = $this->homeBanners();
         }
 
-        return $blocks;
+        // 导航项里的旧站栏目地址在出口换成本站静态栏目页地址（API 与静态页共用同一份结果）
+        if (isset($blocks['nav']) && is_array($blocks['nav'])) {
+            $blocks['nav'] = $this->localNavLinks($blocks['nav']);
+        }
+
+        // 先批量预热稿件可见性：出口过滤要按稿件逐条判断，逐条查库时首页 160 条链接就是
+        // 160 次 SELECT（实测占 /api/v1/home 耗时的绝大部分，2026-09-17 审查 P2）
+        $this->preloadArticleVisibility($blocks);
+
+        return $this->pruneNonPublicArticleLinks($blocks);
     }
 
     /**
@@ -432,6 +453,11 @@ final class HomeRepository
             if ($fid !== '' && isset($seen[$fid])) {
                 continue;
             }
+            // 带稿件号的兜底条目必须先在库里确认是「已发布 + 公开」；归档稿（超出公开
+            // 年限只留后台）与已下线/删除稿一律不补，避免快照把非公开内容带回首页。
+            if ($fid !== '' && !$this->isPublicArticle($fid)) {
+                continue;
+            }
             if ($fid !== '') {
                 $seen[$fid] = true;
             }
@@ -479,7 +505,64 @@ final class HomeRepository
 
     private function channelUrl(string $type): string
     {
-        return '/channel.html?id=' . $type;
+        // 对外唯一地址是发布器产出的静态栏目页（2026-09-17 A1），取不到时退回旧写法
+        return $this->channelStaticPaths()[$type] ?? ('/channel.html?id=' . $type);
+    }
+
+    /**
+     * 栏目号 => 静态栏目页地址。与发布器、301 映射共用同一套规则（Publish\StaticPaths）。
+     *
+     * @return array<string, string>
+     */
+    private function channelStaticPaths(): array
+    {
+        if ($this->channelStaticPaths === null) {
+            $rows = $this->db->select(
+                // 与发布器、301 表同口径：只算已上线栏目，否则新建一个离线栏目复用同名 slug，
+                // 首页给出的静态路径会与发布产物分叉（2026-09-17 独立评审 P2）
+                "SELECT type_code, slug FROM sys_channel WHERE site_id = :site AND status = 'published'",
+                ['site' => $this->siteId]
+            );
+            $this->channelStaticPaths = StaticPaths::channelPaths(array_map(
+                static fn (array $row): array => ['type' => (string) $row['type_code'], 'slug' => (string) $row['slug']],
+                $rows
+            ));
+        }
+        return $this->channelStaticPaths;
+    }
+
+    /**
+     * 首页导航（cms_home_block 的 nav 块）里的旧站栏目地址换成本站静态栏目页地址。
+     * 换不掉的（真外站、区县子站、专题目录）保持原样，避免点了打不开。
+     *
+     * @param list<array<string, mixed>> $nav
+     * @return list<array<string, mixed>>
+     */
+    private function localNavLinks(array $nav): array
+    {
+        $paths = $this->channelStaticPaths();
+        foreach ($nav as $index => $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $url = (string) ($item['url'] ?? '');
+            if ($url === '') {
+                continue;
+            }
+            if (preg_match('~gxhczx\.gov\.cn/?$|gxhczx\.gov\.cn/index\.html$|/home\.php$~i', $url) === 1) {
+                $nav[$index]['url'] = '/';
+                continue;
+            }
+            if (str_contains($url, 'qy_list.php') && isset($paths['qy'])) {
+                $nav[$index]['url'] = $paths['qy'];
+                continue;
+            }
+            if (preg_match('~(?:news_list|news_list_about|cq_list)\.php\?[^"\']*?\bid=([A-Za-z0-9_]+)~', $url, $match) === 1
+                && isset($paths[$match[1]])) {
+                $nav[$index]['url'] = $paths[$match[1]];
+            }
+        }
+        return $nav;
     }
 
     /**
@@ -608,6 +691,172 @@ final class HomeRepository
         return preg_match('/[?&]id=(\d+)/', $url, $m) === 1 ? $m[1] : '';
     }
 
+    /** 稿件是否「已发布 + 公开」：快照兜底条目的公开口径校验（结果按 id 缓存） */
+    private function isPublicArticle(string $articleId): bool
+    {
+        return $this->articleVisibility($articleId) === 'public';
+    }
+
+    /**
+     * 稿件在库里的对外可见性。
+     *
+     * @return string public=已发布且公开；private=在库但不能公开（归档／撤回／草稿／回收站）；missing=库里没有
+     */
+    private function articleVisibility(string $articleId): string
+    {
+        if ($articleId === '' || !ctype_digit($articleId)) {
+            return 'missing';
+        }
+        if (!array_key_exists($articleId, $this->articleVisibilityCache)) {
+            $row = $this->db->selectOne(
+                'SELECT status, public_scope FROM cms_article WHERE site_id = :site AND article_id = :id',
+                ['site' => $this->siteId, 'id' => $articleId]
+            );
+            if ($row === null) {
+                $this->articleVisibilityCache[$articleId] = 'missing';
+            } elseif ((string) $row['status'] === 'published' && (string) $row['public_scope'] === 'public') {
+                $this->articleVisibilityCache[$articleId] = 'public';
+            } else {
+                $this->articleVisibilityCache[$articleId] = 'private';
+            }
+        }
+        return $this->articleVisibilityCache[$articleId];
+    }
+
+    /**
+     * 对外数据的出口归一：快照块（nav／leaders／topic／links 等）里的稿件地址，
+     *   ① 库里存在但不能公开的（归档／撤回／草稿／回收站）——整条摘掉，避免首页与栏目页把
+     *      只留后台的稿件当成可点链接露出去；
+     *   ② 指向旧站稿件页的可公开稿件——改写成对外唯一地址 `/article/<id>.html`
+     *      （2026-09-17 A1，接口与静态页共用同一份结果）。
+     * 真外站地址、栏目地址与库里没有的旧稿件地址保持原样。
+     */
+    private function pruneNonPublicArticleLinks(mixed $node): mixed
+    {
+        if (!is_array($node)) {
+            return $node;
+        }
+        $out = [];
+        foreach ($node as $key => $value) {
+            if (is_array($value)) {
+                $value = $this->pruneNonPublicArticleLinks($value);
+                if (isset($value['url'])) {
+                    $url = (string) $value['url'];
+                    if ($this->isPrivateArticleLink($url)) {
+                        continue;
+                    }
+                    $id = $this->articleIdInUrl($url);
+                    if ($id !== '' && str_contains($url, 'gxhczx.gov.cn')) {
+                        $value['url'] = '/article/' . $id . '.html';
+                    }
+                }
+                // 图片地址与正文同口径（本地有文件走站内 /uploads/legacy，其余强制 https）：
+                // 首页「友情链接」等处的 logo 仍是旧站 http 地址，不处理会在 https 站点上混合内容告警
+                if (isset($value['img']) && is_string($value['img']) && $value['img'] !== '') {
+                    $value['img'] = BodyNormalizer::normalizeResourceUrl($value['img']);
+                }
+            }
+            $out[$key] = $value;
+        }
+        // 摘掉条目后要重排索引：PHP 数组带空洞会被 json_encode 成对象，
+        // 前端对 leaders.viceChairmen 这类字段直接调 map()，拿到对象就报错。
+        return array_is_list($node) ? array_values($out) : $out;
+    }
+
+    /** 地址是否指向「库里存在、但不能公开」的稿件 */
+    private function isPrivateArticleLink(string $url): bool
+    {
+        $id = $this->articleIdInUrl($url);
+        return $id !== '' && $this->articleVisibility($id) === 'private';
+    }
+
+    /**
+     * 批量预热稿件可见性：递归收集出口数据里出现的稿件号，按批查回后写进缓存，
+     * 后续 articleVisibility() 全部命中缓存，不再逐条查库。
+     */
+    private function preloadArticleVisibility(mixed $node): void
+    {
+        $ids = [];
+        $this->collectArticleIds($node, $ids);
+        $pending = [];
+        foreach (array_keys($ids) as $id) {
+            if (!array_key_exists($id, $this->articleVisibilityCache)) {
+                $pending[] = $id;
+            }
+        }
+        if ($pending === []) {
+            return;
+        }
+        // SQLite 默认变量上限 999，分批留出余量
+        foreach (array_chunk($pending, 400) as $chunk) {
+            $placeholders = [];
+            $params = ['site' => $this->siteId];
+            foreach ($chunk as $index => $id) {
+                $placeholders[] = ':id' . $index;
+                $params['id' . $index] = $id;
+            }
+            foreach ($chunk as $id) {
+                $this->articleVisibilityCache[$id] = 'missing';
+            }
+            $rows = $this->db->select(
+                'SELECT article_id, status, public_scope FROM cms_article
+                 WHERE site_id = :site AND article_id IN (' . implode(', ', $placeholders) . ')',
+                $params
+            );
+            foreach ($rows as $row) {
+                $this->articleVisibilityCache[(string) $row['article_id']] =
+                    ((string) $row['status'] === 'published' && (string) $row['public_scope'] === 'public')
+                        ? 'public' : 'private';
+            }
+        }
+    }
+
+    /** @param array<string, bool> $ids 收集出口数据里出现的稿件号（键即稿件号） */
+    private function collectArticleIds(mixed $node, array &$ids): void
+    {
+        if (!is_array($node)) {
+            return;
+        }
+        foreach ($node as $value) {
+            if (!is_array($value)) {
+                continue;
+            }
+            if (isset($value['url'])) {
+                $id = $this->articleIdInUrl((string) $value['url']);
+                if ($id !== '') {
+                    $ids[$id] = true;
+                }
+            }
+            $this->collectArticleIds($value, $ids);
+        }
+    }
+
+    /**
+     * 从地址里取新站己方的稿件号：旧站详情脚本／旧站静态详情页／新站详情页与静态详情页。
+     * 其它站点、栏目地址（news_list*.php?id=／channel.html?id=）一律返回空串。
+     */
+    private function articleIdInUrl(string $url): string
+    {
+        $url = trim($url);
+        if ($url === '') {
+            return '';
+        }
+        if (preg_match('~^https?://~i', $url) === 1) {
+            $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+            if (!in_array($host, ['gxhczx.gov.cn', 'www.gxhczx.gov.cn'], true)) {
+                return '';
+            }
+            $url = (string) parse_url($url, PHP_URL_PATH) . '?' . (string) parse_url($url, PHP_URL_QUERY);
+        }
+        if (preg_match('~(?:news_view|cq_view)\.php\?[^"\'\s]*\bid=(\d+)~i', $url, $match) === 1
+            || preg_match('~news-view-(\d+)\.html~i', $url, $match) === 1
+            || preg_match('~detail\.html\?[^"\'\s]*?\bid=(\d+)~i', $url, $match) === 1
+            || preg_match('~^/?article/(\d+)\.html~i', $url, $match) === 1) {
+            return (string) $match[1];
+        }
+        return '';
+    }
+
     /**
      * 首屏头条轮换：引用稿件的取稿件字段，外链条目用自己填的。
      *
@@ -632,7 +881,7 @@ final class HomeRepository
                 $title = $title !== '' ? $title : (string) $article['title'];
                 $summary = $summary !== '' ? $summary : (string) $article['summary'];
                 $image = $image !== '' ? $image : $this->firstImage($article);
-                $link = $link !== '' ? $link : 'detail.html?id=' . $articleId;
+                $link = $link !== '' ? $link : '/article/' . $articleId . '.html';
             } else {
                 // 外链条目里若是旧站稿件地址（news_view.php?id= / html/news-view-<id>.html），
                 // 且这篇已在新库公开发布，就改指新站详情页，网站内部不再跳回旧站
@@ -670,7 +919,7 @@ final class HomeRepository
         if ($id <= 0) {
             return $url;
         }
-        return $this->publishedArticle($id) !== null ? 'detail.html?id=' . $id : $url;
+        return $this->publishedArticle($id) !== null ? '/article/' . $id . '.html' : $url;
     }
 
     /** @return array<string, mixed>|null */

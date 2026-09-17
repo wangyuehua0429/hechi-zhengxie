@@ -26,9 +26,9 @@ use HechiZx\Support\Db;
  *      未审、无正文、按数据策略不公开的老稿件不登记，旧地址照旧 404（符合“近 3 年
  *      数据公开访问，更早数据后台留存不公开”）。
  *   2. **目标地址取静态化产物**：详情 `/article/<稿件号>.html`、栏目
- *      `/channel/<目录名>/`（目录名见 StaticPaths）。前端动态地址
- *      `detail.html?id=`／`channel.html?id=` 与静态地址的 canonical 口径仍待甲方确认
- *      （接口契约第 8 节），届时这里一并改。
+ *      `/channel/<目录名>/`（目录名见 StaticPaths）。这也是全站对外唯一地址
+ *      （2026-09-17 定）：前端 `detail.html?id=`／`channel.html?id=` 已降级为后台预览页
+ *      并加 `noindex`，301、sitemap 与站内链接一律走静态地址，接口契约见第 8 节。
  */
 final class RedirectMap
 {

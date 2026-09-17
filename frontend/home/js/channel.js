@@ -258,8 +258,7 @@
       '<div class="interactive-box">' +
       (note ? '<p class="interactive-note">' + esc(note) + '</p>' : "") +
       '<div class="interactive-actions">' +
-      '<a class="interactive-btn" href="https://www.gxhczx.gov.cn/" target="_blank" rel="noopener">前往旧站互动入口</a>' +
-      '<span class="interactive-hint">在线提交与回复查询待后端接入后开放。</span>' +
+      '<span class="interactive-hint">在线提交与回复查询待后端接入后开放（原旧站互动入口随旧站关停下线）。</span>' +
       '</div>' +
       '</div>' + items;
   }
@@ -509,7 +508,7 @@
       })
       .catch(function () {
         el("listWrap").innerHTML =
-          '<div class="empty-state">数据加载失败，请通过本地静态服务器访问本页。</div>';
+          '<div class="empty-state">内容加载失败，请刷新重试；若持续失败请联系网站管理员。</div>';
       });
   }
 

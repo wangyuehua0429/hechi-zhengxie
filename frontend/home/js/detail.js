@@ -445,7 +445,7 @@
       bindToolbar();
     }).catch(function () {
       el("articleBody").innerHTML =
-        '<div class="empty-state">数据加载失败，请通过本地静态服务器访问本页。</div>';
+        '<div class="empty-state">内容加载失败，请刷新重试；若持续失败请联系网站管理员。</div>';
     });
   }
 

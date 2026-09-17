@@ -53,14 +53,14 @@ final class PublishController extends AdminController
                 $this->siteName,
                 $this->siteDomain
             );
-            $data = $publisher->publishDataSnapshots();
             $html = $publisher->publishHtml();
-            $this->log('publish.all', 'site', (string) $this->siteId, $data + $html);
+            $this->log('publish.all', 'site', (string) $this->siteId, $html);
             Flash::set('ok', sprintf(
-                '发布完成：静态页 %d 个、栏目 %d 个、稿件 %d 篇，输出到 %s',
+                '发布完成：静态页 %d 个（首页 1 + 栏目 %d + 详情 %d）、清理失效页 %d 个，输出到 %s',
                 $html['html_pages'] ?? 0,
-                $data['channels'] ?? 0,
-                $data['articles'] ?? 0,
+                $html['channels'] ?? 0,
+                $html['articles'] ?? 0,
+                $html['pruned'] ?? 0,
                 $this->outDir
             ));
         } catch (\Throwable $e) {
