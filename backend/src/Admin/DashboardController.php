@@ -72,10 +72,15 @@ final class DashboardController extends AdminController
             return (int) $this->db->scalar($sql, ['site' => $this->siteId, 'since' => $since]);
         };
 
+        // 已被「保存即自动发布」增量重发过的稿件不算待发布（publish.article 日志时间 ≥ 稿件更新时间）
+        $castId = $this->db->isSqlite() ? 'CAST(a.article_id AS TEXT)' : 'CAST(a.article_id AS CHAR)';
         $articles = $count(
-            "SELECT COUNT(*) FROM cms_article
-             WHERE site_id = :site AND status = 'published' AND public_scope = 'public' AND has_body = 1
-               AND updated_at > :since"
+            "SELECT COUNT(*) FROM cms_article a
+             WHERE a.site_id = :site AND a.status = 'published' AND a.public_scope = 'public' AND a.has_body = 1
+               AND a.updated_at > :since
+               AND NOT EXISTS (SELECT 1 FROM sys_operation_log l
+                               WHERE l.action = 'publish.article' AND l.target_id = $castId
+                                 AND l.created_at >= a.updated_at)"
         );
         $channels = $count(
             "SELECT COUNT(*) FROM sys_channel

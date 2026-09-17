@@ -433,6 +433,62 @@ const PUBLISH_CASES = [
     allowBrokenImages: true,
     allowHttpErrors: true,
     kind: "static-media"
+  },
+  // 2026-09-17：静态栏目页与动态端对齐后的回归断言（分页 + 版式）
+  {
+    name: "静态页·栏目列表（904 第 1 页，每页 20 条 + 分页条）",
+    page: "channel/zhengxie-dongtai-904/",
+    viewport: DESKTOP,
+    ready: ".panel-head h2",
+    waitUntil: "domcontentloaded",
+    allowBrokenImages: true,
+    allowHttpErrors: true,
+    look: {
+      selectors: { ".panel-head h2": 1, ".article-rows li": 20, ".pager a": 2, ".channel-buttons a": 1, "#innerSide": 1 },
+      textIncludes: ["市政协动态", "第 1/"],
+      textExcludes: ["数据加载失败"]
+    }
+  },
+  {
+    name: "静态页·栏目分页（904 第 2 页可打开、当前页高亮）",
+    page: "channel/zhengxie-dongtai-904/page-2.html",
+    viewport: DESKTOP,
+    ready: ".pager a.is-active",
+    waitUntil: "domcontentloaded",
+    allowBrokenImages: true,
+    allowHttpErrors: true,
+    look: {
+      selectors: { ".article-rows li": 1, ".pager a.is-active": 1 },
+      textIncludes: ["第 2/"]
+    }
+  },
+  {
+    name: "静态页·图集版式（314 图片卡 + 整幅无左栏）",
+    page: "channel/tupian-xinwen/",
+    viewport: DESKTOP,
+    ready: ".gallery-grid",
+    waitUntil: "domcontentloaded",
+    allowBrokenImages: true,
+    allowHttpErrors: true,
+    look: {
+      selectors: { ".gallery-grid": 1, ".gallery-card": 1, "#innerSide": 0 },
+      textIncludes: ["图片新闻"]
+    }
+  },
+  {
+    name: "静态页·领导版式（202 卡片分组、不显示分页条）",
+    page: "channel/zhengxie-gaikuang/",
+    viewport: DESKTOP,
+    ready: ".leader-card",
+    waitUntil: "domcontentloaded",
+    allowBrokenImages: true,
+    allowHttpErrors: true,
+    look: {
+      selectors: { ".leader-group": 1, ".leader-card": 1 },
+      visible: [".leader-grid"],
+      hidden: [".pager"],
+      textIncludes: ["政协领导"]
+    }
   }
 ];
 

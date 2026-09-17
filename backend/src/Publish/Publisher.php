@@ -88,6 +88,7 @@ final class Publisher
 
         $entries = [];
         $keep = [];   // 本轮真正产出的静态页，发布收尾时用它清掉不再产出的旧文件
+        $capped = []; // 触发单页上限的栏目（内容可能被截断时提醒，不静默）
         // 栏目页地址统一由 StaticPaths 决定：slug 重复的一级栏目会补上栏目号，
         // 保证 43 个栏目 43 个路径，不互相覆盖（301 映射表也用同一份结果）。
         $channelPaths = StaticPaths::channelPaths($channels);
@@ -113,6 +114,13 @@ final class Publisher
             $siblings = array_values(array_filter((array) ($channel['siblings'] ?? []), 'is_array'));
             $first = $this->channelPage($channel, 1);
             $pages = max(1, (int) ceil($first['total'] / self::CHANNEL_PAGE_SIZE));
+            // 隐式上限体检：home_sourced 栏目的列表来自快照（上限 CHANNEL_LIST_SIZE），领导型一次取 200；
+            // 触顶说明内容可能被截断，报出来而不是静默少内容
+            if (!empty($channel['homeSourced']) && (int) $first['total'] >= self::CHANNEL_LIST_SIZE) {
+                $capped[] = (string) $channel['type'] . '（视频／专题类栏目按 ' . self::CHANNEL_LIST_SIZE . ' 条上限输出）';
+            } elseif ((string) $channel['layout'] === 'leaders' && (int) $first['total'] > 200) {
+                $capped[] = (string) $channel['type'] . '（领导型栏目一次最多 200 条）';
+            }
             for ($page = 1; $page <= $pages; $page++) {
                 $data = $page === 1 ? $first : $this->channelPage($channel, $page);
                 $path = ltrim($channelPath, '/') . ($page === 1 ? 'index.html' : 'page-' . $page . '.html');
@@ -183,6 +191,7 @@ final class Publisher
             // 实际写出的 HTML 数（含栏目分页页）；sitemap 只收 1 + 43 + 详情
             'html_pages' => $htmlCount,
             'channel_pages' => $htmlCount - 1 - count($channels) - count($articles),
+            'capped'     => $capped,
             'sitemap_urls' => count($entries),
             'channels'   => count($channels),
             'articles'   => count($articles),
@@ -234,6 +243,103 @@ final class Publisher
     public function outDir(): string
     {
         return $this->outDir;
+    }
+
+    /**
+     * 增量发布：只重发一篇稿件的静态详情页，并重建 sitemap（后台保存稿件后自动调用）。
+     *
+     * 稿件不在公开范围（草稿／待审／归档／删除／无正文）时，把可能残留的静态页删掉，
+     * 与全量发布的 prune 口径保持一致。
+     *
+     * @return bool 是否产出了页面（false = 已移除或本就不该有）
+     */
+    public function publishArticlePage(string $articleId, bool $rebuildSitemap = true): bool
+    {
+        // 稿件号必须是纯数字：它同时用于 SQL 参数与输出文件路径，非数字一律拒绝
+        if ($articleId === '' || !ctype_digit($articleId)) {
+            return false;
+        }
+        $relative = 'article/' . $articleId . '.html';
+        $file = rtrim($this->outDir, '/') . '/' . $relative;
+        $public = $this->db->selectOne(
+            "SELECT article_id FROM cms_article
+             WHERE site_id = :site AND article_id = :id
+               AND status = 'published' AND public_scope = 'public' AND has_body = 1",
+            ['site' => $this->siteId, 'id' => $articleId]
+        );
+        if ($public === null) {
+            if (is_file($file)) {
+                @unlink($file);
+            }
+            if ($rebuildSitemap) {
+                $this->rebuildSitemap();
+            }
+            return false;
+        }
+
+        $article = $this->articles()->byId($articleId);
+        if ($article === null) {
+            return false;
+        }
+        unset($article['hasBody']);
+        $article['content'] = BodyNormalizer::normalize(
+            HtmlSanitizer::clean((string) $article['content']),
+            (string) $article['title'],
+            (string) ($article['author'] ?? '')
+        );
+        $article['images'] = BodyNormalizer::normalizeImages((array) $article['images']);
+
+        $channels = $this->channels()->all(true, 1);
+        $channelPaths = StaticPaths::channelPaths($channels);
+        $this->write($relative, $this->render($this->shellData() + [
+            'kind'        => 'article',
+            'title'       => $article['title'] . ' · ' . $this->siteName,
+            'description' => trim((string) $article['summary']) !== '' ? $article['summary'] : $article['title'],
+            'heading'     => $article['title'],
+            'bodyHtml'    => (string) $article['content'],
+            'canonical'   => '/article/' . $article['id'] . '.html',
+            'crumb'       => $this->articleCrumb($article, $channels, $channelPaths),
+            'latest'      => $this->latestNews(self::ARTICLE_SIDE_LATEST),
+            'articleMeta' => [
+                'date'   => substr((string) ($article['dateText'] ?? $article['date']), 0, 10),
+                'source' => (string) ($article['source'] ?? ''),
+                'author' => (string) ($article['author'] ?? ''),
+            ],
+            'editor'      => (string) ($article['editor'] ?? ''),
+            'attachments' => array_values((array) ($article['attachments'] ?? [])),
+        ]));
+        if ($rebuildSitemap) {
+            $this->rebuildSitemap();
+        }
+        return true;
+    }
+
+    /**
+     * 只重建 sitemap：列表取自库（1 首页 + 43 栏目 + 全部公开稿件），不重发任何页面。
+     * 全量发布与增量发布都走这一份口径。sitemap 只收栏目第一页（分页页不进）。
+     */
+    public function rebuildSitemap(): void
+    {
+        $entries = [['loc' => '/', 'priority' => '1.0']];
+        foreach (StaticPaths::channelPaths($this->channels()->all(true, 1)) as $path) {
+            $entries[] = ['loc' => $path, 'priority' => '0.8'];
+        }
+        foreach ($this->publishedArticleIds() as $id) {
+            $entries[] = ['loc' => '/article/' . $id . '.html', 'priority' => '0.6'];
+        }
+        $this->write('sitemap.xml', $this->sitemap($entries));
+    }
+
+    /** @return list<string> 全部可公开且有正文的稿件号 */
+    private function publishedArticleIds(): array
+    {
+        $rows = $this->db->select(
+            "SELECT article_id FROM cms_article
+             WHERE site_id = :site AND status = 'published' AND public_scope = 'public' AND has_body = 1
+             ORDER BY published_at DESC, article_id DESC",
+            ['site' => $this->siteId]
+        );
+        return array_map(static fn (array $row): string => (string) $row['article_id'], $rows);
     }
 
     /** @return list<array<string, mixed>> */

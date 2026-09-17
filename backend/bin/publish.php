@@ -6,6 +6,7 @@
  *
  *   php backend/bin/publish.php                     # 全量发布到 backend/storage/publish
  *   php backend/bin/publish.php --out=/tmp/site     # 指定输出目录
+ *   php backend/bin/publish.php --article=<稿件号>  # 增量：只重发这一篇详情页（后台保存稿件时自动调用）
  *   php backend/bin/publish.php --html-only         # 与默认相同：只出静态页
  *   php backend/bin/publish.php --data-only         # 只出数据快照（离线预览/契约对拍用）
  *
@@ -20,7 +21,7 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 use HechiZx\Publish\Publisher;
 use HechiZx\Support\Db;
 
-$options = getopt('', ['out::', 'data-only', 'html-only', 'help']);
+$options = getopt('', ['out::', 'data-only', 'html-only', 'article:', 'help']);
 
 if (isset($options['help'])) {
     fwrite(STDOUT, "用法：php backend/bin/publish.php [--out=<目录>] [--data-only] [--html-only]\n");
@@ -50,6 +51,46 @@ $publisher = new Publisher(
 
 $started = microtime(true);
 $result = [];
+
+// 增量：只重发一篇详情页（后台保存稿件时自动调用），不写 publish.all 日志——
+// 它不算“发布全站”，后台「待发布条数」按 publish.article 单独排除这一篇。
+if (isset($options['article'])) {
+    // 支持逗号分隔的多个稿件号（批量流转后一次进程处理）
+    // 只认纯数字稿件号（命令行参数同样不能带出目录边界）
+    $ids = array_values(array_filter(array_map('trim', explode(',', (string) $options['article'])),
+        static fn (string $v): bool => $v !== '' && ctype_digit($v)));
+    $republished = 0;
+    $removed = 0;
+    $failed = [];
+    foreach ($ids as $articleId) {
+        $action = 'publish.article';
+        $detail = [];
+        try {
+            // 一批只重建一次 sitemap（循环内不重复写整份文件）
+            $published = $publisher->publishArticlePage($articleId, false);
+            $published ? $republished++ : $removed++;
+            $detail = ['published' => $published];
+        } catch (\Throwable $e) {
+            // 自动发布失败要留痕（后台操作日志可查），并且不能用成功退出码糊过去
+            $failed[] = $articleId;
+            $action = 'publish.article.failed';
+            $detail = ['error' => $e->getMessage()];
+            fwrite(STDERR, '增量发布失败（' . $articleId . '）：' . $e->getMessage() . "\n");
+        }
+        $db->execute(
+            'INSERT INTO sys_operation_log (user_id, action, target_type, target_id, detail_json, ip, user_agent)
+             VALUES (:uid, :action, :type, :tid, :detail, :ip, :ua)',
+            ['uid' => 0, 'action' => $action, 'type' => 'article', 'tid' => $articleId,
+             'detail' => json_encode($detail, JSON_UNESCAPED_UNICODE), 'ip' => '', 'ua' => 'cli']
+        );
+    }
+    if ($ids !== []) {
+        $publisher->rebuildSitemap();
+    }
+    fwrite(STDOUT, sprintf("增量发布：重发 %d 篇、移除 %d 篇、失败 %d 篇（用时 %.2fs）\n",
+        $republished, $removed, count($failed), microtime(true) - $started));
+    exit($failed === [] ? 0 : 1);
+}
 
 if (isset($options['data-only'])) {
     $result += $publisher->publishDataSnapshots();

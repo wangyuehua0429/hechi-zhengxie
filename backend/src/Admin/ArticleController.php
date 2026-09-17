@@ -190,6 +190,7 @@ final class ArticleController extends AdminController
         $userId = (int) ($this->user()['user_id'] ?? 0);
         $done = 0;
         $skipped = [];
+        $changed = [];
         foreach (array_values($ids) as $rawId) {
             $article = $this->articles->adminFind((string) $rawId);
             if ($article === null) {
@@ -199,6 +200,7 @@ final class ArticleController extends AdminController
             $result = $this->applyFlow($article, $action, $note, $userId);
             if ($result['ok']) {
                 $done++;
+                $changed[] = (string) $rawId;
                 continue;
             }
             $skipped[] = '#' . (int) $rawId . '（' . $result['message'] . '）';
@@ -215,6 +217,7 @@ final class ArticleController extends AdminController
                 . (count($skipped) > 3 ? ' 等' : '');
         }
         Flash::set('ok', $message . '。');
+        PublishTrigger::articlesChanged($changed);   // 保存即自动发布：流转后同步静态页
         return new RedirectResponse($back);
     }
 
@@ -370,6 +373,7 @@ final class ArticleController extends AdminController
         }
 
         $this->log('article.create', 'article', (string) $id, ['title' => $title, 'status' => $status, 'channel' => $channelType]);
+        PublishTrigger::articleChanged($id);   // 保存即自动发布：增量重发这一篇详情页
         Flash::set('ok', '已新建稿件 #' . $id . '（' . $this->statusLabel($status) . '）'
             . ($downgraded ? '；当前账号没有发布权限，已存为草稿。' : '，可继续编辑或上传附件。'));
         return new RedirectResponse('/admin/article/' . $id);
@@ -436,6 +440,7 @@ final class ArticleController extends AdminController
         }
 
         Flash::set('ok', $result['message'] . '，可在回收站恢复。');
+        PublishTrigger::articleChanged($id);   // 保存即自动发布：撤下后把静态页一并移除
         return new RedirectResponse('/admin/articles?status=deleted');
     }
 
@@ -468,6 +473,7 @@ final class ArticleController extends AdminController
             return new RedirectResponse('/admin/article/' . $id);
         }
 
+        PublishTrigger::articleChanged($id);   // 保存即自动发布：发布/撤回/退回后同步静态页
         Flash::set('ok', $result['message']);
         if ($action === 'delete') {
             return new RedirectResponse('/admin/articles?status=deleted');
@@ -1188,6 +1194,7 @@ final class ArticleController extends AdminController
         ]);
 
         Flash::set('ok', '已保存：' . $title . '（' . ArticleWorkflow::label((string) $article['status']) . '）');
+        PublishTrigger::articleChanged($id);   // 保存即自动发布：增量重发这一篇详情页
         return new RedirectResponse('/admin/article/' . $id . '?saved=1');
     }
 

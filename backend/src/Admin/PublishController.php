@@ -55,7 +55,7 @@ final class PublishController extends AdminController
             );
             $html = $publisher->publishHtml();
             $this->log('publish.all', 'site', (string) $this->siteId, $html);
-            Flash::set('ok', sprintf(
+            $message = sprintf(
                 '发布完成：静态页 %d 个（首页 1 + 栏目 %d + 栏目分页 %d + 详情 %d）、清理失效页 %d 个，输出到 %s',
                 $html['html_pages'] ?? 0,
                 $html['channels'] ?? 0,
@@ -63,7 +63,14 @@ final class PublishController extends AdminController
                 $html['articles'] ?? 0,
                 $html['pruned'] ?? 0,
                 $this->outDir
-            ));
+            );
+            $capped = (array) ($html['capped'] ?? []);
+            if ($capped !== []) {
+                // 提示条只分「成功／失败」两档，缺口信息并进成功提示，避免被当成错误
+                $message .= '；注意：有 ' . count($capped) . ' 个栏目超过单页上限、内容可能被截断——'
+                    . implode('；', array_slice($capped, 0, 3));
+            }
+            Flash::set('ok', $message);
         } catch (\Throwable $e) {
             Flash::set('error', '发布失败：' . $e->getMessage());
         }
