@@ -15,7 +15,10 @@ namespace HechiZx\Content;
  *   于是「有的段落缩进、有的不缩进」；
  * - 资源地址：720 篇正文与 2063 条图集记录仍指向旧站 `gxhczx.gov.cn`，且是 http，
  *   上线 https 会被混合内容拦掉；而本地 `uploads/legacy` 只有 227/2102 个文件，
- *   一律改写会造成约 89% 破图，所以只对「本地确实有文件」的资源改写；
+ *   一律改写会造成约 89% 破图，所以只对「本地确实有文件」的资源改写成
+ *   `/uploads/legacy/…`，本地没有的改写成同源 `/uploadfiles/…`——旧站域名切到新站后，
+ *   指向旧站的绝对地址必然 404，同源地址至少由 `/uploadfiles/` 兼容路由兜住
+ *   （路由见 deploy/nginx/default.conf 与 backend/public/router.php）；
  * - 标题抄在首行：1058 篇正文以加粗标题行开头，其中与 h1 标题一字不差的那部分会在页面上
  *   同一句话出现两次，只把这种「完全重复」的首行去掉；引题属于正文内容，留在正文开头第一行。
  * - 末尾署名：旧站正文结尾普遍带「(黄荞丹 覃可论)」「口黄正华」这类署名，与标题下的作者栏重复，
@@ -344,7 +347,7 @@ final class BodyNormalizer
         }
     }
 
-    /** 旧站资源地址改写：本地有文件换成站内路径，否则保留旧站但强制 https */
+    /** 旧站资源地址改写：本地有文件换成 `/uploads/legacy/…`，否则换成同源 `/uploadfiles/…` */
     private static function rewriteResourceUrls(\DOMNode $root): void
     {
         foreach (['img' => ['src'], 'video' => ['src', 'poster'], 'source' => ['src']] as $tag => $attrs) {
@@ -363,15 +366,18 @@ final class BodyNormalizer
         }
     }
 
-    /** 单个资源地址：本地有文件换站内路径，否则保留旧站地址但强制 https */
+    /** 单个资源地址：本地有文件换 `/uploads/legacy/…`，否则换同源 `/uploadfiles/…`（兼容路由兜底） */
     public static function normalizeResourceUrl(string $url): string
     {
         if (!preg_match('~^https?://(?:www\.)?gxhczx\.gov\.cn/uploadfiles/(.+)$~i', $url, $matches)) {
             return $url;
         }
         $relative = $matches[1];
-        if (str_contains($relative, '..')) {
-            return 'https://www.gxhczx.gov.cn/uploadfiles/' . $relative;
+        // 只有真正的「上跳路径段」才跳过本地文件判定：文件名里带 `..`（如 附件1..pdf）是合法名字，
+        // 不能连坐。带 `..` 段时也不回旧站绝对地址——给同源路径，浏览器会先把 `..` 折叠掉，
+        // 最坏落到站点根 404，不会再指向旧站域名；兼容路由自己也会拒绝越出 legacy 根的请求。
+        if (in_array('..', explode('/', $relative), true)) {
+            return '/uploadfiles/' . $relative;
         }
 
         $uploads = (string) hechi_config('paths.uploads', dirname(__DIR__, 2) . '/public/uploads');
@@ -380,7 +386,10 @@ final class BodyNormalizer
             return '/uploads/legacy/uploadfiles/' . $relative;
         }
 
-        return 'https://www.gxhczx.gov.cn/uploadfiles/' . $relative;
+        // 本地没有文件：仍给同源路径。旧站域名切过来后，指向旧站的绝对地址必然 404，
+        // 且 http 写法在 https 站点会被按混合内容拦掉；同源地址则由 `/uploadfiles/`
+        // 兼容路由指向同一份 legacy 目录，图片补齐后无需重新发布即可生效。
+        return '/uploadfiles/' . $relative;
     }
 
     private static function fileExists(string $path): bool

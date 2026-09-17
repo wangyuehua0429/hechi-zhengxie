@@ -665,7 +665,9 @@ final class HomeRepository
             $out[] = [
                 'id'           => $id,
                 'title'        => (string) $row['title'],
-                'img'          => (string) $row['thumb'],
+                // 后台「其他栏目」预览也用同一个出口：库里仍有 http 旧站地址，
+                // 而后台 CSP 的 img-src 是 'self' data:，不归一化会直接拦掉（与 ChannelRepository 一致）
+                'img'          => BodyNormalizer::normalizeResourceUrl((string) $row['thumb']),
                 'date'         => substr((string) $row['published_at'], 0, 16),
                 'channel'      => $channel,
                 'channel_name' => $this->channelName($channel),
@@ -750,7 +752,7 @@ final class HomeRepository
                         $value['url'] = '/article/' . $id . '.html';
                     }
                 }
-                // 图片地址与正文同口径（本地有文件走站内 /uploads/legacy，其余强制 https）：
+                // 图片地址与正文同口径（本地有文件走 /uploads/legacy/…，其余走同源 /uploadfiles/…）：
                 // 首页「友情链接」等处的 logo 仍是旧站 http 地址，不处理会在 https 站点上混合内容告警
                 if (isset($value['img']) && is_string($value['img']) && $value['img'] !== '') {
                     $value['img'] = BodyNormalizer::normalizeResourceUrl($value['img']);

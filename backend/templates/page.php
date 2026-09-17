@@ -73,6 +73,8 @@ $navLink = static function (array $item) use ($esc): string {
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/inner.css">
   <script src="/js/motion-toggle.js"></script>
+  <!-- 历史图片地址可能 404（旧站 uploadfiles 未补齐），同源脚本换成占位图；用事件监听而非内联事件属性，见脚本注释 -->
+  <script src="/js/img-fallback.js"></script>
 </head>
 <body data-font="default">
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -189,6 +191,9 @@ $navLink = static function (array $item) use ($esc): string {
                 <?php $isCurrent = (string) ($sibling['url'] ?? '') === $pageBase; ?>
                 <?php if ($isCurrent): ?>
                   <span class="channel-btn is-active" aria-current="true"><?= $esc((string) ($sibling['label'] ?? '')) ?></span>
+                <?php elseif ((string) ($sibling['url'] ?? '') === ''): ?>
+                  <?php /* 目标稿件不公开／不产静态页：与县区站外链同一处置，退成纯文本，不留 404 链接 */ ?>
+                  <span class="channel-btn is-plain"><?= $esc((string) ($sibling['label'] ?? '')) ?></span>
                 <?php else: ?>
                   <a class="channel-btn" href="<?= $esc((string) ($sibling['url'] ?? '#')) ?>"><?= $esc((string) ($sibling['label'] ?? '')) ?></a>
                 <?php endif; ?>

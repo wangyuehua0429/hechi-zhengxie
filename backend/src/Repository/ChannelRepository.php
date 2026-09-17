@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace HechiZx\Repository;
 
+use HechiZx\Content\BodyNormalizer;
 use HechiZx\Support\Db;
 use HechiZx\Support\Json;
 use HechiZx\Publish\StaticPaths;
@@ -254,7 +255,10 @@ final class ChannelRepository
             'datetime' => $published,
             'source'   => (string) $row['source'],
             'views'    => is_numeric($row['views']) ? (int) $row['views'] : (string) $row['views'],
-            'img'      => (string) $row['thumb'],
+            // 缩略图与正文同口径：本地有文件走 /uploads/legacy/…，没有的走同源
+            // /uploadfiles/…。库里仍有 http 旧站地址，不归一化会既破图又在 https
+            // 站点触发混合内容拦截（与 Publish\Publisher、HomeRepository 出口一致）。
+            'img'      => BodyNormalizer::normalizeResourceUrl((string) $row['thumb']),
             'hasBody'  => (int) $row['has_body'] === 1,
         ];
         if (($row['role'] ?? '') !== '') {

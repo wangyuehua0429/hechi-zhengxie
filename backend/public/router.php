@@ -7,6 +7,7 @@
  *   /admin*     内容管理后台（同上）
  *   /member*    政协委员提案门户（同上）
  *   /assets/*   /uploads/*   后台样式与上传文件（backend/public 下真实文件）
+ *   /uploadfiles/*            旧站上传目录，映射到 uploads/legacy/uploadfiles（历史正文与旧站外链）
  *   其余路径     站点静态页（frontend/home，含 js/css/data/images）
  *   /article/ /channel/ /sitemap.xml   静态化发布产物（与部署时的 Nginx location 一致）
  *   旧地址       静态页里没有的，查 sys_url_redirect 命中后 301（见 backend/bin/redirects.php）
@@ -56,23 +57,43 @@ if (($served === false || !is_file($served)) && $publishRoot !== false && $publi
     }
 }
 
+// 旧站上传目录：/uploadfiles/<年月>/<文件> → uploads/legacy/uploadfiles/<年月>/<文件>
+// 与 deploy/nginx/default.conf 的 `location ^~ /uploadfiles/` 同一口径。历史正文里仍留着
+// 这个形状的地址（含旧站直接外链），旧站域名切过来后只有这里能接住。
+// realpath 之后再比对前缀，越出 legacy 根（`..`、符号链接）一律当没找到。
+$legacyRoot = realpath(__DIR__ . '/uploads/legacy/uploadfiles');
+$legacyUploadMiss = false;
+if (($served === false || !is_file($served)) && $legacyRoot !== false && str_starts_with($path, '/uploadfiles/')) {
+    $candidate = realpath($legacyRoot . '/' . ltrim(substr($path, strlen('/uploadfiles/')), '/'));
+    if ($candidate !== false && is_file($candidate) && str_starts_with($candidate, $legacyRoot . '/')) {
+        $served = $candidate;
+    } else {
+        // 图片没补齐时一条栏目页会几十上百个缺图请求；映射表里没有任何 /uploadfiles 规则
+        // （见 publish/redirects/url-map.csv），不必每次都连库查一遍 301，直接给 404。
+        $legacyUploadMiss = true;
+    }
+}
+
 if ($frontendRoot === false || $served === false
     || (!str_starts_with($served, $frontendRoot)
-        && ($publishRoot === false || $publishRoot === '' || !str_starts_with($served, $publishRoot)))
+        && ($publishRoot === false || $publishRoot === '' || !str_starts_with($served, $publishRoot))
+        && ($legacyRoot === false || !str_starts_with($served, $legacyRoot . '/')))
     || !is_file($served)) {
     // 旧地址 301：只在文件确实不存在时才连库，正常静态请求不受影响
-    try {
-        $db = new HechiZx\Support\Db((array) hechi_config('db'));
-        $legacy = new HechiZx\Http\LegacyRedirect(
-            new HechiZx\Publish\RedirectMap($db, (int) hechi_config('site.site_id', 1))
-        );
-        $redirect = $legacy->handle(HechiZx\Http\Request::fromGlobals());
-        if ($redirect !== null) {
-            $redirect->send();
-            return;
+    if (!$legacyUploadMiss) {
+        try {
+            $db = new HechiZx\Support\Db((array) hechi_config('db'));
+            $legacy = new HechiZx\Http\LegacyRedirect(
+                new HechiZx\Publish\RedirectMap($db, (int) hechi_config('site.site_id', 1))
+            );
+            $redirect = $legacy->handle(HechiZx\Http\Request::fromGlobals());
+            if ($redirect !== null) {
+                $redirect->send();
+                return;
+            }
+        } catch (Throwable $e) {
+            // 映射表不可用不该把 404 变成 500：照旧给 404
         }
-    } catch (Throwable $e) {
-        // 映射表不可用不该把 404 变成 500：照旧给 404
     }
 
     http_response_code(404);
@@ -92,6 +113,7 @@ $types = [
     'png'  => 'image/png',
     'gif'  => 'image/gif',
     'webp' => 'image/webp',
+    'mp4'  => 'video/mp4',
     'ico'  => 'image/x-icon',
     'woff2' => 'font/woff2',
     'txt'  => 'text/plain; charset=utf-8',

@@ -15,6 +15,7 @@
 
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import http from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -128,6 +129,51 @@ async function main() {
     check("sitemap 地址无重复", locs.length > 0 && new Set(locs).size === locs.length,
       "共 " + locs.length + " 条，去重后 " + new Set(locs).size + " 条");
 
+    // ---- 县（区）政协页的县区站外链：旧站子域名全部不可访问，url 留空后按纯文本渲染
+    // （2026-09-17：lc/hj/nd/te/da/dh.gxhczx.gov.cn 实测均不可访问）
+    const qyPage = path.join(channelDir, "xianqu-zhengxie", "index.html");
+    const qyHtml = existsSync(qyPage) ? readFileSync(qyPage, "utf8") : "";
+    check("县（区）政协页不再输出已失效的县区子站外链",
+      qyHtml !== "" && !/href="https?:\/\/(?:lc|hj|nd|te|da|dh)\.gxhczx\.gov\.cn/i.test(qyHtml)
+        && /<span class="county-link is-plain">罗城<\/span>/.test(qyHtml),
+      qyHtml === "" ? "没有生成 " + qyPage : "");
+
+    // ---- 一页式栏目的左栏兄弟项：库里的原型期地址 detail.html?id= 要换成静态详情页地址
+    // （2026-09-17：相对地址在 /channel/<目录名>/ 下会解析成 .../detail.html，必然 404）
+    const siblingId = phpEval(php, env,
+      "require 'backend/src/bootstrap.php'; $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+      + " $rows = $db->select(\"SELECT article_id FROM cms_article WHERE site_id = 1 AND status = 'published'"
+      + " AND public_scope = 'public' AND has_body = 1 ORDER BY article_id ASC LIMIT 1\");"
+      + " echo $rows[0]['article_id'] ?? '';");
+    const gaikuangPage = path.join(channelDir, "zhengxie-gaikuang", "index.html");
+    if (siblingId === "") {
+      check("一页式栏目的 detail.html?id= 改指静态详情页", false, "样例库里没有可用稿件");
+    } else {
+      phpEval(php, env,
+        "require 'backend/src/bootstrap.php'; $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+        + " $siblings = json_encode(["
+        + ` ['type' => '999', 'name' => '政协简介', 'url' => 'detail.html?id=${siblingId}'],`
+        // 稿件号撞上栏目号（202 是 zhengxie-gaikuang 自己的栏目号）：url 形态说它是稿件页，
+        // 就必须链到详情页，不能被 type 映射抢走
+        + ` ['type' => '202', 'name' => '撞栏目号', 'url' => 'detail.html?id=${siblingId}'],`
+        // 目标稿件不产静态页：不能把 detail.html?id= 这种相对地址留在页面上（必然 404）
+        + " ['type' => '999', 'name' => '未公开稿件', 'url' => 'detail.html?id=99999998']"
+        + "], JSON_UNESCAPED_UNICODE);"
+        + " $db->execute(\"UPDATE sys_channel SET siblings_json = :s WHERE site_id = 1 AND slug = 'zhengxie-gaikuang'\", ['s' => $siblings]);");
+      const republished = runPhp(php, "backend/bin/publish.php", env, ["--out=" + publishDir, "--html-only"]);
+      const gaikuangHtml = existsSync(gaikuangPage) ? readFileSync(gaikuangPage, "utf8") : "";
+      check("一页式栏目的 detail.html?id= 改指 /article/<稿件号>.html",
+        republished.status === 0
+          && (gaikuangHtml.match(new RegExp('href="/article/' + siblingId + '\\.html"', "g")) || []).length === 2,
+        gaikuangHtml === "" ? "没有生成 " + gaikuangPage : "");
+      check("兄弟项的 type 撞上栏目号时仍走详情页，不被栏目映射抢走",
+        gaikuangHtml.includes('>撞栏目号</a>'), "");
+      check("目标稿件不产静态页的兄弟项退成纯文本（不留 detail.html?id= 死链）",
+        gaikuangHtml.includes('class="channel-btn is-plain">未公开稿件</span>')
+          && !gaikuangHtml.includes("detail.html?id="),
+        gaikuangHtml === "" ? "没有生成 " + gaikuangPage : "");
+    }
+
     // ---- 归档稿件（public_scope=archive）不产静态页、不登记 301
     const archiveId = 88881;
     phpEval(php, env,
@@ -215,7 +261,25 @@ async function main() {
     check("部署配置不再有取不到 $1 的旧 301 规则",
       !deployConf.includes("return 301 /article/$1") && !deployConf.includes("location ^~ /news-view-"));
     check("部署配置引用了生成的 301 片段并直出栏目静态页",
-      deployConf.includes("redirects/nginx-301.conf") && deployConf.includes("location /channel/"));
+      deployConf.includes("redirects/nginx-301.conf") && deployConf.includes("location ^~ /channel/"));
+    // 2026-09-17：末尾那条按扩展名的正则 location 会盖过没有 ^~ 的前缀 location，
+    // /uploads/x.jpg、/assets/admin.css 会被截走 → 404（本地 router.php 测不出来）。
+    check("部署配置的前缀 location 都带 ^~（避免被末尾正则 location 截胡）",
+      ["^~ /api/", "^~ /admin", "^~ /member", "^~ /assets/", "^~ /uploads/", "^~ /uploadfiles/",
+        "^~ /data/", "^~ /article/", "^~ /channel/"]
+        .every((prefix) => deployConf.includes("location " + prefix)));
+    check("部署配置把旧站 /uploadfiles/ 指到 legacy 上传目录",
+      /location \^~ \/uploadfiles\/ \{[^}]*alias \/var\/www\/backend\/public\/uploads\/legacy\/uploadfiles\/;/.test(deployConf));
+
+    // 前缀 location 计数兜底：以后新增不带 ^~ 的前缀 location 时这里会红（正则 location 不受影响）
+    const barePrefixLocations = [...deployConf.matchAll(/^\s*location\s+(\/[^\s{]*)\s*\{/gm)]
+      .map((m) => m[1]);
+    check("没有遗漏 ^~ 的前缀 location", barePrefixLocations.length === 0, barePrefixLocations.join(" "));
+
+    const routerPhp = readFileSync(path.join(REPO, "backend/public/router.php"), "utf8");
+    check("本地路由同样接住 /uploadfiles/（与 Nginx 同口径）",
+      routerPhp.includes("str_starts_with($path, '/uploadfiles/')")
+        && routerPhp.includes("uploads/legacy/uploadfiles"));
 
     // ---- 幂等
     const again = runPhp(php, "backend/bin/redirects.php", env, ["--dry-run"]);
@@ -293,6 +357,37 @@ async function main() {
     const r7 = await noFollow("/news_view.php?id=62180&q=33");
     check("县区子站参数（q≠22）不映射，照旧 404", r7.status === 404, String(r7.status));
     const r8 = await noFollow("/html/news-view-999999.html");
+    // ---- 运行期：/uploadfiles/ 兼容路由（真发请求，不看源码字符串）
+    // 旧站图片是逐目录拷进来的，测试不能假设某个真实文件在库里，所以自己放一个一次性夹具再删掉。
+    const legacyFixtureDir = path.join(REPO, "backend/public/uploads/legacy/uploadfiles/_selfcheck");
+    const legacyFixtureName = "probe-" + Date.now() + ".jpg";
+    mkdirSync(legacyFixtureDir, { recursive: true });
+    writeFileSync(path.join(legacyFixtureDir, legacyFixtureName), Buffer.from([0xff, 0xd8, 0xff, 0xd9]));
+    try {
+      const hit = await fetch(base + "/uploadfiles/_selfcheck/" + legacyFixtureName);
+      check("运行期：/uploadfiles/ 兼容路由直出 legacy 文件",
+        hit.status === 200 && (hit.headers.get("content-type") || "").startsWith("image/jpeg"),
+        hit.status + " " + hit.headers.get("content-type"));
+      const miss = await fetch(base + "/uploadfiles/_selfcheck/not-copied-" + legacyFixtureName);
+      check("运行期：缺图的 /uploadfiles/ 直接 404（不查 301 映射）", miss.status === 404, String(miss.status));
+      // 穿越用例必须绕开 fetch：WHATWG URL 与浏览器都会先折叠 `..` 与 `%2e%2e`，
+      // 那样请求根本没带越界路径到服务端。node:http 的 path 参数是原样发出的。
+      const rawGet = (rawPath) => new Promise((resolve, reject) => {
+        const req = http.request({ host: "127.0.0.1", port, path: rawPath, method: "GET" }, (res) => {
+          res.resume();
+          resolve(res.statusCode);
+        });
+        req.on("error", reject);
+        req.end();
+      });
+      const trav1 = await rawGet("/uploadfiles/../../backend/config/config.php");
+      const trav2 = await rawGet("/uploadfiles/%2e%2e/%2e%2e/backend/public/index.php");
+      check("运行期：/uploadfiles/ 拒绝目录穿越（明文与编码两种写法）",
+        trav1 === 404 && trav2 === 404, trav1 + " / " + trav2);
+    } finally {
+      rmSync(path.join(legacyFixtureDir, legacyFixtureName), { force: true });
+      try { rmSync(legacyFixtureDir, { recursive: true, force: true }); } catch (e) { /* 目录非空（他人在用）就留着 */ }
+    }
     check("未登记的旧地址照旧 404（不 301 到空页）", r8.status === 404, String(r8.status));
     const archiveApi = await noFollow("/api/v1/article/88881");
     check("归档稿件：公开接口取不到（404）", archiveApi.status === 404, String(archiveApi.status));

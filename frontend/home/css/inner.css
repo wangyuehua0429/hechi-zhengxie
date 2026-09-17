@@ -125,6 +125,9 @@
   box-shadow: none;
 }
 .channel-btn.is-active::before { background: var(--primary); }
+/* 无可用地址的兄弟项（目标稿件不公开／不产静态页）：退成纯文本，不做成死链 */
+.channel-btn.is-plain { color: var(--muted); }
+.channel-btn.is-plain:hover { border-color: var(--border); color: var(--muted); transform: none; }
 
 /* ---------- 一页式栏目（layout=about）：栏目简介块 ---------- */
 .about-body { padding: 16px 20px 18px; }

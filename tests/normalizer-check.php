@@ -102,10 +102,14 @@ check(
 
 /* ---------------------------------------------------------------- 资源地址 */
 
-$missing = normalize('<p><img src="http://gxhczx.gov.cn/uploadfiles/20230726/20230726115207496.jpg" alt=""></p>');
+// 用一次性合成名，不要用真实待拷清单（media_manifest.csv）里的路径：
+// 图片从旧站补齐后，那条“本地没有文件”的断言会反过来变红，红的却是补图成功。
+$absent = '_selfcheck/absent-' . bin2hex(random_bytes(4)) . '.jpg';
+$missing = normalize('<p><img src="http://gxhczx.gov.cn/uploadfiles/' . $absent . '" alt=""></p>');
 check(
-    '资源：本地没有文件的旧站图片保留旧站地址，但强制 https（避免混合内容被拦）',
-    str_contains($missing, 'src="https://www.gxhczx.gov.cn/uploadfiles/20230726/20230726115207496.jpg"'),
+    '资源：本地没有文件的旧站图片改成本站 /uploadfiles/ 路径（由兼容路由指向 legacy 目录）',
+    str_contains($missing, 'src="/uploadfiles/' . $absent . '"')
+        && !str_contains($missing, 'gxhczx.gov.cn'),
     $missing
 );
 
@@ -131,11 +135,11 @@ if (!$madeFixture) {
     @unlink($fixturePath);
 }
 
-$video = normalize('<div><video src="http://gxhczx.gov.cn/uploadfiles/20231121/a.mp4" poster="http://gxhczx.gov.cn/uploadfiles/20231121/a.png" controls></video></div>');
+$video = normalize('<div><video src="http://gxhczx.gov.cn/uploadfiles/_selfcheck/absent-video.mp4" poster="http://gxhczx.gov.cn/uploadfiles/_selfcheck/absent-poster.png" controls></video></div>');
 check(
     '资源：video 的 src 与 poster 一起改写',
-    str_contains($video, 'src="https://www.gxhczx.gov.cn/uploadfiles/20231121/a.mp4"')
-        && str_contains($video, 'poster="https://www.gxhczx.gov.cn/uploadfiles/20231121/a.png"'),
+    str_contains($video, 'src="/uploadfiles/_selfcheck/absent-video.mp4"')
+        && str_contains($video, 'poster="/uploadfiles/_selfcheck/absent-poster.png"'),
     $video
 );
 
@@ -220,17 +224,25 @@ check(
 check('题区拆分：空正文返回空', BodyNormalizer::splitTitleZone('') === ['lines' => [], 'rest' => '']);
 
 $images = BodyNormalizer::normalizeImages([
-    'http://gxhczx.gov.cn/uploadfiles/20231121/a.png',
-    'http://gxhczx.gov.cn/uploadfiles/20231121/b.mp4',
+    'http://gxhczx.gov.cn/uploadfiles/_selfcheck/absent-img-a.png',
+    'http://gxhczx.gov.cn/uploadfiles/_selfcheck/absent-img-b.mp4',
     '/uploads/legacy/uploadfiles/x/c.jpg',
 ]);
 check(
     '图集：剔除视频文件，保留图片并改写旧站地址',
     $images === [
-        'https://www.gxhczx.gov.cn/uploadfiles/20231121/a.png',
+        '/uploadfiles/_selfcheck/absent-img-a.png',
         '/uploads/legacy/uploadfiles/x/c.jpg',
     ],
     json_encode($images, JSON_UNESCAPED_UNICODE)
+);
+
+// 目录上跳的地址不做本地文件判定，也不能回旧站绝对地址
+$traversal = BodyNormalizer::normalizeResourceUrl('http://gxhczx.gov.cn/uploadfiles/../secret.jpg');
+check(
+    '资源：带上跳的地址只回本站兼容路径，不回旧站域名',
+    $traversal === '/uploadfiles/../secret.jpg',
+    $traversal
 );
 
 /* ---------------------------------------------------------------- 兜底与幂等 */

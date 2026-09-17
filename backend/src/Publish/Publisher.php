@@ -92,6 +92,13 @@ final class Publisher
         // 栏目页地址统一由 StaticPaths 决定：slug 重复的一级栏目会补上栏目号，
         // 保证 43 个栏目 43 个路径，不互相覆盖（301 映射表也用同一份结果）。
         $channelPaths = StaticPaths::channelPaths($channels);
+        // 一页式栏目的左栏兄弟项在库里存的是原型期地址 `detail.html?id=<稿件号>`，
+        // 要映射成发布器真正产出的 `/article/<稿件号>.html`，先备一份会产出静态页的稿件号
+        // （与详情页循环用的是同一份 $articles，口径不会分叉）。
+        $articleIds = [];
+        foreach ($articles as $article) {
+            $articleIds[(string) $article['id']] = true;
+        }
         $shell = $this->shellData();
 
         // 首页
@@ -144,7 +151,7 @@ final class Publisher
                         'counties' => array_values(array_filter((array) ($channel['counties'] ?? []), 'is_array')),
                         'hidePager' => (string) $channel['layout'] === 'leaders',
                         'leaders'  => (string) $channel['layout'] === 'leaders',
-                        'siblings' => $this->localSiblings($siblings, $channelPaths),
+                        'siblings' => $this->localSiblings($siblings, $channelPaths, $articleIds),
                         'current'  => (string) $channel['type'],
                     ],
                 ]));
@@ -440,7 +447,7 @@ final class Publisher
             return $link;
         };
         // 图片地址：首页模块带来的条目写的是前台相对路径（images/…），在 /channel/… 下会 404，
-        // 这里统一补成站点根绝对路径；旧站地址仍走 BodyNormalizer 的本地改写／强制 https。
+        // 这里统一补成站点根绝对路径；旧站 uploadfiles 地址走 BodyNormalizer 的本地改写／同源兜底。
         $img = static function (array $item): string {
             $value = trim((string) ($item['img'] ?? ''));
             if ($value === '') {
@@ -578,16 +585,34 @@ final class Publisher
      *
      * @param list<array<string, mixed>> $siblings
      * @param array<string, string>      $channelPaths
+     * @param array<string, bool>        $articleIds 会产出静态详情页的稿件号
      * @return list<array{label: string, url: string, current: bool}>
      */
-    private function localSiblings(array $siblings, array $channelPaths): array
+    private function localSiblings(array $siblings, array $channelPaths, array $articleIds = []): array
     {
         $out = [];
         foreach ($siblings as $sibling) {
             $type = (string) ($sibling['type'] ?? '');
             $url = (string) ($sibling['url'] ?? '');
-            if (isset($channelPaths[$type])) {
+            // 库里 siblings 的 type 可能是栏目号也可能是稿件号（现库「政协概况」组的首项就是
+            // {"type":"202","url":"detail.html?id=202"}），所以两种信号要合起来看：
+            //   ① url 是 `detail.html?id=<稿件号>` 且该稿件确实产静态页 → 详情页。
+            //      「政协简介／章程／机构设置」这类一页式栏目的 url 就是这个形态。
+            //      这条必须先判：稿件号一旦撞上 43 个栏目号之一（306／401／901…），
+            //      只按 type 映射会静默链到栏目页。
+            //   ② 否则按 type 映射到栏目页——202 这种「组容器自己」的条目就靠这条保住，
+            //      它渲染成当前页高亮（url 与 pageBase 相同）。
+            //   ③ 都没有可指的目标时留空 url，由模板渲染成纯文本：库里那个相对地址在
+            //      `/channel/<目录名>/` 下会解析成 `.../detail.html`，把 404 留在页面上。
+            $detailId = preg_match('~(?:^|/)detail\.html\?id=(\d+)~', $url, $detailMatch) === 1
+                ? $detailMatch[1]
+                : '';
+            if ($detailId !== '' && isset($articleIds[$detailId])) {
+                $url = '/article/' . $detailId . '.html';
+            } elseif (isset($channelPaths[$type])) {
                 $url = $channelPaths[$type];
+            } elseif ($detailId !== '') {
+                $url = '';
             } elseif (preg_match('~channel\.html\?id=([A-Za-z0-9_]+)~', $url, $match) === 1 && isset($channelPaths[$match[1]])) {
                 $url = $channelPaths[$match[1]];
             }
@@ -727,8 +752,8 @@ final class Publisher
         return $this->imageNewsCache = array_map(static fn (array $row): array => [
             'title' => (string) $row['title'],
             'url'   => '/article/' . (string) $row['article_id'] . '.html',
-            // 缩略图也要走正文同一套资源地址归一化：本地有文件走站内 /uploads/legacy，
-            // 没有的强制 https，避免静态页里再出现 http 旧站地址（混合内容）
+            // 缩略图也要走正文同一套资源地址归一化：本地有文件走 /uploads/legacy/…，
+            // 没有的走同源 /uploadfiles/…（兼容路由兜底），静态页里不再出现旧站域名
             'img'   => BodyNormalizer::normalizeResourceUrl((string) $row['thumb']),
         ], $rows);
     }
