@@ -34,6 +34,7 @@ $actionLabels = [
 
 <p class="muted">共 <?= (int) $total ?> 条，第 <?= (int) $page ?>/<?= (int) $pages ?> 页。日志按时间倒序，保留策略见发布运维文档。</p>
 
+<div class="table-scroll">
 <table class="grid">
   <thead><tr><th>时间</th><th>账号</th><th>动作</th><th>对象</th><th>说明</th><th>来源 IP</th></tr></thead>
   <tbody>
@@ -52,6 +53,7 @@ $actionLabels = [
     <?php endif; ?>
   </tbody>
 </table>
+</div>
 
 <?php if ($pages > 1): ?>
   <nav class="pager">

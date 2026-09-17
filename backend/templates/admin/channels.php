@@ -76,7 +76,7 @@ foreach ($groups as $group) {
         <th scope="col">子栏目</th>
         <th scope="col" class="nowrap">栏目号</th>
         <th scope="col" class="nowrap">版式</th>
-        <th scope="col" class="nowrap">稿件数</th>
+        <th scope="col" class="nowrap num">稿件数</th>
         <th scope="col" class="nowrap">状态</th>
         <th scope="col" class="col-actions">排序与操作</th>
       </tr>
@@ -102,7 +102,7 @@ foreach ($groups as $group) {
             </td>
             <td class="nowrap"><code><?= hechi_e($type) ?></code></td>
             <td class="nowrap"><?= hechi_e($layoutLabels[(string) $ch['layout']] ?? (string) $ch['layout']) ?></td>
-            <td class="nowrap">
+            <td class="nowrap num">
               <a href="/admin/articles?channel=<?= hechi_e($type) ?>"><?= (int) $ch['article_count'] ?></a>
             </td>
             <td class="nowrap">

@@ -17,6 +17,7 @@ declare(strict_types=1);
   管理员角色恒有全部权限，不受勾选影响。
 </p>
 
+<div class="table-scroll">
 <table class="grid">
   <thead><tr><th>ID</th><th>代码</th><th>名称</th><th>说明</th><th>权限</th><th>栏目范围</th><th>账号</th><th></th></tr></thead>
   <tbody>
@@ -34,3 +35,4 @@ declare(strict_types=1);
     <?php endforeach; ?>
   </tbody>
 </table>
+</div>

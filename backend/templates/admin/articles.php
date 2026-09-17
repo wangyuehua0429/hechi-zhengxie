@@ -15,6 +15,8 @@
  * @var int $pages
  * @var int $pageSize
  * @var list<int> $pageSizes
+ * @var int $maxBulk
+ * @var string $bulkKey
  * @var array<string, string> $sorts
  * @var array<string, array{label:string, danger:bool, needNote:bool, noteLabel:string}> $bulkActions
  * @var list<array<string, mixed>> $channels
@@ -107,7 +109,9 @@ if ((string) $filters['keyword'] !== '') {
     <p class="subtitle">
       共 <strong><?= (int) $total ?></strong> 篇稿件
       <?= $activeFilters === [] ? '（全部）' : '· 已筛选 ' . hechi_e(implode('　', $activeFilters)) ?>
-      <?= $orderable ? '· 可用「↑ ↓」调整该栏目内的顺序' : '' ?>
+      <?php /* 排序按钮只在按单个栏目筛选时出现：这里把「为什么现在没有」也说清楚，
+              免得用户以为是自己没有权限。 */ ?>
+      <?= $orderable ? '· 可用「↑ ↓」调整该栏目内的顺序' : '· 按单个栏目筛选后，可用「↑ ↓」调整该栏目内的顺序' ?>
       <?php if ($activeFilters !== []): ?>
         <a class="clear-filter" href="/admin/articles">清除筛选</a>
       <?php endif; ?>
@@ -187,11 +191,13 @@ if ((string) $filters['keyword'] !== '') {
 </section>
 
 <?php if ($bulkActions !== []): ?>
-  <form method="post" action="/admin/articles/bulk" id="bulk-form" class="bulk-form">
+  <form method="post" action="/admin/articles/bulk" id="bulk-form" class="bulk-form"
+        data-bulk-max="<?= (int) ($maxBulk ?? 100) ?>"
+        data-bulk-key="<?= hechi_e((string) ($bulkKey ?? '')) ?>">
     <?= $csrf ?>
     <input type="hidden" name="back" value="<?= hechi_e($currentUrl) ?>">
     <div class="bulk-bar" data-bulk-bar>
-      <span class="bulk-count">已选 <strong data-bulk-count>0</strong> 篇</span>
+      <span class="bulk-count">已选 <strong data-bulk-count>0</strong> 篇<span class="bulk-scope" data-bulk-scope hidden></span></span>
       <label class="bulk-field">批量操作
         <select name="action" data-bulk-action>
           <option value="">请选择…</option>
@@ -205,12 +211,16 @@ if ((string) $filters['keyword'] !== '') {
       </label>
       <button type="submit" class="btn-primary">执行</button>
       <button type="button" class="btn btn-ghost" data-bulk-clear>取消选择</button>
-      <span class="muted bulk-hint">每次最多 100 篇；「移入回收站」是单篇操作，要逐篇确认。</span>
+      <?php /* 单次上限取自 ArticleController::MAX_BULK（模板与服务端同一个数）；
+              选择本身跨页保留（脚本记在 sessionStorage，不在本页的 id 用隐藏域补进表单），
+              所以提示里不再说「只限本页」。 */ ?>
+      <span class="muted bulk-hint">单次最多处理 <?= (int) ($maxBulk ?? 100) ?> 篇<span class="js-only">，翻页不会丢掉已选</span>；「移入回收站」是单篇操作，要逐篇确认。</span>
+      <p class="bulk-error" data-bulk-error hidden role="alert"></p>
     </div>
   </form>
 <?php endif; ?>
 
-<p class="muted list-meta">共 <?= (int) $total ?> 篇，第 <?= (int) $page ?>/<?= (int) $pages ?> 页</p>
+<p class="muted list-meta">第 <?= (int) $page ?>/<?= (int) $pages ?> 页，本页 <?= count($items) ?> 篇</p>
 
 <div class="table-scroll">
 <table class="grid article-table">
@@ -302,30 +312,45 @@ if ((string) $filters['keyword'] !== '') {
               $previewUrl = '/detail.html?id=' . $id;
               $isPublished = (string) $item['status'] === 'published';
               $isPublic = (string) ($item['public_scope'] ?? 'public') === 'public';
+              // 置灰时把原因同时写给鼠标（title）与读屏（按钮内 visually-hidden 文本）：
+              // 只写在 title 里，键盘与读屏用户拿不到这个信息。
+              $previewReason = $isPublished ? '归档稿不对外发布，没有对外页面' : '发布后可预览';
+              $copyReason = $isPublished ? '归档稿不对外发布，没有对外地址' : '发布后可复制链接';
             ?>
-            <?php if ($isPublished && $isPublic): ?>
-              <a class="btn btn-sm btn-ghost" href="<?= hechi_e($previewUrl) ?>" target="_blank" rel="noopener">预览</a>
-              <button type="button" class="btn btn-sm btn-ghost" data-copy-link="<?= hechi_e($official) ?>">复制链接</button>
-            <?php else: ?>
-              <span class="btn btn-sm is-disabled" aria-disabled="true"
-                    title="<?= $isPublished ? '归档稿不对外发布，没有对外页面' : '发布后可预览' ?>">预览</span>
-              <span class="btn btn-sm is-disabled" aria-disabled="true"
-                    title="<?= $isPublished ? '归档稿不对外发布，没有对外地址' : '发布后可复制链接' ?>">复制链接</span>
+            <?php /* 低频动作收进「更多」：一行四五个外观相同的按钮，找「编辑」得先挑一遍。
+                     details／summary 是浏览器原生的，没有脚本也能展开，不破坏渐进增强。 */ ?>
+            <?php if (($isPublished && $isPublic) || ($item['flow_rules'] ?? []) !== []): ?>
+              <details class="row-more">
+                <summary class="btn btn-sm btn-ghost">更多<span aria-hidden="true">▾</span></summary>
+                <div class="row-more-menu">
+                  <?php if ($isPublished && $isPublic): ?>
+                    <a class="btn btn-sm btn-ghost" href="<?= hechi_e($previewUrl) ?>" target="_blank" rel="noopener">预览</a>
+                    <button type="button" class="btn btn-sm btn-ghost" data-copy-link="<?= hechi_e($official) ?>">复制链接</button>
+                  <?php else: ?>
+                    <button type="button" class="btn btn-sm btn-ghost is-disabled" disabled title="<?= hechi_e($previewReason) ?>">
+                      预览<span class="visually-hidden">（<?= hechi_e($previewReason) ?>）</span>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-ghost is-disabled" disabled title="<?= hechi_e($copyReason) ?>">
+                      复制链接<span class="visually-hidden">（<?= hechi_e($copyReason) ?>）</span>
+                    </button>
+                  <?php endif; ?>
+                  <?php foreach (($item['flow_rules'] ?? []) as $action => $rule): ?>
+                    <?php if ((string) $action === 'delete'): ?>
+                      <a class="btn btn-sm btn-danger-outline" href="/admin/article/<?= $id ?>/delete"><?= hechi_e((string) $rule['label']) ?></a>
+                    <?php elseif (!empty($rule['needNote'])): ?>
+                      <a class="btn btn-sm<?= !empty($rule['danger']) ? ' btn-danger-outline' : '' ?>"
+                         href="/admin/article/<?= $id ?>#flow"><?= hechi_e((string) $rule['label']) ?>…</a>
+                    <?php else: ?>
+                      <form method="post" action="/admin/article/<?= $id ?>/flow" class="inline">
+                        <?= $csrf ?>
+                        <input type="hidden" name="action" value="<?= hechi_e((string) $action) ?>">
+                        <button type="submit" class="btn btn-sm<?= !empty($rule['danger']) ? ' btn-danger-outline' : '' ?>"><?= hechi_e((string) $rule['label']) ?></button>
+                      </form>
+                    <?php endif; ?>
+                  <?php endforeach; ?>
+                </div>
+              </details>
             <?php endif; ?>
-            <?php foreach (($item['flow_rules'] ?? []) as $action => $rule): ?>
-              <?php if ((string) $action === 'delete'): ?>
-                <a class="btn btn-sm btn-danger-outline" href="/admin/article/<?= $id ?>/delete"><?= hechi_e((string) $rule['label']) ?></a>
-              <?php elseif (!empty($rule['needNote'])): ?>
-                <a class="btn btn-sm<?= !empty($rule['danger']) ? ' btn-danger-outline' : '' ?>"
-                   href="/admin/article/<?= $id ?>#flow"><?= hechi_e((string) $rule['label']) ?>…</a>
-              <?php else: ?>
-                <form method="post" action="/admin/article/<?= $id ?>/flow" class="inline">
-                  <?= $csrf ?>
-                  <input type="hidden" name="action" value="<?= hechi_e((string) $action) ?>">
-                  <button type="submit" class="btn btn-sm<?= !empty($rule['danger']) ? ' btn-danger-outline' : '' ?>"><?= hechi_e((string) $rule['label']) ?></button>
-                </form>
-              <?php endif; ?>
-            <?php endforeach; ?>
           </div>
         </td>
       </tr>

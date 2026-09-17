@@ -23,6 +23,8 @@ final class ArticleController extends AdminController
 {
     private const PAGE_SIZE = 20;
     private const PAGE_SIZES = [20, 50, 100];
+    /** 批量流转的单次上限：前端提示、客户端拦截与服务端校验共用这一个数 */
+    public const MAX_BULK = 100;
     /** 列表可排序的字段：值会进 SQL 的 ORDER BY，白名单之外一律回落到发布时间 */
     private const SORTS = [
         'published_at' => '发布时间',
@@ -125,6 +127,10 @@ final class ArticleController extends AdminController
             'pages'    => max(1, (int) ceil($result['total'] / $pageSize)),
             'pageSize' => $pageSize,
             'pageSizes' => self::PAGE_SIZES,
+            'maxBulk'  => self::MAX_BULK,
+            // 跨页选择的篮子键：只跟「归一化后的筛选」有关，与页面参数、URL 里参数的顺序、
+            // 空值写没写都无关——前端照着它存 sessionStorage，翻页与筛选之间就不会错认篮子。
+            'bulkKey'  => substr(sha1(http_build_query($filters)), 0, 12),
             'sorts'    => self::SORTS,
             'bulkActions' => $this->bulkActions(),
             'channels' => $this->channels->adminAll(),
@@ -175,8 +181,8 @@ final class ArticleController extends AdminController
             Flash::set('error', '没有选中任何稿件。');
             return new RedirectResponse($back);
         }
-        if (count($ids) > 100) {
-            Flash::set('error', '一次最多处理 100 篇，请缩小选择范围。');
+        if (count($ids) > self::MAX_BULK) {
+            Flash::set('error', '一次最多处理 ' . self::MAX_BULK . ' 篇，请缩小选择范围。');
             return new RedirectResponse($back);
         }
 

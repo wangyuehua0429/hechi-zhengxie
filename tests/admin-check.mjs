@@ -245,8 +245,9 @@ async function main() {
     check("概览页有发布按钮", dashboard.text.includes('action="/admin/publish"'));
     check("概览页不再重复显示面包屑（只有 H1 的「概览」）",
       !dashboard.text.includes('class="breadcrumb"'));
-    check("概览统计卡分主次：主指标标红、0 值弱化",
-      dashboard.text.includes("stat stat--primary") && dashboard.text.includes("stat--zero"));
+    // 2026-09-17：红色语义收窄到「需要处理」——待审／退回单独一行，其余状态进折叠区
+    check("概览统计卡分主次：待办标红、0 值弱化",
+      dashboard.text.includes("stat stat--todo") && dashboard.text.includes("stat--zero"));
     check("顶栏姓名与角色名相同时只显示一次",
       (dashboard.text.match(/检查账号/g) || []).length === 1,
       "出现 " + (dashboard.text.match(/检查账号/g) || []).length + " 次");
@@ -912,8 +913,8 @@ async function main() {
       (await client.get("/admin/roles")).text.includes("1 个栏目"));
     const reviewerScoped = await reviewerClient.get("/admin/articles?channel=314");
     check("数据范围生效：限定栏目的账号查不到范围外稿件",
-      reviewerScoped.text.includes("共 0 篇"),
-      (reviewerScoped.text.match(/共 \d+ 篇/) || [])[0] || "无统计");
+      /共 <strong>0<\/strong> 篇稿件/.test(reviewerScoped.text),
+      (reviewerScoped.text.match(/共 <strong>\d+<\/strong> 篇稿件/) || [])[0] || "无统计");
 
     const logsPage = await client.get("/admin/logs");
     check("操作日志页可访问并记录稿库流转与账号改动",
@@ -977,6 +978,89 @@ async function main() {
       !/<option value="delete"/.test(listPage.text));
     check("列表页引用了渐进增强脚本",
       listPage.text.includes("/assets/admin.js") && (await client.get("/assets/admin.js")).status === 200);
+
+    // ---- UI 评审修复（2026-09-17）：移动端溢出、行内动作过载、批量口径、无障碍
+    const adminJs = await client.get("/assets/admin.js");
+    check("概览页「最近稿件」表套了横向滚动容器（窄屏不再撑破视口）",
+      /<div class="table-scroll">\s*<table class="grid">/.test(dashboard.text),
+      "窄屏 390 下整页原可横向拖动 127px");
+    check("操作日志／角色／用户的表格同样套了横向滚动容器",
+      /<div class="table-scroll">\s*<table class="grid">/.test((await client.get("/admin/logs")).text) &&
+      /<div class="table-scroll">\s*<table class="grid">/.test((await client.get("/admin/roles")).text) &&
+      /<div class="table-scroll">\s*<table class="grid">/.test((await client.get("/admin/users")).text));
+    check("概览页待办优先：待审／退回单独一行、其余状态收进折叠加一行摘要",
+      dashboard.text.includes('class="stat stat--todo') &&
+      dashboard.text.includes('class="stats-more"') &&
+      /等待处理|暂无待处理/.test(dashboard.text) &&
+      dashboard.text.includes("按稿库看全部状态"));
+    check("概览页「发布全站」的技术说明默认折叠",
+      dashboard.text.includes("publish-advanced") &&
+      dashboard.text.includes("平时发稿不用点这里") &&
+      !/文件生成位置/.test(dashboard.text));
+    check("列表行内动作收进「更多」，每行只留一个主动作",
+      listPage.text.includes('class="row-more"') &&
+      listPage.text.includes(">更多<") &&
+      (listPage.text.match(/class="row-more"/g) || []).length > 1);
+    check("没有对外页面的稿件用真 disabled 按钮，并把原因写给读屏",
+      /<button type="button" class="btn btn-sm btn-ghost is-disabled" disabled title="[^"]*">\s*预览<span class="visually-hidden">/.test(archivedList.text),
+      "归档稿行");
+    check("批量条写的是真实上限（100 篇／跨页保留），并带站内提示容器",
+      /单次最多处理 100 篇/.test(listPage.text) &&
+      listPage.text.includes('class="js-only"') &&
+      listPage.text.includes("data-bulk-error") &&
+      listPage.text.includes("data-bulk-scope"));
+    // 篮子键由服务端按归一化后的筛选算：翻页、URL 里参数的顺序与空值都不能改变它，
+    // 否则「翻页不会丢掉已选」在常见的「点一次筛选再翻页」路径上就会静默失效。
+    const bulkKey = (html) => (html.match(/data-bulk-key="([^"]*)"/) || [])[1] || "";
+    const keyBase = bulkKey(listPage.text);
+    const keyPage2 = bulkKey((await client.get("/admin/articles?page=2")).text);
+    const keyChannel = bulkKey((await client.get("/admin/articles?channel=914")).text);
+    const keyChannelPage2 = bulkKey((await client.get("/admin/articles?page=2&channel=914")).text);
+    // 模拟「点一次筛选、字段一个不改」：地址栏里空值与默认值都写全了
+    const keyFilledDefaults = bulkKey((await client.get(
+      "/admin/articles?channel=&group=&status=&keyword=&sort=published_at%3Adesc&size=20"
+    )).text);
+    check("跨页篮子的键只跟筛选有关（翻页／参数顺序／空值都不影响）",
+      keyBase !== "" && keyBase === keyPage2 && keyChannel === keyChannelPage2 &&
+      keyBase !== keyChannel && keyBase === keyFilledDefaults,
+      "base=" + keyBase + " p2=" + keyPage2 + " channel=" + keyChannel + " defaults=" + keyFilledDefaults);
+    check("深色模式：主题引导脚本在样式表之前、顶栏带切换开关",
+      dashboard.text.indexOf("/assets/theme.js") < dashboard.text.indexOf("/assets/admin.css") &&
+      dashboard.text.includes("data-theme-toggle") &&
+      (await client.get("/assets/theme.js")).status === 200 &&
+      loginPage.text.includes("/assets/theme.js"));
+    check("深色模式令牌与系统偏好两条路径都在样式表里",
+      /prefers-color-scheme: dark/.test(cssText) &&
+      /:root\[data-theme="dark"\]/.test(cssText) &&
+      /--brand-ink/.test(cssText));
+    // 规范第 5 节把这个列为坑位：两份深色令牌必须逐值一致，这里直接比对。
+    const darkTokenMaps = (() => {
+      const collect = (block) => {
+        const map = {};
+        (block.match(/--[a-z0-9-]+:\s*[^;]+;/g) || []).forEach((decl) => {
+          const at = decl.indexOf(":");
+          map[decl.slice(0, at).trim()] = decl.slice(at + 1).replace(/;.*$/, "").trim();
+        });
+        return map;
+      };
+      const media = /:root:not\(\[data-theme="light"\]\) \{([\s\S]*?)\n  \}/.exec(cssText);
+      const explicit = /:root\[data-theme="dark"\] \{([\s\S]*?)\n\}/.exec(cssText);
+      return { media: media ? collect(media[1]) : null, explicit: explicit ? collect(explicit[1]) : null };
+    })();
+    const sameTokens = darkTokenMaps.media && darkTokenMaps.explicit &&
+      JSON.stringify(darkTokenMaps.media) === JSON.stringify(darkTokenMaps.explicit);
+    check("深色令牌两份逐值一致（媒体查询那份 vs data-theme 那份）",
+      sameTokens,
+      sameTokens ? "" : "两份不一致，规范第5节要求同步");
+    check("栏目管理的稿件数走右对齐数字列",
+      (await client.get("/admin/channels")).text.includes('class="nowrap num"') &&
+      /td\.num, th\.num \{ text-align: right/.test(cssText));
+    check("批量自检不再用原生弹窗（改走页面内提示）",
+      !/window\.alert\s*\(/.test(adminJs.text) && adminJs.text.includes("data-bulk-error"));
+    check("主区可聚焦：跳转链接能把焦点带进内容区",
+      dashboard.text.includes('id="main" tabindex="-1"'));
+    check("未按栏目筛选时也解释「↑ ↓」什么时候可用",
+      listPage.text.includes("调整该栏目内的顺序"));
 
     // 新建一篇草稿，用来验证「行内删除入口指向确认页」与批量流转
     const bulkFormPage = await client.get("/admin/article/new");

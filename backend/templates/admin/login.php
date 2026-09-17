@@ -24,9 +24,11 @@ $hasError = $error !== '';
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light">
+  <meta name="color-scheme" content="light dark">
   <meta name="robots" content="noindex, nofollow">
   <title>登录 · <?= hechi_e($siteName) ?>后台</title>
+  <?php /* 与后台外壳同一份主题引导：登录页也要跟着用户选过的深浅色 */ ?>
+  <script src="/assets/theme.js"></script>
   <link rel="stylesheet" href="/assets/admin.css">
 </head>
 <body class="login-body">

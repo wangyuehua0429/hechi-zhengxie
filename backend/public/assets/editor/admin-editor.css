@@ -28,8 +28,8 @@
 .writing-paper {
   margin-top: 12px;
   padding: 22px 26px 26px;
-  background: #fff;
-  border: 1px solid #e6e8eb;
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #e6e8eb);
   border-radius: 10px;
 }
 
@@ -45,7 +45,7 @@
 
 .writing-title-label {
   grid-area: 1 / 1;
-  color: #57606a;
+  color: var(--muted, #57606a);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: .04em;
@@ -59,17 +59,17 @@
   min-width: 0;
   padding: 4px 0 8px;
   border: 0;
-  border-bottom: 2px solid #eceff2;
+  border-bottom: 2px solid var(--line, #eceff2);
   border-radius: 0;
   font-size: 27px;
   font-weight: 700;
   line-height: 1.4;
-  color: #1f2328;
+  color: var(--ink, #1f2328);
   background: transparent;
 }
 
 .writing-paper .writing-title::placeholder {
-  color: #b3bac2;
+  color: var(--muted, #b3bac2);
   font-weight: 400;
 }
 
@@ -81,13 +81,13 @@
 
 .writing-title-count {
   grid-area: 1 / 2;
-  color: #8c959f;
+  color: var(--muted, #8c959f);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 /* 接近 64 字上限时把字数提醒变暖色，撞到上限再变红 */
-.writing-title-count.is-near { color: #8a5d0f; font-weight: 700; }
-.writing-title-count.is-full { color: #a5301f; font-weight: 700; }
+.writing-title-count.is-near { color: var(--warn-ink, #8a5d0f); font-weight: 700; }
+.writing-title-count.is-full { color: var(--danger-ink, #a5301f); font-weight: 700; }
 
 /* 来源：与原标题三列同一套「标签在上、控件在下」的字段样式 */
 .writing-paper .writing-author {
@@ -104,7 +104,7 @@
 .writing-hint {
   margin: 0 0 10px;
   font-size: 12px;
-  color: #57606a;
+  color: var(--muted, #57606a);
 }
 
 .writing-hint-name {
@@ -118,15 +118,15 @@
 }
 
 .writing-paper .se-toolbar {
-  border: 1px solid #e6e8eb;
+  border: 1px solid var(--line, #e6e8eb);
   border-radius: 8px;
-  background: #f7f8f9;
+  background: var(--surface-2, #f7f8f9);
   padding: 4px 6px;
 }
 
 .writing-paper .se-wrapper {
   margin-top: 10px;
-  border: 1px solid #e6e8eb;
+  border: 1px solid var(--line, #e6e8eb);
   border-radius: 8px;
 }
 
@@ -141,9 +141,9 @@
 .writing-orig {
   margin: 0 0 16px;
   padding: 12px 14px 10px;
-  border: 1px solid #e9ebee;
+  border: 1px solid var(--line, #e9ebee);
   border-radius: 8px;
-  background: #fafbfc;
+  background: var(--surface-2, #fafbfc);
 }
 
 .writing-orig-head {
@@ -157,26 +157,26 @@
 .writing-orig-name {
   font-size: 14px;
   font-weight: 700;
-  color: #1f2328;
+  color: var(--ink, #1f2328);
 }
 
 .writing-orig-tag {
   padding: 1px 7px;
-  border: 1px solid #e6d3d5;
+  border: 1px solid var(--brand-soft-line, #e6d3d5);
   border-radius: 999px;
-  background: #fff;
-  color: #a5301f;
+  background: var(--surface, #fff);
+  color: var(--danger-ink, #a5301f);
   font-size: 12px;
 }
 
 .writing-orig-note {
-  color: #5f6771;
+  color: var(--muted, #5f6771);
   font-size: 12px;
 }
 
 .writing-orig-hint {
   margin: 8px 0 0;
-  color: #6b7280;
+  color: var(--muted, #6b7280);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -200,7 +200,7 @@
   min-width: 0;
   margin: 0;
   font-size: 12px;
-  color: #57606a;
+  color: var(--muted, #57606a);
 }
 
 .writing-paper .writing-field-label {
@@ -210,6 +210,34 @@
 .writing-paper .writing-field input {
   width: 100%;
   min-width: 0;
+}
+
+/* ------------------------------------------------- 编辑器自带变量跟着主题走 */
+
+/* suneditor.min.css 把纸面、工具栏与文字颜色写死在 .sun-editor／.sun-editor-editable
+   的变量里（--se-main-color:#18181b、--se-edit-background-color:#fff…）。后台的输入框
+   底色已经跟着主题令牌走，深色下不接管这些变量就是「深灰字压深底」——2026-09-17 实测
+   原题三列与来源四个输入框只有 1.06:1，正文区还是一大块纯白。
+
+   这里加一级选择器（.writing-paper .sun-editor-editable 的权重大于它自带的
+   .sun-editor-editable）接管，取值全部从令牌来；var() 都带原值兜底——
+   委员门户用的是另一套 --m-* 令牌，取不到时仍是原来的颜色。 */
+.writing-paper .sun-editor,
+.writing-paper .sun-editor-editable {
+  --se-caret-color: var(--ink, #333);
+  --se-placeholder-color: var(--muted, #bbb);
+  --se-edit-font-color: var(--ink, #333);
+  --se-edit-background-color: var(--surface, #fff);
+  --se-edit-background-pre: var(--surface-2, #f9f9f9);
+  --se-edit-border-light: var(--line, #e1e1e1);
+  --se-edit-border-dark: var(--line, #b1b1b1);
+  --se-main-color: var(--ink, #18181b);
+  --se-main-color-lighter: var(--muted, #4c4c4d);
+  --se-main-background-color: var(--surface, #fff);
+  --se-main-font-color: var(--ink, #333);
+  --se-main-divider-color: var(--line, #e1e1e1);
+  --se-main-border-color: var(--line, #d1d1d1);
+  --se-main-shadow-color: var(--line, #ececec);
 }
 
 /* 这几个输入框拖进编辑器容器后，落进了 .sun-editor input:focus 的射程——

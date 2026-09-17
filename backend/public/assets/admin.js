@@ -21,10 +21,79 @@
 
   document.documentElement.classList.add("js");
 
+  /* 读屏播报：站内提示都是视觉反馈，键盘／读屏用户需要一条 live region
+     才知道「刚刚那一下到底成功了没有」。节点一开始就挂上（有些读屏只在节点已存在时
+     才盯着它的变化），之后反复写同一个节点，不堆节点。 */
+  const liveRegion = document.createElement("p");
+  liveRegion.className = "visually-hidden";
+  liveRegion.setAttribute("role", "status");
+  document.body.appendChild(liveRegion);
+  const announce = (message) => {
+    // 同一句连着播两次时，节点内容没变化读屏不会重播；先清空再写回来。
+    if (liveRegion.textContent === message) liveRegion.textContent = "";
+    window.setTimeout(() => { liveRegion.textContent = message; }, 20);
+  };
+
+  /* ------------------------------------------------------ 0. 深浅色开关 */
+  // 首帧的主题由 /assets/theme.js 在 <head> 里写好；这里只管点击、记住选择与状态文案。
+  // 没选过就跟随系统（CSS 的 prefers-color-scheme），系统变了按钮文案也要跟着变。
+  const themeToggle = document.querySelector("[data-theme-toggle]");
+  if (themeToggle) {
+    const THEME_KEY = "hechi-admin-theme";
+    const media = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+    const savedTheme = () => {
+      try {
+        const value = localStorage.getItem(THEME_KEY);
+        return value === "dark" || value === "light" ? value : null;
+      } catch (e) { return null; }
+    };
+    const effectiveTheme = () => savedTheme() || (media && media.matches ? "dark" : "light");
+    const syncThemeToggle = () => {
+      const state = effectiveTheme();
+      themeToggle.hidden = false;
+      themeToggle.dataset.state = state;
+      themeToggle.setAttribute("aria-pressed", state === "dark" ? "true" : "false");
+      // 无障碍名称只说「这是什么」，开关状态交给 aria-pressed；
+      // 「点了会怎样」放 title——两条信息都塞进名称，读屏会连读成一句别扭的话。
+      themeToggle.setAttribute("aria-label", "深色模式");
+      themeToggle.setAttribute("title", state === "dark" ? "当前已开启，点击切回浅色" : "当前关闭，点击切换为深色");
+    };
+    themeToggle.addEventListener("click", () => {
+      const next = effectiveTheme() === "dark" ? "light" : "dark";
+      try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* 存不了就只在本次会话生效 */ }
+      document.documentElement.setAttribute("data-theme", next);
+      syncThemeToggle();
+      announce(next === "dark" ? "已切换到深色模式" : "已切换到浅色模式");
+    });
+    if (media) {
+      const onSystemChange = () => { if (!savedTheme()) syncThemeToggle(); };
+      if (media.addEventListener) media.addEventListener("change", onSystemChange);
+      else if (media.addListener) media.addListener(onSystemChange);
+    }
+    syncThemeToggle();
+  }
+
   /* ---------------------------------------------------------- 1. 批量选择 */
   const bulkForm = document.getElementById("bulk-form");
   const bulkBar = document.querySelector("[data-bulk-bar]");
   const rows = Array.prototype.slice.call(document.querySelectorAll("[data-row-select]"));
+
+  /* 跨页选择的篮子键由服务端算好（data-bulk-key，只跟归一化后的筛选有关）：
+     站内各条链接生成的查询串顺序、空值与默认值都不一样，前端自己解析 URL 会把篮子算丢。 */
+  const BULK_STORE_PREFIX = "hechi-admin-bulk:";
+  const bulkStoreKey = bulkForm
+    ? BULK_STORE_PREFIX + (bulkForm.getAttribute("data-bulk-key") || location.pathname)
+    : null;
+  // 只留当前筛选这一篮子。清理放在 rows 判空之前：0 结果的筛选页也要把旧篮子收掉，
+  // 否则切回上一个筛选时篮子会「复活」。
+  if (bulkStoreKey) {
+    try {
+      for (let i = sessionStorage.length - 1; i >= 0; i -= 1) {
+        const key = sessionStorage.key(i);
+        if (key && key.indexOf(BULK_STORE_PREFIX) === 0 && key !== bulkStoreKey) sessionStorage.removeItem(key);
+      }
+    } catch (e) { /* 无痕模式读不了存储：退化成只认本页 */ }
+  }
 
   if (bulkForm && bulkBar && rows.length > 0) {
     const selectAll = document.querySelector("[data-select-all]");
@@ -34,16 +103,74 @@
     const noteInput = noteField ? noteField.querySelector("input") : null;
     const clearButton = document.querySelector("[data-bulk-clear]");
 
-    const selected = () => rows.filter((box) => box.checked);
+    const scopeNode = document.querySelector("[data-bulk-scope]");
+    // 单次上限由模板写进 data-bulk-max（源头是 ArticleController::MAX_BULK），
+    // 前端不再自己记一个数，免得与服务端各改一半。
+    const maxBulk = Number(bulkForm.getAttribute("data-bulk-max")) || 100;
+
+    /* 跨页选择：勾了谁记在 sessionStorage 里，翻页回来还算数；
+       不在本页的 id 用隐藏域补进表单，服务端收到的仍然是同一串 ids[]。
+       没有脚本时退化成「只认本页」，与之前的行为一致。 */
+    const storeKey = bulkStoreKey;
+    const readStore = () => {
+      try {
+        const raw = JSON.parse(sessionStorage.getItem(storeKey) || "[]");
+        return Array.isArray(raw) ? raw.map(String) : [];
+      } catch (e) { return []; }
+    };
+    const writeStore = (ids) => {
+      try { sessionStorage.setItem(storeKey, JSON.stringify(ids)); } catch (e) { /* 无痕模式：退化成只认本页 */ }
+    };
+    const idOf = (box) => String(box.getAttribute("value") || "");
+    const onPageIds = new Set(rows.map(idOf));
+    const checkedOnPage = () => rows.filter((box) => box.checked).map(idOf);
+    const offPageIds = () => readStore().filter((id) => id !== "" && !onPageIds.has(id));
+    const allIds = () => {
+      const ids = checkedOnPage();
+      offPageIds().forEach((id) => { if (ids.indexOf(id) === -1) ids.push(id); });
+      return ids;
+    };
+
+    const syncHiddenFields = () => {
+      Array.prototype.forEach.call(bulkForm.querySelectorAll("[data-cross-page]"), (node) => node.remove());
+      offPageIds().forEach((id) => {
+        const field = document.createElement("input");
+        field.type = "hidden";
+        field.name = "ids[]";
+        field.value = id;
+        field.setAttribute("data-cross-page", "1");
+        bulkForm.appendChild(field);
+      });
+    };
+
+    const persist = () => {
+      writeStore(allIds());
+      syncHiddenFields();
+    };
 
     const refresh = () => {
-      const checked = selected().length;
-      if (countNode) countNode.textContent = String(checked);
-      bulkBar.classList.toggle("is-active", checked > 0);
-      if (selectAll) {
-        selectAll.checked = checked === rows.length;
-        selectAll.indeterminate = checked > 0 && checked < rows.length;
+      const ids = allIds();
+      const pageCount = checkedOnPage().length;
+      const offCount = ids.length - pageCount;
+      if (countNode) countNode.textContent = String(ids.length);
+      bulkBar.classList.toggle("is-active", ids.length > 0);
+      // 吸顶挂在 form 上而不是条子上：sticky 只能在包含块内偏移，
+      // 条子的包含块就是这根条子本身（可偏移量恒为 0），挂在 form 上才真的吸得住。
+      bulkForm.classList.toggle("is-sticky", ids.length > 0);
+      if (scopeNode) {
+        scopeNode.hidden = ids.length === 0;
+        scopeNode.textContent = offCount > 0
+          ? "（本页 " + pageCount + " 篇，另 " + offCount + " 篇在其它页）"
+          : "（都在本页）";
       }
+      if (selectAll) {
+        selectAll.checked = rows.length > 0 && pageCount === rows.length;
+        selectAll.indeterminate = pageCount > 0 && pageCount < rows.length;
+      }
+      rows.forEach((box) => {
+        const row = box.closest("tr");
+        if (row) row.classList.toggle("is-selected", box.checked);
+      });
     };
 
     const refreshNote = () => {
@@ -52,43 +179,150 @@
       noteField.hidden = !option || option.getAttribute("data-need-note") !== "1";
     };
 
-    rows.forEach((box) => box.addEventListener("change", refresh));
+    // 用户一动选择就把上一次的报错收掉（含「超过 100 篇」那条），
+    // 否则取消选择后提示还赖在条子上，看着像没生效。
+    const remember = () => { clearError(); persist(); refresh(); };
+
+    rows.forEach((box) => box.addEventListener("change", remember));
+
+    // Shift + 勾选 = 选中区间：一页 100 条时逐条点太慢，键盘用户只有 Tab + 空格更吃力
+    let lastIndex = -1;
+    rows.forEach((box, index) => {
+      box.addEventListener("click", (event) => {
+        if (event.shiftKey && lastIndex >= 0 && lastIndex !== index) {
+          const from = Math.min(lastIndex, index);
+          const to = Math.max(lastIndex, index);
+          for (let i = from; i <= to; i += 1) rows[i].checked = box.checked;
+          remember();
+        }
+        lastIndex = index;
+      });
+    });
     if (selectAll) {
       selectAll.addEventListener("change", () => {
         rows.forEach((box) => { box.checked = selectAll.checked; });
-        refresh();
+        remember();
       });
     }
     if (actionSelect) actionSelect.addEventListener("change", refreshNote);
     if (clearButton) {
       clearButton.addEventListener("click", () => {
         rows.forEach((box) => { box.checked = false; });
-        refresh();
+        writeStore([]);
+        remember();
       });
     }
 
+    // 表单自检走页面内的错误条，和站内其它提示同一套视觉语言：
+    // 原生弹窗会离开上下文，读屏也不会把它当成页面状态播报。
+    const errorNode = document.querySelector("[data-bulk-error]");
+    const showError = (message, focusTarget) => {
+      if (errorNode) {
+        errorNode.textContent = message;
+        errorNode.hidden = false;
+      }
+      if (focusTarget && typeof focusTarget.focus === "function") focusTarget.focus();
+    };
+    const clearError = () => {
+      if (!errorNode || errorNode.hidden) return;
+      errorNode.hidden = true;
+      errorNode.textContent = "";
+    };
+    rows.forEach((box) => box.addEventListener("change", clearError));
+    [actionSelect, noteInput].forEach((node) => {
+      if (!node) return;
+      node.addEventListener("input", clearError);
+      node.addEventListener("change", clearError);
+    });
+
     bulkForm.addEventListener("submit", (event) => {
-      const checked = selected();
-      if (checked.length === 0) {
+      const ids = allIds();
+      if (ids.length === 0) {
         event.preventDefault();
-        window.alert("请先勾选要处理的稿件。");
+        showError("请先勾选要处理的稿件。", selectAll || rows[0]);
+        return;
+      }
+      if (ids.length > maxBulk) {
+        event.preventDefault();
+        showError("已选 " + ids.length + " 篇，超过单次上限 " + maxBulk + " 篇，请先取消一部分。", clearButton || rows[0]);
         return;
       }
       const option = actionSelect ? actionSelect.options[actionSelect.selectedIndex] : null;
       if (!option || option.value === "") {
         event.preventDefault();
-        window.alert("请先选择要执行的批量操作。");
+        showError("请先选择要执行的批量操作。", actionSelect);
         return;
       }
       if (option.getAttribute("data-need-note") === "1" && noteInput && noteInput.value.trim() === "") {
         event.preventDefault();
-        noteInput.focus();
-        window.alert("这个批量操作要填备注（撤回原因或退回意见）。");
+        showError("这个批量操作要填备注（撤回原因或退回意见）。", noteInput);
+        return;
       }
     });
 
+    // 回到这一页时把上次勾过的恢复出来（跨页选择），并补上不在本页的隐藏域
+    const storedIds = readStore();
+    if (storedIds.length > 0) {
+      rows.forEach((box) => { box.checked = storedIds.indexOf(idOf(box)) !== -1; });
+    }
+    persist();
     refresh();
     refreshNote();
+  }
+
+  /* ------------------------------------------ 1.5 侧栏：展开态记忆与当前项可见 */
+  const sidenav = document.querySelector(".sidenav");
+  if (sidenav) {
+    const NAV_KEY = "hechi-admin-nav-open";
+    const groups = Array.prototype.slice.call(sidenav.querySelectorAll("details.sidenav-group"));
+    const groupKey = (group) => {
+      const label = group.querySelector("summary span");
+      return label ? label.textContent.trim() : "";
+    };
+    let savedOpen = null;
+    try { savedOpen = JSON.parse(localStorage.getItem(NAV_KEY) || "null"); } catch (e) { savedOpen = null; }
+    if (savedOpen && typeof savedOpen === "object") {
+      groups.forEach((group) => {
+        const key = groupKey(group);
+        // 当前页就在这个组里时必须展开：恢复成折叠的话，用户进来只看到一行组标题，
+        // 连自己在哪一页都看不见。
+        if (group.querySelector("a.active")) {
+          group.open = true;
+          return;
+        }
+        if (key && Object.prototype.hasOwnProperty.call(savedOpen, key)) group.open = !!savedOpen[key];
+      });
+    }
+    // 折起来是用户自己的选择，刷新后不该又弹开
+    groups.forEach((group) => group.addEventListener("toggle", () => {
+      const state = {};
+      groups.forEach((item) => { state[groupKey(item)] = item.open; });
+      try { localStorage.setItem(NAV_KEY, JSON.stringify(state)); } catch (e) { /* 无痕模式就算了 */ }
+    }));
+
+    // 窄屏下侧栏是一条横向滚动的条带，当前页可能落在视口右侧之外，进来先把它滚到中间
+    const activeNav = sidenav.querySelector("a.active");
+    if (activeNav && sidenav.scrollWidth > sidenav.clientWidth + 1) {
+      sidenav.scrollLeft = Math.max(
+        0,
+        activeNav.offsetLeft - Math.round(sidenav.clientWidth / 2) + Math.round(activeNav.offsetWidth / 2)
+      );
+    }
+
+    // 右边／左边还有内容时给一层渐隐（CSS 按类名出 mask），
+    // 否则窄屏上被切掉的那几个入口完全没有「还能滑」的提示。
+    const syncScrollHint = () => {
+      const max = sidenav.scrollWidth - sidenav.clientWidth;
+      const scrollable = max > 1;
+      const atStart = !scrollable || sidenav.scrollLeft <= 1;
+      const atEnd = !scrollable || sidenav.scrollLeft >= max - 1;
+      sidenav.classList.toggle("is-scroll-start", atStart);
+      sidenav.classList.toggle("is-scroll-end", atEnd);
+      sidenav.classList.toggle("is-scroll-middle", scrollable && !atStart && !atEnd);
+    };
+    sidenav.addEventListener("scroll", syncScrollHint, { passive: true });
+    window.addEventListener("resize", syncScrollHint);
+    syncScrollHint();
   }
 
   /* ------------------------------------------------------ 2. 栏目即时筛选 */
@@ -194,10 +428,17 @@
     const button = event.target.closest("[data-copy-link]");
     if (!button) return;
     const url = new URL(button.getAttribute("data-copy-link"), window.location.origin).href;
+    // 原值只读一次并记在 data 上：1.5 秒内连点两次时读 textContent 会读到「已复制」，
+    // 还原时又写回「已复制」，按钮就再也回不去了。
+    const label = button.dataset.copyLabel || button.textContent;
+    button.dataset.copyLabel = label;
     const done = () => {
-      const original = button.textContent;
       button.textContent = "已复制";
-      window.setTimeout(() => { button.textContent = original; }, 1500);
+      announce("链接已复制");
+      window.clearTimeout(Number(button.dataset.copyTimer) || 0);
+      button.dataset.copyTimer = String(window.setTimeout(() => {
+        button.textContent = label;
+      }, 1500));
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url).then(done).catch(() => window.prompt("复制这个链接：", url));
@@ -352,6 +593,17 @@
       event.preventDefault();
     }
   });
+
+  /* -------------------------------------- 6.5 批量提交成功后清空篮子 */
+  // 挂在 document 上、且排在「表单自检」和上面那段二次确认之后注册：
+  // 只有这一步真的会提交（event.defaultPrevented 为假）时才清，
+  // 用户点「取消」或校验没过时，勾选原样留着。
+  if (bulkForm && bulkStoreKey) {
+    document.addEventListener("submit", (event) => {
+      if (event.defaultPrevented || event.target !== bulkForm) return;
+      try { sessionStorage.setItem(bulkStoreKey, "[]"); } catch (e) { /* 存不了就算了 */ }
+    });
+  }
 
   /* ---------------------------------------------------------- 7. 提交中的反馈 */
   // 统一给表单一个「处理中…」状态：整页提交要等一次往返，没有反馈时用户会以为没点上、再点一次。

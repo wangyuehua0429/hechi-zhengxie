@@ -30,4 +30,8 @@ return [
     // 操作结果提示
     'flash-ok' => '<svg width="18" height="18" viewBox="0 0 24 24" ' . $attrs . '><circle cx="12" cy="12" r="8.5"></circle><path d="M8.5 12.2l2.4 2.4 4.6-4.9"></path></svg>',
     'flash-error' => '<svg width="18" height="18" viewBox="0 0 24 24" ' . $attrs . '><circle cx="12" cy="12" r="8.5"></circle><path d="M12 7.8v4.8"></path><path d="M12 16.2h.01"></path></svg>',
+
+    // 顶栏的深浅色开关（两个图标，按当前主题显示其一）
+    'sun' => '<svg class="theme-icon theme-icon--sun" width="16" height="16" viewBox="0 0 24 24" ' . $attrs . '><circle cx="12" cy="12" r="4.2"></circle><path d="M12 3.6v2.2"></path><path d="M12 18.2v2.2"></path><path d="M3.6 12h2.2"></path><path d="M18.2 12h2.2"></path><path d="M6.1 6.1l1.6 1.6"></path><path d="M16.3 16.3l1.6 1.6"></path><path d="M17.9 6.1l-1.6 1.6"></path><path d="M7.7 16.3l-1.6 1.6"></path></svg>',
+    'moon' => '<svg class="theme-icon theme-icon--moon" width="16" height="16" viewBox="0 0 24 24" ' . $attrs . '><path d="M20 14.4A8.2 8.2 0 0 1 9.6 4a7 7 0 1 0 10.4 10.4z"></path></svg>',
 ];

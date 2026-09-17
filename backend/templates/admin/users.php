@@ -21,6 +21,7 @@ declare(strict_types=1);
   停用账号后本人无法登录，已发的稿件不受影响。
 </p>
 
+<div class="table-scroll">
 <table class="grid">
   <thead><tr><th>ID</th><th>账号</th><th>姓名</th><th>部门</th><th>角色</th><th>状态</th><th>最后登录</th><th></th></tr></thead>
   <tbody>
@@ -43,3 +44,4 @@ declare(strict_types=1);
     <?php endif; ?>
   </tbody>
 </table>
+</div>

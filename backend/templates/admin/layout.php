@@ -113,8 +113,10 @@ $rootCrumb = isset($section['parent']) ? $section['parent'] : ['label' => '概�
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light">
+  <meta name="color-scheme" content="light dark">
   <title><?= hechi_e($title) ?> · <?= hechi_e($siteName) ?>后台</title>
+  <?php /* 主题引导要排在样式表之前同步执行，否则用户选过深色时首帧会闪成浅色 */ ?>
+  <script src="/assets/theme.js"></script>
   <link rel="stylesheet" href="/assets/admin.css">
   <?php if (!empty($pageHead)): ?><?= $pageHead ?><?php endif; ?>
   <script src="/assets/admin.js" defer></script>
@@ -133,6 +135,12 @@ $rootCrumb = isset($section['parent']) ? $section['parent'] : ['label' => '概�
           <button type="submit" class="link-btn">退出</button>
         </form>
       <?php endif; ?>
+      <?php /* 没有脚本时不显示：交给 CSS 跟随系统主题就行 */ ?>
+      <button type="button" class="theme-toggle" data-theme-toggle hidden aria-pressed="false" title="切换深浅色">
+        <span aria-hidden="true"><?= $adminIcons['sun'] ?></span>
+        <span aria-hidden="true"><?= $adminIcons['moon'] ?></span>
+        <span class="visually-hidden">深色模式</span>
+      </button>
     </div>
   </header>
 
@@ -161,7 +169,9 @@ $rootCrumb = isset($section['parent']) ? $section['parent'] : ['label' => '概�
       <span class="sidenav-note">自检：<a href="/admin/health">接口状态</a></span>
     </nav>
 
-    <main class="main" id="main">
+    <?php /* tabindex="-1" 让「跳到主要内容」把焦点真正带进主区：只滚不聚焦时，
+             下一个 Tab 还会回到顶栏，跳转形同虚设（WCAG 2.4.1）。 */ ?>
+    <main class="main" id="main" tabindex="-1">
       <?php /* 概览页不再显示面包屑：只有一层，与下面的 H1「概览」重复 */ ?>
       <?php if ($section !== null && $current !== 'dashboard'): ?>
         <nav class="breadcrumb" aria-label="当前位置">

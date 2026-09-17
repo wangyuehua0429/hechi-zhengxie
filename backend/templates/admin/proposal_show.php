@@ -83,6 +83,7 @@ $coRows = $coMembers === [] ? [['name' => '', 'org_title' => '', 'mobile' => '']
 
 <div class="card">
   <h2>提案信息</h2>
+  <div class="table-scroll">
   <table class="grid">
     <tbody>
       <tr><th scope="row">提案人类别</th><td><?= hechi_e(ProposalWorkflow::proposerTypeLabel((string) $proposal['proposer_type'])) ?></td>
@@ -99,9 +100,11 @@ $coRows = $coMembers === [] ? [['name' => '', 'org_title' => '', 'mobile' => '']
       <?php endif; ?>
     </tbody>
   </table>
+  </div>
 
   <?php if ($coMembers !== []): ?>
     <h3>联名委员</h3>
+    <div class="table-scroll">
     <table class="grid">
       <thead><tr><th>姓名</th><th>单位及职务</th><th>联系电话</th></tr></thead>
       <tbody>
@@ -114,9 +117,11 @@ $coRows = $coMembers === [] ? [['name' => '', 'org_title' => '', 'mobile' => '']
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
   <?php endif; ?>
 
   <h3>提案办理联系人</h3>
+  <div class="table-scroll">
   <table class="grid">
     <tbody>
       <tr>
@@ -136,6 +141,7 @@ $coRows = $coMembers === [] ? [['name' => '', 'org_title' => '', 'mobile' => '']
       </tr>
     </tbody>
   </table>
+  </div>
 </div>
 
 <div class="card">
@@ -249,6 +255,7 @@ $coRows = $coMembers === [] ? [['name' => '', 'org_title' => '', 'mobile' => '']
 <?php if ($revisions !== []): ?>
   <div class="card">
     <h2>内容调整记录</h2>
+    <div class="table-scroll">
     <table class="grid">
       <thead><tr><th>时间</th><th>改动内容</th></tr></thead>
       <tbody>
@@ -260,6 +267,7 @@ $coRows = $coMembers === [] ? [['name' => '', 'org_title' => '', 'mobile' => '']
         <?php endforeach; ?>
       </tbody>
     </table>
+    </div>
   </div>
 <?php endif; ?>
 
