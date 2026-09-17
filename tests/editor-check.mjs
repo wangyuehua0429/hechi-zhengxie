@@ -199,9 +199,11 @@ async function main() {
         && editorHtml.includes('name="source"')
         && editorHtml.includes("data-title-count"),
       "写作区结构不完整");
-    check("编辑页：作者、责任编辑两个框已取消",
-      !/name="(author|editor)"/.test(editorHtml),
-      "写作区里还有作者／责任编辑输入框");
+    // 作者框 2026-09-17 加回写作纸（编辑要能自己填）；责任编辑仍不在编辑页维护，
+    // 详情页按库里的署名显示，保存时不带这一列就不会被清空。
+    check("编辑页：作者框在写作区、责任编辑仍不在编辑页维护",
+      /name="author"/.test(editorHtml) && !/name="editor"/.test(editorHtml),
+      "作者／责任编辑字段与预期不符");
     check("编辑页：标题、原标题、来源都已移出基本信息卡",
       !/基本信息[\s\S]{0,900}name="(title|orig_title|source)"/.test(editorHtml),
       "基本信息卡里还有这些字段");
@@ -441,29 +443,34 @@ async function main() {
         paper: !!document.querySelector(".writing-paper"),
         titleInside: !!document.querySelector(".writing-paper input[name='title']"),
         origInside: !!document.querySelector(".writing-paper input[name='orig_title']"),
-        noSignInputs: !document.querySelector(".writing-paper input[name='author']")
-          && !document.querySelector(".writing-paper input[name='editor']"),
+        authorInside: !!document.querySelector(".writing-paper input[name='author']"),
+        noEditorInput: !document.querySelector(".writing-paper input[name='editor']"),
         countText: (document.querySelector("[data-title-count]") || {}).textContent || "",
         placeholder: (document.querySelector(".se-placeholder") || {}).textContent || "",
       }));
       check("新建页：写作区渲染正常（标题、原标题、标题字数）",
         writingUi.paper && writingUi.titleInside && writingUi.origInside && /\/64$/.test(writingUi.countText),
         JSON.stringify(writingUi));
-      check("新建页：作者与责任编辑两个框已取消", writingUi.noSignInputs, JSON.stringify(writingUi));
+      check("新建页：作者框在写作区、责任编辑不在编辑页维护",
+        writingUi.authorInside && writingUi.noEditorInput, JSON.stringify(writingUi));
       check("新建页：正文占位符是「从这里开始写正文」",
         writingUi.placeholder.includes("从这里开始写正文"), JSON.stringify(writingUi));
       const writingOrder = await page.evaluate(() => Array.prototype.map.call(
         document.querySelectorAll(
           ".writing-paper .writing-title-line, .writing-paper .writing-orig,"
             + " .writing-paper .writing-meta, .writing-paper .writing-hint,"
-            + " .writing-paper .se-toolbar, .writing-paper .se-wrapper"
+            + " .writing-paper .se-toolbar, .writing-paper .se-wrapper,"
+            + " .writing-paper .writing-media"
         ),
         (n) => n.className.split(" ")[0]
       ));
-      // 2026-09-17：工具栏从字段上方挪到正文框正上方（此前压在原标题／来源上头，离正文太远）
-      check("新建页：写作窗顺序为 标题 → 原标题 → 来源 → 正文提示 → 工具栏 → 正文",
+      // 2026-09-17：工具栏从字段上方挪到正文框正上方；素材条（附件）落在正文框下方
+      check("新建页：写作窗顺序为 标题 → 原标题 → 来源与作者 → 正文提示 → 工具栏 → 正文 → 附件",
         JSON.stringify(writingOrder)
-          === JSON.stringify(["writing-title-line", "writing-orig", "writing-meta", "writing-hint", "se-toolbar", "se-wrapper"]),
+          === JSON.stringify([
+            "writing-title-line", "writing-orig", "writing-meta", "writing-hint",
+            "se-toolbar", "se-wrapper", "writing-media"
+          ]),
         JSON.stringify(writingOrder));
 
       /* 版面细节：每个输入框都有可见标签（不靠 placeholder 当标签）、
@@ -477,8 +484,8 @@ async function main() {
         steps: document.querySelectorAll(".card .step-no").length,
         pick: (document.querySelector(".pick-current") || {}).textContent || "",
       }));
-      check("新建页：标题、原标题三列与来源都有可见标签",
-        paperUi.titleLabel.trim() === "网页标题" && paperUi.labels.join("/") === "引题/主标题/副题/来源",
+      check("新建页：标题、原标题三列、来源与作者都有可见标签",
+        paperUi.titleLabel.trim() === "网页标题" && paperUi.labels.join("/") === "引题/主标题/副题/来源/作者",
         JSON.stringify(paperUi));
       check("新建页：两张卡片带步骤号，栏目卡显示当前选择",
         paperUi.steps === 2 && paperUi.pick.includes("当前："), JSON.stringify(paperUi));

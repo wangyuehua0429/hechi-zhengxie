@@ -1184,6 +1184,42 @@ async function main() {
       bulkBadAction.status === 302 &&
       (await client.get("/admin/articles")).text.includes("请先选择要执行的批量操作"));
 
+    // ---- 新建页把附件与作者随稿件表单一起提交（此前新建页没有稿件号，附件落不了盘）
+    const newWithAttachment = await client.upload(
+      "/admin/article/create",
+      {
+        _token: csrfToken((await client.get("/admin/article/new")).text),
+        channel_type: "904",
+        title: "后台检查用带附件稿件",
+        subtitle: "",
+        source: "检查脚本",
+        author: "检查作者",
+        editor: "",
+        published_date: "2026-09-11",
+        published_time: "09:40",
+        status: "draft",
+        summary: "",
+        content_html: "<p>带附件的正文。</p>"
+      },
+      [{ field: "attachments[]", filename: "检查附件.txt", type: "text/plain", content: "新建页附件" }]
+    );
+    const attachedId = (/(\/admin\/article\/(\d+))$/.exec(newWithAttachment.headers.get("location") || "") || [])[2] || "";
+    check("新建页带附件一起提交：稿件建好并跳编辑页",
+      newWithAttachment.status === 302 && attachedId !== "", "id=" + attachedId);
+    if (attachedId) {
+      const attachedEdit = await client.get("/admin/article/" + attachedId);
+      check("新建页提交的附件已登记进素材条", attachedEdit.text.includes("检查附件.txt"));
+      check("新建页提交的作者已写入稿件", /name="author" value="检查作者"/.test(attachedEdit.text));
+      const attachedUrl = (/href="(\/uploads\/[^"]+\.txt)"/.exec(attachedEdit.text) || [])[1] || "";
+      check("新建页提交的附件文件可直接访问",
+        attachedUrl !== "" && (await client.get(attachedUrl)).status === 200, attachedUrl);
+      const draftTrash = await client.get("/admin/article/" + attachedId + "/delete");
+      const purged = await client.post("/admin/article/" + attachedId + "/delete", {
+        _token: csrfToken(draftTrash.text)
+      });
+      check("草稿稿件带附件可直接删除（用完清理）", purged.status === 302 && draftTrash.status === 200);
+    }
+
     // ---- 编辑页结构：分区卡片 + 右侧栏 + 正文预览
     const editPage = await client.get("/admin/article/62246");
     check("编辑页只剩写作窗一张卡（基本信息、发布设置已并入／删除）",

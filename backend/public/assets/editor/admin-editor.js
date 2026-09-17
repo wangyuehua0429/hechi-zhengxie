@@ -98,8 +98,9 @@
   /**
    * 把标题、原标题、来源、正文提示摆到写作窗里。
    *
-   * 富文本模式下：标题压在编辑器最上，原标题／来源／正文提示／素材条排在工具栏之前，
+   * 富文本模式下：标题压在编辑器最上，原标题／来源／正文提示排在工具栏之前，
    * 于是工具栏紧贴正文框（2026-09-17 调整：此前工具栏压在字段上方，工具栏离正文太远）；
+   * 素材条（附件）单独落在正文框下方，改稿时不用越过正文去找附件。
    * 编辑器没加载时它们留在模板原位，顺序与这里一致。切到源码模式时富文本容器整块
    * 隐藏，这几块必须挪回纸张里，否则「原标题」「来源」会跟着工具栏一起消失、没处编辑。
    */
@@ -109,10 +110,12 @@
     var editorRoot = container.closest(".sun-editor") || container;
     var paper = editorRoot.parentElement;
     var titleLine = document.querySelector(".writing-title-line");
-    // 素材条（附件）也算写作纸里的字段块：切到源码模式时要跟着回位，否则它会留在富文本容器里被一起隐藏
-    var blocks = [".writing-orig", ".writing-meta", ".writing-hint", ".writing-media"]
+    var blocks = [".writing-orig", ".writing-meta", ".writing-hint"]
       .map(function (selector) { return document.querySelector(selector); })
       .filter(Boolean);
+    // 素材条（附件）也跟着走：富文本时落到编辑器外壳之后、源码模式时落到 textarea 之后，
+    // 两种模式下都在正文框下方；不挪会留在富文本容器里被一起隐藏。
+    var media = document.querySelector(".writing-media");
     if (richText) {
       if (titleLine) {
         paper.insertBefore(titleLine, editorRoot);
@@ -125,12 +128,18 @@
       blocks.forEach(function (block) {
         anchor.insertAdjacentElement("beforebegin", block);
       });
+      if (media) {
+        editorRoot.insertAdjacentElement("afterend", media);
+      }
       return;
     }
     var stacked = (titleLine ? [titleLine] : []).concat(blocks);
     stacked.forEach(function (block) {
       paper.insertBefore(block, textarea);
     });
+    if (media) {
+      textarea.insertAdjacentElement("afterend", media);
+    }
   }
 
   /* ---------------------------------------------- 粘贴 base64 图片先上传 */

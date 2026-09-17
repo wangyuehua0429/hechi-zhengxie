@@ -3,7 +3,7 @@
 /**
  * 稿件编辑 / 新建。
  *
- * 结构上分成两栏：左边是内容表单（写作纸：网页标题 / 原标题 / 来源 / 正文 / 素材），
+ * 结构上分成两栏：左边是内容表单（写作纸：网页标题 / 原标题 / 来源与作者 / 正文 / 素材），
  * 右边是「随手要用」的东西（稿库流转、稿件信息、回收站），
  * 这样改稿时不用在长页面里上下找保存按钮与流转按钮。
  *
@@ -100,6 +100,7 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
 <div class="edit-layout<?= $isNew ? ' edit-layout--single' : '' ?>">
   <div class="edit-main">
     <form method="post" action="<?= hechi_e($action) ?>" class="edit-form" id="article-form"
+          enctype="multipart/form-data"
           data-image-upload-url="/admin/media/image"
           data-video-upload-url="/admin/media/video"
           data-article-id="<?= $isNew ? '' : (int) $article['article_id'] ?>"
@@ -156,13 +157,26 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
               <input type="text" name="source" value="<?= hechi_e($article['source'] ?? '') ?>" class="writing-author"
                      placeholder="如：广西政协报">
             </label>
+            <label class="writing-field writing-field--inline">
+              <span class="writing-field-label">作者</span>
+              <input type="text" name="author" value="<?= hechi_e($article['author'] ?? '') ?>" class="writing-author"
+                     placeholder="如：黄正华；留空则详情页不显示作者">
+            </label>
           </div>
           <p class="writing-hint"><span class="writing-hint-name">正文</span>可直接插图与 mp4／webm 视频，图片单个 ≤ 2 MB；粘贴网页或 Word 内容时图片自动上传。</p>
-          <?php if (!$isNew): ?>
-            <!-- 素材（附件）并进写作纸：右栏不再单列上传卡片，图片统一走工具栏的「图片」按钮，插在光标处 -->
-            <div class="writing-media" data-editor-media>
-              <div class="writing-media-head">
-                <span class="writing-media-name">附件</span>
+          <textarea name="content_html" rows="18" class="mono"><?= hechi_e($article['content_html'] ?? '') ?></textarea>
+          <div class="editor-mount" data-editor-mount hidden></div>
+          <!-- 素材（附件）并进写作纸：右栏不再单列上传卡片，图片统一走工具栏的「图片」按钮，插在光标处 -->
+          <div class="writing-media" data-editor-media>
+            <div class="writing-media-head">
+              <span class="writing-media-name">附件</span>
+              <?php if ($isNew): ?>
+                <!-- 新建页还没有稿件号：附件随稿件表单一起提交，建稿后由 store() 落盘并登记（不嵌 <form>，见下条注释） -->
+                <div class="writing-media-form">
+                  <input type="file" name="attachments[]" multiple>
+                </div>
+                <span class="writing-media-note">pdf／doc／docx／xls／xlsx／ppt／pptx／zip／rar／txt，单个 ≤ 32 MB；随「保存并发布」一起上传，保存后可在素材条里继续增删。</span>
+              <?php else: ?>
                 <!-- 控件用 form="…" 关联到 .edit-main 末尾的独立表单：
                      写作纸在稿件表单里，这里再嵌一个 <form> 会被浏览器丢弃，并把外层表单提前闭合 -->
                 <div class="writing-media-form">
@@ -170,7 +184,9 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
                   <button type="submit" form="writing-media-form" class="btn btn-sm">上传附件</button>
                 </div>
                 <span class="writing-media-note">pdf／doc／docx／xls／xlsx／ppt／pptx／zip／rar／txt，单个 ≤ 32 MB；上传后在文末「附件下载」区显示。</span>
-              </div>
+              <?php endif; ?>
+            </div>
+            <?php if (!$isNew): ?>
               <?php if ($attachments === []): ?>
                 <p class="writing-media-empty">暂无附件。</p>
               <?php else: ?>
@@ -187,10 +203,8 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
                 </ul>
               <?php endif; ?>
               <p class="writing-media-tip">插图请点工具栏上的「图片」，图片插在光标所在位置；图集灯箱在详情页自动生效。</p>
-            </div>
-          <?php endif; ?>
-          <textarea name="content_html" rows="18" class="mono"><?= hechi_e($article['content_html'] ?? '') ?></textarea>
-          <div class="editor-mount" data-editor-mount hidden></div>
+            <?php endif; ?>
+          </div>
         </div>
         <div class="preview-panel" data-preview-panel hidden>
           <iframe data-preview-frame title="正文预览" sandbox referrerpolicy="no-referrer"></iframe>

@@ -372,10 +372,27 @@ final class ArticleController extends AdminController
             $this->articles->adminUpdate((string) $id, ['content_html' => $adopted]);
         }
 
+        // 新建页的附件随表单一起提交（那时还没有稿件号，落不了盘），建稿后在这里落盘并登记
+        $attachSaved = 0;
+        $attachErrors = [];
+        foreach ($this->normalizeUploadedFiles('attachments') as $uploadedFile) {
+            try {
+                $stored = $this->storeUpload($uploadedFile, $id, self::FILE_EXTENSIONS);
+            } catch (\RuntimeException $e) {
+                $attachErrors[] = $e->getMessage();
+                continue;
+            }
+            $this->articles->addAttachment($id, $stored);
+            $this->log('attachment.create', 'article', (string) $id, ['name' => $stored['name'], 'ext' => $stored['ext']]);
+            $attachSaved++;
+        }
+
         $this->log('article.create', 'article', (string) $id, ['title' => $title, 'status' => $status, 'channel' => $channelType]);
         PublishTrigger::articleChanged($id);   // 保存即自动发布：增量重发这一篇详情页
         Flash::set('ok', '已新建稿件 #' . $id . '（' . $this->statusLabel($status) . '）'
-            . ($downgraded ? '；当前账号没有发布权限，已存为草稿。' : '，可继续编辑或上传附件。'));
+            . ($downgraded ? '；当前账号没有发布权限，已存为草稿。' : '，可继续编辑或上传附件。')
+            . ($attachSaved > 0 ? '已上传附件 ' . $attachSaved . ' 个。' : '')
+            . ($attachErrors !== [] ? '有附件没传上：' . implode('；', $attachErrors) : ''));
         return new RedirectResponse('/admin/article/' . $id);
     }
 
@@ -958,6 +975,47 @@ final class ArticleController extends AdminController
             . '<script src="/assets/editor/suneditor.min.js" defer></script>'
             . '<script src="/assets/editor/lang/zh_cn.js" defer></script>'
             . '<script src="/assets/editor/admin-editor.js" defer></script>';
+    }
+
+    /**
+     * 把 `name[]` 形式的多文件上传字段拍平成逐个文件的数组。
+     *
+     * PHP 把多文件上传拆成 name／tmp_name／size／error 四个平行数组，storeUpload() 只认单个文件的形状；
+     * 没选文件（UPLOAD_ERR_NO_FILE）的槽位直接跳过，别让它变成一个「上传中断」的错误。
+     *
+     * @return list<array{name:string,type:string,tmp_name:string,error:int,size:int}>
+     */
+    private function normalizeUploadedFiles(string $field): array
+    {
+        $raw = $_FILES[$field] ?? null;
+        if (!is_array($raw) || !array_key_exists('name', $raw)) {
+            return [];
+        }
+        if (!is_array($raw['name'])) {
+            return (int) ($raw['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE ? [] : [[
+                'name'     => (string) $raw['name'],
+                'type'     => (string) ($raw['type'] ?? ''),
+                'tmp_name' => (string) $raw['tmp_name'],
+                'error'    => (int) $raw['error'],
+                'size'     => (int) $raw['size'],
+            ]];
+        }
+
+        $files = [];
+        foreach (array_keys($raw['name']) as $index) {
+            if ((int) ($raw['error'][$index] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+                continue;
+            }
+            $files[] = [
+                'name'     => (string) $raw['name'][$index],
+                'type'     => (string) ($raw['type'][$index] ?? ''),
+                'tmp_name' => (string) $raw['tmp_name'][$index],
+                'error'    => (int) $raw['error'][$index],
+                'size'     => (int) $raw['size'][$index],
+            ];
+        }
+
+        return $files;
     }
 
     /**

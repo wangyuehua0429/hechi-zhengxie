@@ -13,6 +13,7 @@
  * 8. 站内横幅选了图片文件后，先在页面上方的预览框里显示这张图（本地预览，点「保存」才生效）。
  * 9. 首页徽标的下拉选「自定义…」时才显示文本框，选预设或「不显示徽标」时把文本框禁掉。
  * 10. 委员管理「手工新建账号」的增行／删行（表单默认给三行，没有脚本也能直接提交）。
+ * 11. 输入方式感知：鼠标点进输入框不套焦点环，键盘 Tab 过来仍按品牌红显示。
  *
  * 所有逻辑都用 data-* 钩子，模板改名不影响；没有匹配元素时静默跳过。
  */
@@ -33,6 +34,23 @@
     if (liveRegion.textContent === message) liveRegion.textContent = "";
     window.setTimeout(() => { liveRegion.textContent = message; }, 20);
   };
+
+  /* ------------------------------------------- 0.0 输入方式：鼠标点不套焦点环 */
+  // 浏览器把文本输入框也算作「键盘可达」，所以鼠标点进去同样命中 :focus-visible，
+  // 后台那圈品牌红焦点环就会在每次点击时闪一下（Edge 上尤其明显）。
+  // 这里把输入方式记在 <html> 上：指针点进来时收掉焦点环，Tab 过来的键盘焦点照旧显示。
+  // 顺序很关键——mousedown 早于 focus，属性得在焦点落上去之前写进 DOM。
+  const inputModeEvents = [["mousedown", "pointer"], ["touchstart", "pointer"], ["keydown", "keyboard"]];
+  inputModeEvents.forEach(([type, mode]) => {
+    document.addEventListener(type, (event) => {
+      // 只认 Tab／方向键这类「导航键」当成键盘操作；在输入框里打字不算切回键盘焦点
+      if (mode === "keyboard") {
+        const key = event.key || "";
+        if (key !== "Tab" && key !== "Shift" && key.indexOf("Arrow") !== 0) return;
+      }
+      document.documentElement.setAttribute("data-input-mode", mode);
+    }, true);
+  });
 
   /* ------------------------------------------------------ 0. 深浅色开关 */
   // 首帧的主题由 /assets/theme.js 在 <head> 里写好；这里只管点击、记住选择与状态文案。

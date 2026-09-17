@@ -96,9 +96,17 @@
   font-size: 14px;
 }
 
-/* 来源一行（作者与责任编辑不再由编辑页维护） */
+/* 来源与作者一行两块（责任编辑仍不在编辑页维护，详情页按库里的署名显示） */
 .writing-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
   margin: 0 0 16px;
+}
+
+.writing-meta .writing-field {
+  flex: 1 1 260px;
+  min-width: 0;
 }
 
 .writing-hint {
@@ -319,6 +327,22 @@
   outline: 3px solid var(--brand, #a51d22);
   outline-offset: 1px;
   box-shadow: none;
+}
+
+/* 鼠标点进来的焦点不套环（键盘 Tab 仍按上一条显示）。
+   选择器要压过上面那条与 SunEditor 自带的 input:focus，所以选择器写得更长。 */
+html[data-input-mode="pointer"] .writing-paper .writing-field input:focus,
+html[data-input-mode="pointer"] .writing-paper .writing-field input:focus-visible,
+html[data-input-mode="pointer"] .writing-paper .writing-author:focus,
+html[data-input-mode="pointer"] .writing-paper .writing-author:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+/* 只把常态描边恢复成灰：校验失败的字段（aria-invalid）保留红色描边，别被这里刷掉 */
+html[data-input-mode="pointer"] .writing-paper .writing-field input:not([aria-invalid="true"]):focus,
+html[data-input-mode="pointer"] .writing-paper .writing-author:not([aria-invalid="true"]):focus {
+  border-color: var(--field-line, #8a9199);
 }
 
 /* 来源：标签在左、输入框占满右侧，避免整行大白框 */
