@@ -316,6 +316,22 @@ async function main() {
       check("浏览器：可切回富文本", richState.textareaHidden && richState.containerVisible
         && richState.titleVisible && richState.origVisible, JSON.stringify(richState));
 
+      // 素材条在稿件表单里，但附件控件必须归属外置的 #writing-media-form：
+      // 写成嵌套 <form> 时浏览器会丢弃内层表单、并把外层稿件表单提前闭合，保存按钮会失效
+      const mediaForm = await page.evaluate(() => {
+        const helper = document.getElementById("writing-media-form");
+        const file = document.querySelector('.writing-media-form input[type="file"]');
+        const bar = document.querySelector("[data-editor-media]");
+        return {
+          barInsideArticleForm: !!(bar && bar.closest("#article-form")),
+          helperInArticleForm: !!(helper && helper.closest("#article-form")),
+          fileOwner: file && file.form ? file.form.id : "",
+        };
+      });
+      check("浏览器：素材条的附件控件归属外置表单（不会带动稿件表单一起提交）",
+        mediaForm.barInsideArticleForm && !mediaForm.helperInArticleForm && mediaForm.fileOwner === "writing-media-form",
+        JSON.stringify(mediaForm));
+
       await Promise.all([page.waitForNavigation(), page.click('button[type="submit"].btn-primary')]);
       const apiAfterType = await client.get("/api/v1/article/" + SAMPLE_ID, { json: true });
       check("浏览器：提交后服务端存的是编辑器内容",
@@ -438,14 +454,16 @@ async function main() {
         writingUi.placeholder.includes("从这里开始写正文"), JSON.stringify(writingUi));
       const writingOrder = await page.evaluate(() => Array.prototype.map.call(
         document.querySelectorAll(
-          ".writing-paper .writing-title-line, .writing-paper .se-toolbar,"
-            + " .writing-paper .writing-orig, .writing-paper .writing-meta, .writing-paper .se-wrapper"
+          ".writing-paper .writing-title-line, .writing-paper .writing-orig,"
+            + " .writing-paper .writing-meta, .writing-paper .writing-hint,"
+            + " .writing-paper .se-toolbar, .writing-paper .se-wrapper"
         ),
         (n) => n.className.split(" ")[0]
       ));
-      check("新建页：写作窗顺序为 标题 → 工具栏 → 原标题 → 来源 → 正文",
+      // 2026-09-17：工具栏从字段上方挪到正文框正上方（此前压在原标题／来源上头，离正文太远）
+      check("新建页：写作窗顺序为 标题 → 原标题 → 来源 → 正文提示 → 工具栏 → 正文",
         JSON.stringify(writingOrder)
-          === JSON.stringify(["writing-title-line", "se-toolbar", "writing-orig", "writing-meta", "se-wrapper"]),
+          === JSON.stringify(["writing-title-line", "writing-orig", "writing-meta", "writing-hint", "se-toolbar", "se-wrapper"]),
         JSON.stringify(writingOrder));
 
       /* 版面细节：每个输入框都有可见标签（不靠 placeholder 当标签）、

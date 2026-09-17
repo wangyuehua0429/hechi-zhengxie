@@ -214,8 +214,8 @@
 
 | 类型 | 允许扩展名 | 大小上限 | 说明 |
 | --- | --- | --- | --- |
-| 附件 | pdf／doc(x)／xls(x)／ppt(x)／zip／rar／txt | 32 MB | 详情页“附件下载”区展示 |
-| 正文插图 | jpg／jpeg／png／gif／webp | **2 MB** | 上传后追加到正文末尾，并登记为图集图片（≥2张出灯箱）；编辑器内插图同上限 |
+| 附件 | pdf／doc／docx／xls／xlsx／ppt／pptx／zip／rar／txt | 32 MB | 详情页“附件下载”区展示 |
+| 正文插图 | jpg／jpeg／png／gif／webp | **2 MB** | 走 `POST /admin/media/image`，插在编辑器光标处（文首／文中／文末都行），并登记为图集图片（≥2张出灯箱） |
 | 视频 | mp4／webm／ogg／mov／m4v | 32 MB | 编辑器内插入 `<video>`，走 `POST /admin/media/video` |
 
 2026-09-12起**图片一律 ≤ 2 MB**（站内横幅、头条轮换大图、正文插图、编辑器插图同一口径），超限时接口返回的提示是“图片超过服务器允许的上传大小（2 MB）”，不再只有PHP的错误码。编辑器两个上传接口（`/admin/media/image`、`/admin/media/video`）为JSON契约：字段名 `file-0`，可选 `article` 传稿件号，返回 `{"result":[{"url","name","size"}]}`，CSRF走 `X-CSRF-Token` 头；新建页没有稿件号时先落 `/uploads/pending/`，保存稿件时迁入 `uploads/{稿件号}/`。

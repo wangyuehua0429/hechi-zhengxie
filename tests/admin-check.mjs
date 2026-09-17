@@ -694,11 +694,13 @@ async function main() {
       const fileUrl = (/href="(\/uploads\/[^"]+\.txt)"/.exec(editAfterUpload.text) || [])[1] || "";
       check("上传的文件可直接访问", fileUrl !== "" && (await client.get(fileUrl)).status === 200, fileUrl);
 
+      // 图片走编辑器接口（SunEditor 契约）：位置由光标决定，接口不再改写正文，
+      // 旧站那条「上传即追加到正文末尾」的表单接口 2026-09-17 已随右栏卡片删除。
       const imageUploaded = await client.upload(
-        "/admin/article/" + createdId + "/image",
-        { _token: csrfToken(editAfterUpload.text) },
+        "/admin/media/image",
+        { _token: csrfToken(editAfterUpload.text), article: createdId },
         [{
-          field: "image",
+          field: "file-0",
           filename: "check.png",
           type: "image/png",
           content: Buffer.from(
@@ -707,10 +709,13 @@ async function main() {
           )
         }]
       );
-      check("上传正文图片后跳回编辑页", imageUploaded.status === 302);
+      check("编辑器插图接口返回 SunEditor 契约并按稿件归档",
+        imageUploaded.status === 200 && imageUploaded.text.includes('"result"')
+          && new RegExp('"url":"/uploads/' + createdId + '/').test(imageUploaded.text),
+        imageUploaded.status + " " + imageUploaded.text.slice(0, 120));
       const afterImage = await client.get("/api/v1/article/" + createdId, { json: true });
-      check("正文里出现刚插入的图片，且登记为图集图片",
-        (afterImage.body?.article?.content || "").includes("<img") && (afterImage.body?.article?.images || []).length === 1,
+      check("插图不再改写正文（位置由光标决定），但登记为图集图片",
+        !(afterImage.body?.article?.content || "").includes("<img") && (afterImage.body?.article?.images || []).length === 1,
         "images=" + JSON.stringify(afterImage.body?.article?.images || []));
 
       const deletePage = await client.get("/admin/article/" + createdId + "/delete");
@@ -1184,9 +1189,12 @@ async function main() {
     check("编辑页只剩写作窗一张卡（基本信息、发布设置已并入／删除）",
       editPage.text.includes("摘要与正文") && editPage.text.includes("writing-paper")
         && !editPage.text.includes("基本信息") && !editPage.text.includes("发布设置"));
-    check("编辑页右侧栏放稿库流转、稿件信息与附件",
+    check("编辑页右侧栏只放稿库流转与稿件信息（附件与插图已并进写作纸）",
       editPage.text.includes('class="edit-side"') && editPage.text.includes("稿库流转") &&
-      editPage.text.includes("稿件信息") && editPage.text.includes("正文插图"));
+      editPage.text.includes("稿件信息") && !editPage.text.includes("正文插图"));
+    check("附件的提交入口落在写作纸的素材条里",
+      editPage.text.includes('data-editor-media') && editPage.text.includes("writing-media") &&
+      editPage.text.includes("上传附件"));
     check("编辑页有正文预览与字数统计钩子",
       editPage.text.includes("data-preview-toggle") && editPage.text.includes("data-content-count") &&
       editPage.text.includes("data-preview-frame"));
@@ -1894,12 +1902,13 @@ async function main() {
     check("横幅上传超过 2 MB 的图片被挡下，且提示能看懂",
       oversizedBanner.status === 302 && (await client.get("/admin/banners")).text.includes("2 MB"));
     const oversizedInline = await client.upload(
-      "/admin/article/" + createdId + "/image",
-      { _token: csrfToken((await client.get("/admin/article/" + createdId)).text) },
-      [{ field: "image", filename: "oversized.jpg", type: "image/jpeg", content: oversizedImage }]
+      "/admin/media/image",
+      { _token: csrfToken((await client.get("/admin/article/" + createdId)).text), article: createdId },
+      [{ field: "file-0", filename: "oversized.jpg", type: "image/jpeg", content: oversizedImage }]
     );
-    check("正文插图超过 2 MB 同样被挡下",
-      oversizedInline.status === 302 && (await client.get("/admin/article/" + createdId)).text.includes("2 MB"));
+    check("编辑器插图超过 2 MB 同样被挡下",
+      oversizedInline.status === 400 && oversizedInline.text.includes("2 MB"),
+      oversizedInline.status + " " + oversizedInline.text.slice(0, 120));
 
     const bannerOff = await client.post("/admin/banner/body-1", {
       _token: csrfToken(bannersPage.text),

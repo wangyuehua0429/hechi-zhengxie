@@ -98,7 +98,8 @@
   /**
    * 把标题、原标题、来源、正文提示摆到写作窗里。
    *
-   * 富文本模式下：标题压在工具栏上方，原标题／来源／正文提示落在工具栏与正文框之间；
+   * 富文本模式下：标题压在编辑器最上，原标题／来源／正文提示／素材条排在工具栏之前，
+   * 于是工具栏紧贴正文框（2026-09-17 调整：此前工具栏压在字段上方，工具栏离正文太远）；
    * 编辑器没加载时它们留在模板原位，顺序与这里一致。切到源码模式时富文本容器整块
    * 隐藏，这几块必须挪回纸张里，否则「原标题」「来源」会跟着工具栏一起消失、没处编辑。
    */
@@ -108,7 +109,8 @@
     var editorRoot = container.closest(".sun-editor") || container;
     var paper = editorRoot.parentElement;
     var titleLine = document.querySelector(".writing-title-line");
-    var blocks = [".writing-orig", ".writing-meta", ".writing-hint"]
+    // 素材条（附件）也算写作纸里的字段块：切到源码模式时要跟着回位，否则它会留在富文本容器里被一起隐藏
+    var blocks = [".writing-orig", ".writing-meta", ".writing-hint", ".writing-media"]
       .map(function (selector) { return document.querySelector(selector); })
       .filter(Boolean);
     if (richText) {
@@ -119,9 +121,9 @@
       if (!anchor) {
         return;
       }
+      // 逐个插到工具栏「前面」：每次都以工具栏为锚点，几块的先后顺序才不会倒过来
       blocks.forEach(function (block) {
-        anchor.insertAdjacentElement("afterend", block);
-        anchor = block;
+        anchor.insertAdjacentElement("beforebegin", block);
       });
       return;
     }

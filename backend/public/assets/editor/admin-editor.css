@@ -112,6 +112,76 @@
   font-weight: 700;
 }
 
+/* 素材条（附件）：原先是右栏一张卡片，2026-09-17 并进写作纸，
+   落位在「正文」提示与编辑区之间，与原标题／来源同一套字段节奏。 */
+.writing-media {
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line, #e6e8eb);
+  border-radius: 8px;
+  background: var(--surface-2, #f7f8f9);
+  font-size: 12px;
+}
+
+.writing-media-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.writing-media-name {
+  font-weight: 700;
+  color: var(--ink, #1f2328);
+}
+
+.writing-media-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.writing-media-form input[type="file"] {
+  max-width: 260px;
+  font-size: 12px;
+}
+
+.writing-media-note,
+.writing-media-empty,
+.writing-media-tip {
+  margin: 0;
+  color: var(--muted, #57606a);
+}
+
+.writing-media-note { flex: 1 1 220px; }
+.writing-media-empty { margin-top: 8px; }
+.writing-media-tip { margin-top: 8px; }
+
+.attach-list--inline {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.attach-list--inline li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  padding: 2px 0;
+  border-bottom: 0;
+  font-size: 12px;
+}
+
+.attach-list--inline .muted {
+  display: inline;
+  font-size: 12px;
+}
+
 /* 编辑器容器融进纸张：工具栏浅灰一条，正文区留白更大 */
 .writing-paper .se-container {
   border: 0;
@@ -272,4 +342,7 @@
   .writing-paper .writing-title { font-size: 22px; }
   .writing-orig-fields .writing-field { flex: 1 1 100%; }
   .writing-paper .writing-field--inline .writing-author { max-width: none; }
+  /* 手机上文件框按 44px 触控目标给高度（admin.css 那条只管 .upload-form，素材条不吃到） */
+  .writing-media-form { flex: 1 1 100%; }
+  .writing-media-form input[type="file"] { min-height: 44px; max-width: none; flex: 1 1 auto; }
 }

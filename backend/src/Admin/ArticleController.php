@@ -801,52 +801,6 @@ final class ArticleController extends AdminController
     }
 
     /**
-     * 正文插图：上传后追加到正文末尾，并登记到 cms_article_image（前端图集灯箱用）。
-     *
-     * @param array<string, string> $args
-     */
-    public function uploadImage(Request $request, array $args): HtmlResponse|RedirectResponse
-    {
-        if ($redirect = $this->requireLogin()) {
-            return $redirect;
-        }
-        if ($denied = $this->guard($request)) {
-            return $denied;
-        }
-
-        $id = (int) $args['id'];
-        $article = $this->articles->adminFind((string) $id);
-        if ($article === null) {
-            Flash::set('error', '稿件不存在。');
-            return new RedirectResponse('/admin/articles');
-        }
-
-        $file = $_FILES['image'] ?? null;
-        if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
-            Flash::set('error', '没有选择图片。');
-            return new RedirectResponse('/admin/article/' . $id);
-        }
-
-        try {
-            $stored = $this->storeUpload($file, $id, self::IMAGE_EXTENSIONS, self::MAX_IMAGE_BYTES, '图片');
-        } catch (\RuntimeException $e) {
-            Flash::set('error', '图片上传失败：' . $e->getMessage());
-            return new RedirectResponse('/admin/article/' . $id);
-        }
-
-        $tag = '<p><img src="' . htmlspecialchars($stored['url'], ENT_QUOTES) . '" alt=""></p>';
-        $this->articles->adminUpdate((string) $id, [
-            'content_html' => (string) $article['content_html'] . "\n" . $tag,
-        ]);
-        $this->articles->addImage($id, $stored['url']);
-        $this->articles->syncBodyAssets($id, (string) $article['content_html'] . $tag);
-        $this->log('image.create', 'article', (string) $id, ['url' => $stored['url']]);
-
-        Flash::set('ok', '图片已插入正文末尾：' . $stored['url']);
-        return new RedirectResponse('/admin/article/' . $id);
-    }
-
-    /**
      * 编辑器插图（图片）。表单里带 article 时直接落到该稿件目录，否则落 pending（新建页）。
      *
      * @param array<string, string> $args
@@ -871,8 +825,9 @@ final class ArticleController extends AdminController
     /**
      * 编辑器用的素材上传（JSON）。
      *
-     * 与 302 表单接口 /admin/article/{id}/image 并存：那个把图追加到正文末尾，
-     * 这里供编辑器在光标处插图，返回 SunEditor 约定的形状：
+     * 编辑器插图统一走这里：图片插在光标处（此前另有一个「追加到正文末尾」的表单接口，
+     * 2026-09-17 随右栏「正文插图」卡片一起删掉，位置改由光标决定）。
+     * 返回 SunEditor 约定的形状：
      * {"result":[{"url":"…","name":"…","size":123}]}
      *
      * @return array<string, mixed>

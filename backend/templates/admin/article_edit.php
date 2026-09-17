@@ -3,9 +3,12 @@
 /**
  * 稿件编辑 / 新建。
  *
- * 结构上分成两栏：左边是内容表单（基本信息 / 发布设置 / 摘要与正文），
- * 右边是「随手要用」的东西（稿库流转、稿件信息、附件、正文插图、回收站），
+ * 结构上分成两栏：左边是内容表单（写作纸：网页标题 / 原标题 / 来源 / 正文 / 素材），
+ * 右边是「随手要用」的东西（稿库流转、稿件信息、回收站），
  * 这样改稿时不用在长页面里上下找保存按钮与流转按钮。
+ *
+ * 图片与附件的提交都在左边写作纸里：插图走工具栏的「图片」按钮（插在光标处），
+ * 附件走写作纸里的素材条（2026-09-17 从右栏并入，右栏不再单列这两张卡片）。
  *
  * 正文用富文本编辑器（SunEditor，本地自托管），脚本未加载或初始化失败时退回原来的
  * HTML 文本框；两种方式都保留「预览正文」「切到源码」与字数统计。保存后静态页要走
@@ -155,6 +158,37 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
             </label>
           </div>
           <p class="writing-hint"><span class="writing-hint-name">正文</span>可直接插图与 mp4／webm 视频，图片单个 ≤ 2 MB；粘贴网页或 Word 内容时图片自动上传。</p>
+          <?php if (!$isNew): ?>
+            <!-- 素材（附件）并进写作纸：右栏不再单列上传卡片，图片统一走工具栏的「图片」按钮，插在光标处 -->
+            <div class="writing-media" data-editor-media>
+              <div class="writing-media-head">
+                <span class="writing-media-name">附件</span>
+                <!-- 控件用 form="…" 关联到 .edit-main 末尾的独立表单：
+                     写作纸在稿件表单里，这里再嵌一个 <form> 会被浏览器丢弃，并把外层表单提前闭合 -->
+                <div class="writing-media-form">
+                  <input type="file" name="file" form="writing-media-form" required>
+                  <button type="submit" form="writing-media-form" class="btn btn-sm">上传附件</button>
+                </div>
+                <span class="writing-media-note">pdf／doc／docx／xls／xlsx／ppt／pptx／zip／rar／txt，单个 ≤ 32 MB；上传后在文末「附件下载」区显示。</span>
+              </div>
+              <?php if ($attachments === []): ?>
+                <p class="writing-media-empty">暂无附件。</p>
+              <?php else: ?>
+                <ul class="attach-list attach-list--inline">
+                  <?php foreach ($attachments as $file): ?>
+                    <li>
+                      <a href="<?= hechi_e($file['url']) ?>" target="_blank" rel="noopener"><?= hechi_e($file['name']) ?></a>
+                      <span class="muted"><?= hechi_e((string) $file['ext']) ?> · <?= $file['size'] > 0 ? hechi_e(number_format($file['size'] / 1024, 1) . ' KB') : '—' ?></span>
+                      <?php /* formnovalidate：删除时不该被上面那个必填的文件框拦住 */ ?>
+                      <button type="submit" form="writing-media-form" formnovalidate class="link-btn"
+                              formaction="/admin/article/<?= (int) $article['article_id'] ?>/attachment/<?= (int) $file['id'] ?>/delete">删除</button>
+                    </li>
+                  <?php endforeach; ?>
+                </ul>
+              <?php endif; ?>
+              <p class="writing-media-tip">插图请点工具栏上的「图片」，图片插在光标所在位置；图集灯箱在详情页自动生效。</p>
+            </div>
+          <?php endif; ?>
           <textarea name="content_html" rows="18" class="mono"><?= hechi_e($article['content_html'] ?? '') ?></textarea>
           <div class="editor-mount" data-editor-mount hidden></div>
         </div>
@@ -179,6 +213,13 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
         </p>
       </div>
     </form>
+    <?php if (!$isNew): ?>
+      <?php /* 素材条的附件表单：挂在稿件表单之外，控件用 form="writing-media-form" 关联进来 */ ?>
+      <form id="writing-media-form" method="post" enctype="multipart/form-data"
+            action="/admin/article/<?= (int) $article['article_id'] ?>/attachment">
+        <?= $csrf ?>
+      </form>
+    <?php endif; ?>
   </div>
 
   <?php if (!$isNew): ?>
@@ -245,44 +286,6 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
           <dd><a href="/detail.html?id=<?= (int) $article['article_id'] ?>" target="_blank" rel="noopener">打开详情页</a>
             <a href="/admin/articles?channel=<?= hechi_e((string) $article['channel_type']) ?>">同栏目稿件</a></dd>
         </dl>
-      </section>
-
-      <section class="card">
-        <h2>附件下载</h2>
-        <?php if ($attachments === []): ?>
-          <p class="muted">暂无附件。</p>
-        <?php else: ?>
-          <ul class="attach-list">
-            <?php foreach ($attachments as $file): ?>
-              <li>
-                <a href="<?= hechi_e($file['url']) ?>" target="_blank" rel="noopener"><?= hechi_e($file['name']) ?></a>
-                <span class="muted"><?= hechi_e((string) $file['ext']) ?> · <?= $file['size'] > 0 ? hechi_e(number_format($file['size'] / 1024, 1) . ' KB') : '—' ?></span>
-                <form method="post" action="/admin/article/<?= (int) $article['article_id'] ?>/attachment/<?= (int) $file['id'] ?>/delete" class="inline">
-                  <?= $csrf ?>
-                  <button type="submit" class="link-btn">删除</button>
-                </form>
-              </li>
-            <?php endforeach; ?>
-          </ul>
-        <?php endif; ?>
-
-        <form method="post" action="/admin/article/<?= (int) $article['article_id'] ?>/attachment" enctype="multipart/form-data" class="upload-form">
-          <?= $csrf ?>
-          <input type="file" name="file" required>
-          <button type="submit" class="btn btn-sm">上传附件</button>
-          <span class="muted">pdf／doc(x)／xls(x)／ppt(x)／zip／rar／txt，单个 ≤ 32 MB。</span>
-        </form>
-      </section>
-
-      <section class="card">
-        <h2>正文插图</h2>
-        <p class="muted">上传后自动追加到正文末尾，并登记为图集图片（详情页 2 张以上会出灯箱）。</p>
-        <form method="post" action="/admin/article/<?= (int) $article['article_id'] ?>/image" enctype="multipart/form-data" class="upload-form">
-          <?= $csrf ?>
-          <input type="file" name="image" accept="image/*" required>
-          <button type="submit" class="btn btn-sm">插入图片</button>
-          <span class="muted">jpg／jpeg／png／gif／webp，单个 ≤ 2 MB。</span>
-        </form>
       </section>
 
       <?php if ($canDelete): ?>
