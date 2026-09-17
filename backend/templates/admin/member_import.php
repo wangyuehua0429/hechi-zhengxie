@@ -20,10 +20,12 @@ declare(strict_types=1);
 <div class="card">
   <h2>1. 下载并填写模板</h2>
   <p class="muted">
-    模板是 CSV 文件，用 Excel 或 WPS 双击打开即可编辑。表头固定为：
+    模板是 CSV 文件，用 Excel 或 WPS 双击打开即可编辑。模板表头为：
     <?php foreach ($headers as $index => $header): ?><?= $index > 0 ? '、' : '' ?><code><?= hechi_e($header) ?></code><?php endforeach; ?>。
-    姓名必填；登录名取委员本人姓名，重名的自动补序号（<code>张三</code>、<code>张三2</code>）。
-    手机号建议填写（留空则该委员只能用姓名登录），名册内手机号不得重复。
+    「姓名」与「职务」必填——缺这两列会拒收整份文件，某一行留空则该行不入库并列出原因；
+    登录名取委员本人姓名，重名的自动补序号（<code>张三</code>、<code>张三2</code>）。
+    「界别」与「联系电话」可以留空，留空联系电话的委员只能用姓名登录；同一名册内联系电话不得重复。
+    表头与姓名里的空格会自动去掉，所以「姓 名」「现 任 职 务」「韦　　平」这类排版空格不影响导入。
   </p>
   <p><a class="btn" href="/admin/members/import/template.csv">下载导入模板</a></p>
 </div>

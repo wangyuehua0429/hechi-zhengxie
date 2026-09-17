@@ -684,6 +684,12 @@ html.js .bulk-bar { display: flex; }
 .bulk-col { width: 1%; }
 html:not(.js) .bulk-col { display: none; }
 
+/* 手工建号：一行一个账号，四个输入框铺满单元格；「删除本行」要脚本才可用，没脚本时隐藏
+   （提交时整行空白的行会被忽略，所以多留的空行不影响建号） */
+[data-manual-row] input { width: 100%; min-width: 120px; }
+[data-manual-template] { display: none; }
+html:not(.js) [data-manual-remove] { display: none; }
+
 /* 稿件表格：内容优先，标题即入口 */
 .article-table td { vertical-align: middle; }
 .article-table .col-title { min-width: 280px; }

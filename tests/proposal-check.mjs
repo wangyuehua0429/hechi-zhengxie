@@ -256,8 +256,8 @@ async function main() {
       memberList.text.includes("提案管理") && memberList.text.includes("提案收件"));
 
     const template = await admin.get("/admin/members/import/template.csv");
-    check("导入模板可下载且表头固定",
-      template.status === 200 && template.text.includes("姓名,手机号,界别,专委会,单位及职务,届次,备注"),
+    check("导入模板可下载且表头固定为四列",
+      template.status === 200 && template.text.includes("姓名,界别,职务,联系电话"),
       "状态 " + template.status);
 
     const importPage = await admin.get("/admin/members/import");
@@ -266,7 +266,8 @@ async function main() {
       importPage.status === 200
         && importPage.text.includes("委员名册导入")
         && importPage.text.includes("姓名")
-        && importPage.text.includes("手机号"),
+        && importPage.text.includes("职务")
+        && importPage.text.includes("联系电话"),
       "状态 " + importPage.status);
 
     const utf8Csv = "姓名,手机号,界别,专委会,单位及职务,届次,备注\n"
@@ -304,7 +305,7 @@ async function main() {
         && !afterSecond.text.includes(passwordA),
       "状态 " + credentialsAgain.status);
 
-    const dupCsv = "姓名,手机号,界别,专委会,单位及职务,届次,备注\n王五,13800000001,经济界,,,五届,手机号重复\n";
+    const dupCsv = "姓名,手机号,界别,专委会,单位及职务,届次,备注\n王五,13800000001,经济界,,河池市某某公司职员,五届,手机号重复\n";
     const dupToken = csrfToken((await admin.get("/admin/members/import")).text);
     await admin.upload("/admin/members/import", { _token: dupToken }, [
       { field: "roster", filename: "dup.csv", content: Buffer.from(dupCsv, "utf8"), type: "text/csv" }
@@ -334,6 +335,158 @@ async function main() {
       const gbkPage = await admin.get("/admin/members/import");
       check("GBK 编码的名册同样能识别（周七入列）", gbkPage.text.includes("周七"));
     }
+
+    // ---------- 二之一之二、名册导出件的原样导入 ----------
+    // 真实名册的样子：第 1 行是合并标题、表头写成「姓 名／现 任 职 务」、界别是小标题行、整列没有手机号
+    const noNameCsv = "序号,现任职务\n1,某局副局长\n";
+    const noNameToken = csrfToken((await admin.get("/admin/members/import")).text);
+    await admin.upload("/admin/members/import", { _token: noNameToken }, [
+      { field: "roster", filename: "no-name.csv", content: Buffer.from(noNameCsv, "utf8"), type: "text/csv" }
+    ]);
+    const noNamePage = await admin.get("/admin/members/import");
+    check("表头里没有「姓名」列的名册被拒收并说明原因",
+      noNamePage.text.includes("表头对不上"),
+      "状态 " + noNamePage.status);
+
+    const rawRosterCsv = "\uFEFF政协第五届河池市委员会委员提名人选名册\n（现有291名）\n"
+      + "序号,姓 名,现 任 职 务\n"
+      + "一、中国共产党（共1人）\n"
+      + "1,韦    平,政协河池市委员会机关党组副书记、副秘书长、办公室副主任\n"
+      + "二、民革（共1人）\n"
+      + "2,朱    琳,政协河池市委员会提案委员会主任\n";
+    const rawRosterToken = csrfToken((await admin.get("/admin/members/import")).text);
+    await admin.upload("/admin/members/import", { _token: rawRosterToken }, [
+      { field: "roster", filename: "roster.csv", content: Buffer.from(rawRosterCsv, "utf8"), type: "text/csv" }
+    ]);
+    const rawRosterReport = await admin.get("/admin/members/import");
+    check("名册导出件能导入：表头在第 3 行也认得、成功 2 行、界别小标题不算失败",
+      rawRosterReport.text.includes("成功 <strong>2</strong>")
+        && rawRosterReport.text.includes("失败 <strong>0</strong>")
+        && rawRosterReport.text.includes("共处理 4 行"),
+      (rawRosterReport.text.match(/成功 <strong>\d+<\/strong>/) || [""])[0]);
+
+    const rawRosterCredentials = await admin.get("/admin/members/credentials.csv");
+    check("姓名里的排版空格被去掉，登录名就是姓名本身（韦平／朱琳）",
+      rawRosterCredentials.status === 200
+        && /^韦平,韦平,/m.test(rawRosterCredentials.text)
+        && /^朱琳,朱琳,/m.test(rawRosterCredentials.text),
+      "状态 " + rawRosterCredentials.status);
+
+    const orgProbe = spawnSync(php, ["-r",
+      "require 'backend/src/bootstrap.php';"
+      + "$db = new \\HechiZx\\Support\\Db((array) hechi_config('db'));"
+      + "echo (string) $db->scalar('SELECT org_title FROM sys_member WHERE name = :n', ['n' => '韦平']);"
+    ], { cwd: REPO, env: { ...process.env, ...env }, encoding: "utf8" });
+    check("「现 任 职 务」整列落进「单位及职务」",
+      (orgProbe.stdout || "").includes("政协河池市委员会机关党组副书记"),
+      (orgProbe.stderr || "").trim().split("\n")[0] || (orgProbe.stdout || "（空）"));
+
+    // ---------- 新模板四列：姓名／界别／职务／联系电话，姓名与职务必填 ----------
+    const newTemplateCsv = "姓名,界别,职务,联系电话\n"
+      + "孙八,社会科学界,河池市某某研究所研究员,13800000005\n"
+      + "钱九,农业界,,13800000006\n";
+    const newTemplateToken = csrfToken((await admin.get("/admin/members/import")).text);
+    await admin.upload("/admin/members/import", { _token: newTemplateToken }, [
+      { field: "roster", filename: "new-template.csv", content: Buffer.from(newTemplateCsv, "utf8"), type: "text/csv" }
+    ]);
+    const newTemplatePage = await admin.get("/admin/members/import");
+    check("新模板能导入：成功 1 行，职务留空的那行被挡下并说明原因",
+      newTemplatePage.text.includes("成功 <strong>1</strong>")
+        && newTemplatePage.text.includes("职务为空")
+        && newTemplatePage.text.includes("钱九"),
+      (newTemplatePage.text.match(/成功 <strong>\d+<\/strong>/) || [""])[0]);
+
+    const newMemberRow = await admin.get("/admin/members?keyword=" + encodeURIComponent("孙八"));
+    check("新模板的界别与联系电话进了名册列表",
+      newMemberRow.text.includes("社会科学界") && newMemberRow.text.includes("13800000005"),
+      "状态 " + newMemberRow.status);
+
+    const orgProbeTwo = spawnSync(php, ["-r",
+      "require 'backend/src/bootstrap.php';"
+      + "$db = new \\HechiZx\\Support\\Db((array) hechi_config('db'));"
+      + "echo (string) $db->scalar('SELECT org_title FROM sys_member WHERE name = :n', ['n' => '孙八']);"
+    ], { cwd: REPO, env: { ...process.env, ...env }, encoding: "utf8" });
+    check("新模板的「职务」列落进单位及职务",
+      (orgProbeTwo.stdout || "").includes("河池市某某研究所研究员"),
+      (orgProbeTwo.stderr || "").trim().split("\n")[0] || (orgProbeTwo.stdout || "（空）"));
+
+    const noOrgCsv = "姓名,界别,联系电话\n孙九,经济界,13800000007\n";
+    const noOrgToken = csrfToken((await admin.get("/admin/members/import")).text);
+    await admin.upload("/admin/members/import", { _token: noOrgToken }, [
+      { field: "roster", filename: "no-org.csv", content: Buffer.from(noOrgCsv, "utf8"), type: "text/csv" }
+    ]);
+    const noOrgPage = await admin.get("/admin/members/import");
+    check("缺「职务」列的名册同样被拒收", noOrgPage.text.includes("表头对不上"));
+
+    // ---------- 二之二、委员管理：手工新建账号（一条或多条） ----------
+    // 多值字段（name[] 这类）要逐个 append：这里自己拼请求体，不依赖测试客户端对数组的处理
+    const postRows = async (client, url, fields) => {
+      const params = new URLSearchParams();
+      Object.entries(fields).forEach(([key, value]) => {
+        (Array.isArray(value) ? value : [value]).forEach((item) => params.append(key, item));
+      });
+      const res = await fetch(base + url, {
+        method: "POST",
+        headers: { Cookie: client.jar.header(), "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
+        redirect: "manual"
+      });
+      client.jar.absorb(res);
+      return { status: res.status, headers: res.headers, text: await res.text() };
+    };
+
+    const manualFormPage = await admin.get("/admin/members");
+    check("委员管理页给出手工新建账号表单（姓名／界别／职务／联系电话四列）",
+      manualFormPage.status === 200
+        && manualFormPage.text.includes("手工新建账号")
+        && manualFormPage.text.includes('action="/admin/members/create"')
+        && manualFormPage.text.includes('name="name[]"')
+        && manualFormPage.text.includes('name="org[]"'),
+      "状态 " + manualFormPage.status);
+
+    const manualCreate = await postRows(admin, "/admin/members/create", {
+      _token: csrfToken(manualFormPage.text),
+      "name[]": ["韦东", "韦西", "", "韦北"],
+      "sector[]": ["经济界", "教育界", "", "农业界"],
+      "org[]": ["河池市某某公司经理", "河池市某某中学教师", "", ""],
+      "mobile[]": ["13800000011", "13800000012", "", "13800000013"]
+    });
+    const manualPage = await admin.get("/admin/members");
+    check("一次提交多条：成功 2 条、空白行跳过、漏填职务的那条被挡下",
+      manualCreate.status === 302
+        && manualPage.text.includes("成功 <strong>2</strong> 条")
+        && manualPage.text.includes("职务为空")
+        && manualPage.text.includes("第 3 条"),
+      "状态 " + manualCreate.status);
+
+    const manualList = await admin.get("/admin/members?keyword=" + encodeURIComponent("韦东"));
+    check("手工新建的界别与联系电话进了名册列表",
+      manualList.text.includes("经济界") && manualList.text.includes("13800000011"));
+
+    const manualCredentials = await admin.get("/admin/members/credentials.csv");
+    const manualPassword = (/^韦东,韦东,([A-Za-z0-9]+)/m.exec(manualCredentials.text) || [])[1] || "";
+    check("手工新建的账号与初始密码出现在一次性清单里（可下载）",
+      manualCredentials.status === 200
+        && /^韦东,韦东,/m.test(manualCredentials.text)
+        && /^韦西,韦西,/m.test(manualCredentials.text)
+        && manualPassword.length >= 8,
+      "状态 " + manualCredentials.status);
+
+    const manualPageAfterDownload = await admin.get("/admin/members");
+    check("密码清单下载后手工建号结果卡片消失（不重复显示）",
+      manualPageAfterDownload.text.includes("手工新建结果") === false);
+
+    const manualMember = makeClient(base);
+    const manualLoginPage = await manualMember.get("/member/login");
+    await manualMember.post("/member/login", {
+      _token: csrfToken(manualLoginPage.text),
+      login_name: "韦东",
+      password: manualPassword
+    });
+    const manualAfter = await manualMember.get("/member");
+    check("手工建的账号能用本人姓名＋初始密码登录（首登跳改密）",
+      manualAfter.status === 302 && (manualAfter.headers.get("location") || "") === "/member/password",
+      "状态 " + manualAfter.status);
 
     const membersAfter = await admin.get("/admin/members");
     check("委员列表显示导入的账号与提案数",

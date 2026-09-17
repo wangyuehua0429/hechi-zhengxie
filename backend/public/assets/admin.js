@@ -12,6 +12,7 @@
  * 7. 长页面滚过一屏后，左下角出现「回到顶部」（模板默认 hidden，没有脚本就不显示）。
  * 8. 站内横幅选了图片文件后，先在页面上方的预览框里显示这张图（本地预览，点「保存」才生效）。
  * 9. 首页徽标的下拉选「自定义…」时才显示文本框，选预设或「不显示徽标」时把文本框禁掉。
+ * 10. 委员管理「手工新建账号」的增行／删行（表单默认给三行，没有脚本也能直接提交）。
  *
  * 所有逻辑都用 data-* 钩子，模板改名不影响；没有匹配元素时静默跳过。
  */
@@ -467,4 +468,32 @@
     });
     sync();
   });
+
+  /* ------------------------- 10. 委员管理：手工建号增删行 */
+  // 表单默认渲染三行，没有脚本也能填能提交；有脚本时「删除本行」才显示（见 admin.css）。
+  const manualRows = document.querySelector("[data-manual-rows]");
+  const manualTemplate = document.querySelector("[data-manual-template]");
+  if (manualRows && manualTemplate) {
+    const manualAdd = document.querySelector("[data-manual-add]");
+    if (manualAdd) {
+      manualAdd.addEventListener("click", () => {
+        manualRows.appendChild(manualTemplate.content.cloneNode(true));
+        const input = manualRows.lastElementChild.querySelector('input[name="name[]"]');
+        if (input) input.focus();
+      });
+    }
+
+    manualRows.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-manual-remove]");
+      if (!button) return;
+      const row = button.closest("[data-manual-row]");
+      if (!row) return;
+      // 至少留一行：删空了就没处填了，清空内容即可
+      if (manualRows.querySelectorAll("[data-manual-row]").length <= 1) {
+        row.querySelectorAll("input").forEach((input) => { input.value = ""; });
+        return;
+      }
+      row.remove();
+    });
+  }
 })();

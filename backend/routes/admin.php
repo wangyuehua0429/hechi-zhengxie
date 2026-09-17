@@ -191,6 +191,7 @@ return static function (Router $router, Db $db, Config $config): void {
     $router->get('/admin/members', [$memberController, 'index']);
     $router->get('/admin/members/import', [$memberController, 'importForm']);
     $router->post('/admin/members/import', [$memberController, 'importRun']);
+    $router->post('/admin/members/create', [$memberController, 'create']);
     $router->get('/admin/members/import/template.csv', [$memberController, 'importTemplate']);
     $router->get('/admin/members/credentials.csv', [$memberController, 'credentials']);
     $router->post('/admin/member/{id}/status', [$memberController, 'toggleStatus']);
