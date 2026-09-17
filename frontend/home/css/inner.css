@@ -44,7 +44,15 @@
   padding-bottom: 30px;
 }
 .inner-main { display: flex; flex-direction: column; gap: var(--card-gap); min-width: 0; }
-.inner-side { display: flex; flex-direction: column; gap: var(--card-gap); min-width: 0; }
+/* 二级／三级页右侧边栏的字号按口径**固定**在 15px × 适老化系数，不随
+   --font-base 上调（2026-09-17 全站字号加大一档时的例外项）。
+   这里给侧栏自己一个字号，栏内各条规则都是 em 相对值，
+   因此整栏（标题／列表／图片新闻）与调整前逐像素一致；改这一处即可，
+   不必逐条回退。 */
+.inner-side {
+  display: flex; flex-direction: column; gap: var(--card-gap); min-width: 0;
+  font-size: calc(15px * var(--font-scale));
+}
 .inner-side.is-sticky { position: sticky; top: 78px; }
 /* 栏目页：左侧栏（栏目按钮 + 最新新闻 + 图片新闻），右侧纯稿件列表 */
 .inner-layout--left { grid-template-columns: 330px minmax(0, 1fr); }
@@ -404,10 +412,11 @@ a.county-link:hover { border-color: var(--primary); color: var(--primary); }
   /* 正文版式对齐全国政协网稿件页（2026-09-14 实测该站正文：宋体／16px／行高 26px／
      首行缩进 32px（2 字）／段距 26px／图片 ≤700px／左对齐）：
      - 字体走宋体族；
-     - 字号 = 16px × 适老化系数 × 详情页「正文字号」档位（--body-scale）；
-     - 行高与段距都用 1.625em（16px 下正好 26px），跟随字号等比缩放。 */
+     - 字号 = 17px × 适老化系数 × 详情页「正文字号」档位（--body-scale）；
+       基准由 16px 提到 17px（2026-09-17 全站字号加大一档），参照页仍是 16px；
+     - 行高与段距都用 1.625em，跟随字号等比缩放（17px 下约 27.6px）。 */
   font-family: "宋体", SimSun, "Songti SC", "Songti TC", serif;
-  font-size: calc(16px * var(--font-scale) * var(--body-scale, 1));
+  font-size: calc(17px * var(--font-scale) * var(--body-scale, 1));
   line-height: 1.625;
   color: #121212;
   /* 旧库偶有超长英文串／URL，避免撑破手机版心 */
@@ -949,8 +958,8 @@ img.img-failed { visibility: hidden; }
   .article-panel { padding: 22px 18px 20px; }
   /* 100 字长标题在 390px 宽下按 1.42em 会占 8 行，压到 1.32em 并收紧行高 */
   .article-title { font-size: calc(1.32em * var(--font-scale)); line-height: 1.5; }
-  /* 手机上正文与桌面同一套版式（宋体 16px / 行高 1.625），只收窄版心 */
-  .article-body { font-size: calc(16px * var(--font-scale) * var(--body-scale, 1)); line-height: 1.625; }
+  /* 手机上正文与桌面同一套版式（宋体 17px / 行高 1.625），只收窄版心 */
+  .article-body { font-size: calc(17px * var(--font-scale) * var(--body-scale, 1)); line-height: 1.625; }
   .article-rows { padding: 4px 14px 10px; }
   .article-rows li { flex-direction: column; gap: 3px; padding: 10px 2px 10px 14px; }
   .article-rows li::before { top: 17px; }
@@ -1029,7 +1038,7 @@ img.img-failed { visibility: hidden; }
   border: 1px solid var(--primary, #a51d22);
   border-radius: 999px;
   color: var(--primary, #a51d22);
-  font-size: 14px;
+  font-size: 15px;
   text-decoration: none;
   white-space: nowrap;
 }

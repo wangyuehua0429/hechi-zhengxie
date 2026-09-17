@@ -130,7 +130,7 @@
 
   function applyBodySize() {
     const body = el("articleBody");
-    // 用 CSS 变量而不是直接写 font-size：基准 16px、行高与段距都由样式算，
+    // 用 CSS 变量而不是直接写 font-size：基准 17px、行高与段距都由样式算，
     // 直接写内联 font-size 会把适老化（--font-scale）与参照页版式一起盖掉。
     if (body) body.style.setProperty("--body-scale", String(state.bodySize));
   }

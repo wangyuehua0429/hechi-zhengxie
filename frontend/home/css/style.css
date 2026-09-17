@@ -22,7 +22,7 @@
   --rank-2: #c2452b;  /* 来稿排名 第2名 强调色 */
   --rank-3: #c47a28;  /* 来稿排名 第3名 强调色 */
   --maxw: 1400px;
-  --font-base: 15px;   /* 内页正文基准字号 */
+  --font-base: 16px;   /* 基准字号（2026-09-17 全站上调一档：内页 15px → 16px） */
   --font-scale: 1;
   --header-h: 64px;
   --mast-ratio: 1920 / 550;         /* 站头横幅宽高比：首页全幅 */
@@ -43,9 +43,10 @@ body {
 }
 body[data-font="small"] { --font-scale: 0.9; }
 body[data-font="large"] { --font-scale: 1.14; }
-/* 首页基准字号比内页大一档（15px → 16px），页面内文字随之整体放大；
-   内页（channel / detail）仍按 --font-base 的 15px 渲染。 */
-body.page-home { --font-base: 16px; }
+/* 首页基准字号比内页大一档（16px → 17px），页面内文字随之整体放大；
+   内页（channel / detail）按 --font-base 的 16px 渲染。
+   二级／三级页右侧边栏是例外，字号固定不上调，见 css/inner.css 的 .inner-side。 */
+body.page-home { --font-base: 17px; }
 
 img { max-width: 100%; display: block; }
 a { color: var(--link); text-decoration: none; }
@@ -883,7 +884,7 @@ li.is-highlight > a { color: #ff0000; font-weight: 700; }
   border-radius: 3px;
   background: #ffecec;
   color: #e60012;
-  font-size: 12px;
+  font-size: 13px;
   font-style: normal;
   line-height: 18px;
   vertical-align: 1px;
