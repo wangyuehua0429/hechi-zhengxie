@@ -11,6 +11,7 @@ use HechiZx\Http\RedirectResponse;
 use HechiZx\Http\Request;
 use HechiZx\Repository\MemberRepository;
 use HechiZx\Repository\ProposalRepository;
+use HechiZx\Repository\UnitRepository;
 use HechiZx\Support\Db;
 
 /**
@@ -30,6 +31,7 @@ abstract class MemberController
         protected int $siteId,
         protected MemberRepository $members,
         protected ProposalRepository $proposals,
+        protected UnitRepository $units,
         protected string $storageRoot = ''
     ) {
     }

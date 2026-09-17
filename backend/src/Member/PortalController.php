@@ -58,6 +58,11 @@ final class PortalController extends MemberController
         if ($denied = $this->requireLogin()) {
             return $denied;
         }
+        // 平时不提供自助改密（提案委口径：改密只在首登做一次，忘记密码一律线下重置）
+        if (!$this->auth->mustChangePassword()) {
+            Flash::set('error', '系统不提供自助修改密码。忘记密码请联系提案委线下重置。');
+            return new RedirectResponse('/member/proposals');
+        }
 
         return $this->view->page('member/password', [
             'member'   => $this->member(),
@@ -72,6 +77,10 @@ final class PortalController extends MemberController
         }
         if ($denied = $this->requireLogin()) {
             return $denied;
+        }
+        if (!$this->auth->mustChangePassword()) {
+            Flash::set('error', '系统不提供自助修改密码。忘记密码请联系提案委线下重置。');
+            return new RedirectResponse('/member/proposals');
         }
 
         $result = $this->auth->changePassword(

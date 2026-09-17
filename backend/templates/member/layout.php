@@ -10,6 +10,8 @@
  * @var array{type:string,text:string}|null $flash
  * @var string $csrf
  * @var string $current
+ * @var string $head 页面级资源（富文本编辑器的样式），只有表单页会传
+ * @var string $scripts 页面级脚本
  */
 
 declare(strict_types=1);
@@ -24,6 +26,7 @@ $current = $current ?? '';
   <meta name="color-scheme" content="light">
   <title><?= hechi_e($title) ?> · <?= hechi_e($siteName) ?>提案系统</title>
   <link rel="stylesheet" href="/assets/member.css">
+  <?= $head ?? '' ?>
 </head>
 <body>
   <a class="skip-link" href="#main">跳到主要内容</a>
@@ -40,7 +43,6 @@ $current = $current ?? '';
         <nav class="m-nav" aria-label="委员工作台">
           <a href="/member/proposals"<?= $current === 'list' ? ' class="active" aria-current="page"' : '' ?>>我的提案</a>
           <a href="/member/proposal/new"<?= $current === 'new' ? ' class="active" aria-current="page"' : '' ?>>填写提案</a>
-          <a href="/member/password">修改密码</a>
           <form method="post" action="/member/logout" class="m-inline"><?= $csrf ?>
             <button type="submit" class="m-link-btn">退出</button>
           </form>
@@ -63,5 +65,6 @@ $current = $current ?? '';
     <p>政协委员在线提交提案系统 · <?= hechi_e($siteName) ?></p>
     <p class="m-foot-note">账号由提案委员会统一开通。如遇登录问题或需要重置密码，请联系提案委员会办公室。</p>
   </footer>
+  <?= $scripts ?? '' ?>
 </body>
 </html>

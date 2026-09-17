@@ -5,22 +5,37 @@ declare(strict_types=1);
 namespace HechiZx\Member;
 
 use HechiZx\Admin\Flash;
+use HechiZx\Content\ProposalBody;
 use HechiZx\Content\ProposalWorkflow;
 use HechiZx\Http\FileResponse;
 use HechiZx\Http\HtmlResponse;
 use HechiZx\Http\RedirectResponse;
 use HechiZx\Http\Request;
 use HechiZx\Proposal\WordExporter;
+use HechiZx\Repository\UnitRepository;
 
 /**
  * 委员端提案：我的提案、填写提交、查看进度、退回后改稿重交、下载提案表与附件。
  * 委员只能看到自己的提案，取不到一律按「不存在」处理（不泄露他人提案是否存在）。
+ *
+ * 表单口径（提案委 2026-09-16 需求）：正文合并为一段轻量富文本、整体不超过 2000 字；
+ * 联名委员与建议承办单位是多行／多选；办理联系人六项必填，填过一次就记在账号上。
  */
 final class ProposalController extends MemberController
 {
     private const TITLE_MAX = 50;
-    private const TEXT_MAX = 3000;
     private const PAGE_SIZE = 10;
+    private const COL_MEMBERS = 10;
+
+    /** 办理联系人六项：字段名 => 中文名，错误提示按这个顺序拼 */
+    private const CONTACT_FIELDS = [
+        'contact_name'     => '姓名',
+        'contact_org'      => '单位',
+        'contact_title'    => '职务',
+        'contact_address'  => '联系地址',
+        'contact_postcode' => '邮政编码',
+        'contact_mobile'   => '联系电话',
+    ];
 
     public function index(Request $request): HtmlResponse|RedirectResponse
     {
@@ -82,6 +97,7 @@ final class ProposalController extends MemberController
 
         $proposalId = $this->proposals->create($this->auth->id(), $data);
         $this->saveFiles($proposalId, $files, 0);
+        $this->rememberContact($data);
         $this->proposals->writeLog($proposalId, 'member', $this->auth->id(), 'submit');
         $this->auth->log('proposal.submit', (string) $proposalId, ['title' => $data['title']]);
 
@@ -103,13 +119,17 @@ final class ProposalController extends MemberController
         if ($proposal === null) {
             return $this->notFound();
         }
+        $proposalId = (int) $proposal['proposal_id'];
 
         return $this->view->page('member/proposal_show', [
             'member'      => $this->member(),
             'current'     => 'list',
             'proposal'    => $proposal,
-            'attachments' => $this->proposals->attachments((int) $proposal['proposal_id']),
-            'logs'        => $this->proposals->logs((int) $proposal['proposal_id']),
+            'coMembers'   => $this->proposals->coMembers($proposalId),
+            'units'       => $this->proposals->units($proposalId),
+            'edges'       => $this->edges($proposalId),
+            'attachments' => $this->proposals->attachments($proposalId),
+            'logs'        => $this->proposals->logs($proposalId),
             'canEdit'     => ProposalWorkflow::canMemberEdit((string) $proposal['status']),
         ], '提案详情');
     }
@@ -171,11 +191,61 @@ final class ProposalController extends MemberController
         $existing = count($this->proposals->attachments($proposalId));
         $this->proposals->resubmit($proposalId, $data);
         $this->saveFiles($proposalId, $files, $existing);
+        $this->rememberContact($data);
         $this->proposals->writeLog($proposalId, 'member', $this->auth->id(), 'resubmit');
         $this->auth->log('proposal.resubmit', (string) $proposalId, ['title' => $data['title']]);
 
         Flash::set('ok', '已重新提交，提案委会再次收件。');
         return new RedirectResponse('/member/proposal/' . $proposalId);
+    }
+
+    /**
+     * 错别字勘误：本期只预留入口与接口，接上编校服务后在这一处换实现。
+     * 委员点了按钮先回到原表单，已填内容照原样带回去，不让填了一半的正文丢掉。
+     */
+    public function checkText(Request $request): HtmlResponse|RedirectResponse
+    {
+        if ($denied = $this->guard($request)) {
+            return $denied;
+        }
+        if ($denied = $this->requireLogin()) {
+            return $denied;
+        }
+        if ($denied = $this->requirePasswordChanged()) {
+            return $denied;
+        }
+
+        $returnTo = $this->safeReturnTo($request->post('return_to'));
+        $count = ProposalBody::charCount($request->post('body_html'));
+        Flash::set(
+            'error',
+            '错别字勘误功能待接入（接口已预留）。当前正文 ' . $count . ' 字，上限 '
+                . ProposalBody::MAX_CHARS . ' 字：请先自行校读，或把正文复制到 Word 里校对后再提交。'
+        );
+
+        return new RedirectResponse($returnTo);
+    }
+
+    /**
+     * 名册检索：联名委员那一栏输入姓名／单位，带出在册委员资料。
+     * 路由返回数组即 JSON，只回姓名、单位及职务、联系电话。
+     */
+    public function roster(Request $request): array
+    {
+        if (!$this->auth->check() || $this->auth->mustChangePassword()) {
+            return ['error' => ['code' => 'forbidden', 'message' => '请先登录。']];
+        }
+
+        $items = [];
+        foreach ($this->members->search((string) ($request->query('keyword', '') ?? ''), self::COL_MEMBERS) as $row) {
+            $items[] = [
+                'name'      => (string) $row['name'],
+                'org_title' => (string) $row['org_title'],
+                'mobile'    => (string) $row['mobile'],
+            ];
+        }
+
+        return ['items' => $items];
     }
 
     /** @param array<string, string> $args */
@@ -193,9 +263,15 @@ final class ProposalController extends MemberController
             return $this->notFound();
         }
 
-        $binary = WordExporter::proposal($proposal, $this->proposals->attachments((int) $proposal['proposal_id']));
-        $name = '提案-' . (int) $proposal['proposal_id'] . '-' . mb_substr((string) $proposal['title'], 0, 30) . '.docx';
-        $this->auth->log('proposal.word', (string) $proposal['proposal_id']);
+        $proposalId = (int) $proposal['proposal_id'];
+        $binary = WordExporter::proposal(
+            $proposal,
+            $this->proposals->attachments($proposalId),
+            $this->proposals->coMembers($proposalId),
+            $this->proposals->units($proposalId)
+        );
+        $name = '提案-' . $proposalId . '-' . mb_substr((string) $proposal['title'], 0, 30) . '.docx';
+        $this->auth->log('proposal.word', (string) $proposalId);
 
         return new FileResponse(
             $binary,
@@ -232,115 +308,219 @@ final class ProposalController extends MemberController
     }
 
     /**
-     * 表单校验：案由、情况与问题、建议必填，其余按类别校验；超出长度一律挡下并给出提示。
+     * 表单校验：案由、正文、办理联系人六项必填；正文 ≤2000 字；联名提案至少一位联名委员；
+     * 承办单位最多 5 个且必须来自启用中的清单。
      *
-     * @return array{0:array<string,string>,1:list<string>}
+     * @return array{0:array<string,mixed>,1:list<string>}
      */
     private function validated(Request $request): array
     {
         $data = $this->defaultValues();
-        foreach (array_keys($data) as $field) {
+        $fields = ['proposer_type', 'proposer_name', 'sector', 'committee', 'collective_name', 'category', 'title'];
+        foreach (array_merge($fields, array_keys(self::CONTACT_FIELDS)) as $field) {
             if ($request->hasPost($field)) {
                 $data[$field] = $request->post($field);
             }
+        }
+        if ($request->hasPost('body_html')) {
+            $data['body_html'] = ProposalBody::clean($request->post('body_html'));
         }
 
         $errors = [];
         if ($data['title'] === '') {
             $errors[] = '请填写案由。';
-        } elseif (mb_strlen($data['title']) > self::TITLE_MAX) {
+        } elseif (mb_strlen((string) $data['title'], 'UTF-8') > self::TITLE_MAX) {
             $errors[] = '案由不能超过 ' . self::TITLE_MAX . ' 个字。';
         }
-        if ($data['problem_text'] === '') {
-            $errors[] = '请填写「情况与问题」。';
+
+        $bodyCount = ProposalBody::charCount((string) $data['body_html']);
+        if ($bodyCount === 0) {
+            $errors[] = '请填写提案内容。';
+        } elseif ($bodyCount > ProposalBody::MAX_CHARS) {
+            $errors[] = '提案内容 ' . $bodyCount . ' 字，超出 ' . ProposalBody::MAX_CHARS . ' 字上限，请精简后再提交。';
         }
-        if ($data['suggestion_text'] === '') {
-            $errors[] = '请填写「建议」。';
-        }
-        foreach (['problem_text', 'analysis_text', 'suggestion_text'] as $field) {
-            if (mb_strlen($data[$field]) > self::TEXT_MAX) {
-                $errors[] = '正文每段不能超过 ' . self::TEXT_MAX . ' 个字。';
-                break;
-            }
-        }
-        if (!array_key_exists($data['proposer_type'], ProposalWorkflow::proposerTypes())) {
+
+        if (!array_key_exists((string) $data['proposer_type'], ProposalWorkflow::proposerTypes())) {
             $errors[] = '请选择提案人类别。';
-        }
-        if ($data['proposer_type'] === 'joint' && $data['co_members'] === '') {
-            $errors[] = '联名提案请填写联名委员名单。';
-        }
-        if ($data['proposer_type'] === 'collective' && $data['collective_name'] === '') {
-            $errors[] = '集体提案请填写提出单位或界别名称。';
         }
         if ($data['proposer_name'] === '') {
             $errors[] = '请填写提案人。';
-        }
-        if ($data['contact_mobile'] === '') {
-            $errors[] = '请填写联系电话。';
         }
         if (!in_array($data['category'], ProposalWorkflow::categories(), true)) {
             $errors[] = '请选择提案类别。';
         }
 
+        // 办理联系人：缺哪几项一次报清，避免委员来回提交
+        $missing = [];
+        foreach (self::CONTACT_FIELDS as $field => $label) {
+            if ((string) $data[$field] === '') {
+                $missing[] = $label;
+            }
+        }
+        if ($missing !== []) {
+            $errors[] = '请填写提案办理联系人：' . implode('、', $missing) . '。';
+        } elseif (preg_match('/^\d{6}$/', (string) $data['contact_postcode']) !== 1) {
+            $errors[] = '邮政编码请填 6 位数字。';
+        }
+
+        // 联名委员：整行留空视为没填，填了姓名才收
+        $coRows = [];
+        foreach ($this->postArray('co_name') as $index => $name) {
+            $name = trim($name);
+            $org = trim($this->postArrayValue('co_org', $index));
+            $mobile = trim($this->postArrayValue('co_mobile', $index));
+            if ($name === '' && $org === '' && $mobile === '') {
+                continue;
+            }
+            if ($name === '') {
+                $errors[] = '联名委员请填写姓名（第 ' . ($index + 1) . ' 位）。';
+                continue;
+            }
+            $coRows[] = ['name' => $name, 'org_title' => $org, 'mobile' => $mobile];
+        }
+        if ((string) $data['proposer_type'] === 'joint' && $coRows === []) {
+            $errors[] = '联名提案请至少填写一位联名委员的资料。';
+        }
+        $data['co_member_rows'] = $coRows;
+        $data['co_members'] = implode('、', array_map(static fn (array $row): string => $row['name'], $coRows));
+
+        if ((string) $data['proposer_type'] === 'collective' && (string) $data['collective_name'] === '') {
+            $errors[] = '集体提案请填写提出单位或界别名称。';
+        }
+
+        // 建议承办单位：选填，最多 5 个，只认启用中的
+        $posted = array_values(array_filter($this->postArray('units'), static fn (string $id): bool => $id !== ''));
+        $unitRows = [];
+        if ($posted !== []) {
+            if (count($posted) > UnitRepository::MAX_PER_PROPOSAL) {
+                $errors[] = '建议承办单位最多选 ' . UnitRepository::MAX_PER_PROPOSAL . ' 个。';
+            } else {
+                $found = [];
+                foreach ($this->units->enabledByIds($posted) as $row) {
+                    $found[(int) $row['unit_id']] = (string) $row['name'];
+                }
+                foreach ($posted as $id) {
+                    $unitId = (int) $id;
+                    if (!isset($found[$unitId])) {
+                        $errors[] = '建议承办单位里有已停用或不存在的一项，请重新选择。';
+                        break;
+                    }
+                    $unitRows[] = ['unit_id' => $unitId, 'unit_name' => $found[$unitId]];
+                }
+            }
+        }
+        $data['unit_rows'] = $unitRows;
+        $data['host_units'] = implode('、', array_map(static fn (array $row): string => $row['unit_name'], $unitRows));
+
         return [$data, $errors];
     }
 
-    /** @return array<string, string> */
+    /** @return array<string, mixed> */
     private function defaultValues(): array
     {
         $member = $this->member();
+        // 联系人默认带委员本人：能确定的三项先填好，其余空着等首次填写
+        $contact = [
+            'contact_name'     => (string) ($member['contact_name'] ?? ''),
+            'contact_org'      => (string) ($member['contact_org'] ?? ''),
+            'contact_title'    => (string) ($member['contact_title'] ?? ''),
+            'contact_address'  => (string) ($member['contact_address'] ?? ''),
+            'contact_postcode' => (string) ($member['contact_postcode'] ?? ''),
+            'contact_mobile'   => (string) ($member['contact_mobile'] ?? ''),
+        ];
+        if ($contact['contact_name'] === '') {
+            $contact['contact_name'] = (string) ($member['name'] ?? '');
+        }
+        if ($contact['contact_org'] === '') {
+            $contact['contact_org'] = (string) ($member['org_title'] ?? '');
+        }
+        if ($contact['contact_mobile'] === '') {
+            $contact['contact_mobile'] = (string) ($member['mobile'] ?? '');
+        }
 
-        return [
+        return array_merge($contact, [
             'proposer_type'   => 'personal',
             'proposer_name'   => (string) ($member['name'] ?? ''),
             'sector'          => (string) ($member['sector'] ?? ''),
             'committee'       => (string) ($member['committee'] ?? ''),
-            'contact_mobile'  => (string) ($member['mobile'] ?? ''),
             'co_members'      => '',
+            'co_member_rows'  => [],
             'collective_name' => '',
             'category'        => '',
             'title'           => '',
-            'problem_text'    => '',
-            'analysis_text'   => '',
-            'suggestion_text' => '',
-        ];
+            'body_html'       => '',
+            'unit_rows'       => [],
+            'host_units'      => '',
+        ]);
     }
 
-    /** @param array<string, mixed> $proposal @return array<string, string> */
+    /** @param array<string, mixed> $proposal @return array<string, mixed> */
     private function valuesFrom(array $proposal): array
     {
         $values = $this->defaultValues();
         foreach (array_keys($values) as $field) {
-            $values[$field] = (string) ($proposal[$field] ?? $values[$field]);
+            if (array_key_exists($field, $proposal)) {
+                $values[$field] = $proposal[$field];
+            }
         }
+        $proposalId = (int) ($proposal['proposal_id'] ?? 0);
+        $values['co_member_rows'] = array_map(
+            static fn (array $row): array => [
+                'name'      => (string) $row['name'],
+                'org_title' => (string) $row['org_title'],
+                'mobile'    => (string) $row['mobile'],
+            ],
+            $this->proposals->coMembers($proposalId)
+        );
+        $values['unit_rows'] = array_map(
+            static fn (array $row): array => [
+                'unit_id'   => (int) $row['unit_id'],
+                'unit_name' => (string) $row['unit_name'],
+            ],
+            $this->proposals->units($proposalId)
+        );
 
         return $values;
     }
 
     /**
      * @param array<string, mixed>|null $proposal
-     * @param array<string, string> $values
+     * @param array<string, mixed> $values
      * @param list<string> $errors
      */
     private function renderForm(?array $proposal, array $values, array $errors, int $status = 200): HtmlResponse
     {
         $proposalId = $proposal === null ? 0 : (int) $proposal['proposal_id'];
+        $coRows = (array) $values['co_member_rows'];
+        if ($coRows === []) {
+            $coRows = [['name' => '', 'org_title' => '', 'mobile' => '']];
+        }
 
         return $this->view->page('member/proposal_form', [
-            'member'      => $this->member(),
-            'current'     => 'new',
-            'proposal'    => $proposal,
-            'proposalId'  => $proposalId,
-            'values'      => $values,
-            'errors'      => $errors,
-            'categories'  => ProposalWorkflow::categories(),
+            'member'        => $this->member(),
+            'current'       => 'new',
+            'proposal'      => $proposal,
+            'proposalId'    => $proposalId,
+            'values'        => $values,
+            'errors'        => $errors,
+            'categories'    => ProposalWorkflow::categories(),
             'proposerTypes' => ProposalWorkflow::proposerTypes(),
-            'attachments' => $proposalId === 0 ? [] : $this->proposals->attachments($proposalId),
-            'maxCount'    => self::ATTACHMENT_MAX_COUNT,
-            'maxMb'       => (int) (self::ATTACHMENT_MAX_BYTES / 1048576),
-            // 字数上限只在这里定义一次，前端计数与提示都取它，避免与校验规则脱节
-            'titleMax'    => self::TITLE_MAX,
-            'textMax'     => self::TEXT_MAX,
+            'unitOptions'   => $this->units->enabled(),
+            'selectedUnits' => array_map(static fn (array $row): int => (int) $row['unit_id'], (array) $values['unit_rows']),
+            'coRows'        => $coRows,
+            'maxUnits'      => UnitRepository::MAX_PER_PROPOSAL,
+            'bodyLimit'     => ProposalBody::MAX_CHARS,
+            'bodyCount'     => ProposalBody::charCount((string) $values['body_html']),
+            'attachments'   => $proposalId === 0 ? [] : $this->proposals->attachments($proposalId),
+            'maxCount'      => self::ATTACHMENT_MAX_COUNT,
+            'maxMb'         => (int) (self::ATTACHMENT_MAX_BYTES / 1048576),
+            'head'          => '<link rel="stylesheet" href="/assets/editor/suneditor.min.css">'
+                . '<link rel="stylesheet" href="/assets/editor/admin-editor.css">'
+                . '<link rel="stylesheet" href="/assets/unit-picker.css">',
+            'scripts'       => '<script src="/assets/editor/suneditor.min.js"></script>'
+                . '<script src="/assets/editor/lang/zh_cn.js"></script>'
+                . '<script src="/assets/member-editor.js"></script>'
+                . '<script src="/assets/unit-picker.js"></script>',
         ], $proposalId === 0 ? '填写提案' : '修改提案', $status);
     }
 
@@ -424,6 +604,69 @@ final class ProposalController extends MemberController
         }
 
         return $errors;
+    }
+
+    /**
+     * 办理联系人记在委员账号上：下次登录自动带出，省得每份提案重填。
+     *
+     * @param array<string, mixed> $data
+     */
+    private function rememberContact(array $data): void
+    {
+        $profile = [];
+        foreach (array_keys(self::CONTACT_FIELDS) as $field) {
+            $profile[$field] = (string) ($data[$field] ?? '');
+        }
+        $this->members->updateContactProfile($this->auth->id(), $profile);
+    }
+
+    /**
+     * 提案委改过稿的提案：委员端要能看出来「内容被调整过」。
+     * 只给条数与改动摘要，不把改前快照摊给委员，避免两份正文对不上。
+     *
+     * @return list<array<string,string>>
+     */
+    private function edges(int $proposalId): array
+    {
+        return array_map(
+            static fn (array $row): array => [
+                'summary'    => (string) $row['summary'],
+                'created_at' => (string) $row['created_at'],
+            ],
+            $this->proposals->revisions($proposalId)
+        );
+    }
+
+    /** 表单里的数组字段（co_name[]、units[] 这类），逐个取成字符串 */
+    /** @return list<string> */
+    private function postArray(string $key): array
+    {
+        $raw = $_POST[$key] ?? null;
+        if (!is_array($raw)) {
+            return [];
+        }
+        $values = [];
+        foreach ($raw as $value) {
+            $values[] = is_string($value) ? trim($value) : '';
+        }
+
+        return $values;
+    }
+
+    private function postArrayValue(string $key, int $index): string
+    {
+        return $this->postArray($key)[$index] ?? '';
+    }
+
+    /** 只接受站内 /member/ 开头的返回地址，防止被拿来当跳板 */
+    private function safeReturnTo(string $returnTo): string
+    {
+        $path = parse_url($returnTo, PHP_URL_PATH);
+        if (!is_string($path) || !str_starts_with($path, '/member/')) {
+            return '/member/proposals';
+        }
+
+        return $path;
     }
 
     /** 解析附件落盘路径，越出 storage 目录一律拒绝 */

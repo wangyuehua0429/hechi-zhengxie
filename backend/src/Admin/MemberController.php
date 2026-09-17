@@ -25,6 +25,8 @@ final class MemberController extends AdminController
     private const IMPORT_CREDENTIALS = 'member_import_credentials';
     private const RESET_NOTICE = 'member_reset_notice';
     private const MANUAL_RESULT = 'member_manual_result';
+    private const BATCH_CREDENTIALS = 'member_reset_batch';
+    private const BATCH_LIMIT = 500;
 
     /** 手工建号一次最多提交多少条：每条都要算一次 bcrypt，防止一次请求把 PHP 进程占太久 */
     private const MANUAL_LIMIT = 50;
@@ -58,6 +60,7 @@ final class MemberController extends AdminController
 
         $reset = $_SESSION[self::RESET_NOTICE] ?? null;
         unset($_SESSION[self::RESET_NOTICE]);
+        $batch = $_SESSION[self::BATCH_CREDENTIALS] ?? [];
         // 手工建号的结果留到密码清单被下载为止，中途刷新页面也还能拿到密码
         $manual = $_SESSION[self::MANUAL_RESULT] ?? null;
         $credentials = $_SESSION[self::IMPORT_CREDENTIALS] ?? [];
@@ -71,6 +74,7 @@ final class MemberController extends AdminController
             'filters' => $filters,
             'counts'  => $this->members->statusCounts(),
             'reset'   => is_array($reset) ? $reset : null,
+            'batchPending' => is_array($batch) ? count($batch) : 0,
             'manual'       => is_array($manual) ? $manual : null,
             'credentials'  => is_array($credentials) ? $credentials : [],
         ], '委员管理');
@@ -358,6 +362,108 @@ final class MemberController extends AdminController
 
         Flash::set('ok', '已重置密码，请把下面的新密码线下告知本人（只显示这一次）。');
         return new RedirectResponse('/admin/members');
+    }
+
+    /**
+     * 批量重置密码：勾选若干委员，每人生成一个不同的随机密码，
+     * 汇总成一份清单（下载即清），委员下次登录必须改密。
+     */
+    public function resetBatch(Request $request): HtmlResponse|RedirectResponse
+    {
+        if ($denied = $this->guard($request)) {
+            return $denied;
+        }
+        if ($redirect = $this->requireLogin()) {
+            return $redirect;
+        }
+        if ($denied = $this->requirePermission(Permissions::MEMBER_MANAGE)) {
+            return $denied;
+        }
+
+        $ids = self::idList($_POST['member_ids'] ?? null);
+        if ($ids === []) {
+            Flash::set('error', '请先勾选要重置密码的委员。');
+            return new RedirectResponse('/admin/members');
+        }
+        if (count($ids) > self::BATCH_LIMIT) {
+            Flash::set('error', '一次最多重置 ' . self::BATCH_LIMIT . ' 个账号，请分批操作。');
+            return new RedirectResponse('/admin/members');
+        }
+
+        $rows = $this->members->findMany($ids);
+        if ($rows === []) {
+            Flash::set('error', '勾选的账号都不存在，请刷新页面后重试。');
+            return new RedirectResponse('/admin/members');
+        }
+
+        $credentials = [];
+        foreach ($rows as $row) {
+            $password = MemberImporter::randomPassword();
+            $this->members->setPassword((int) $row['member_id'], password_hash($password, PASSWORD_DEFAULT), true);
+            $credentials[] = [
+                'name'       => (string) $row['name'],
+                'login_name' => (string) $row['login_name'],
+                'password'   => $password,
+            ];
+        }
+        $_SESSION[self::BATCH_CREDENTIALS] = $credentials;
+        $this->log('member.reset_batch', 'member', '', ['count' => count($credentials)]);
+
+        Flash::set('ok', '已重置 ' . count($credentials)
+            . ' 个账号的密码。请立刻在页面顶部下载密码清单（下载一次后不再显示），线下发给委员。');
+        return new RedirectResponse('/admin/members');
+    }
+
+    /** 批量重置的密码清单：下载一次即清空 */
+    public function batchCredentials(Request $request): HtmlResponse|RedirectResponse|FileResponse
+    {
+        if ($redirect = $this->requireLogin()) {
+            return $redirect;
+        }
+        if ($denied = $this->requirePermission(Permissions::MEMBER_MANAGE)) {
+            return $denied;
+        }
+
+        $credentials = $_SESSION[self::BATCH_CREDENTIALS] ?? null;
+        if (!is_array($credentials) || $credentials === []) {
+            Flash::set('error', '没有可下载的密码清单：它只在批量重置后下载一次，需要重发请重新重置。');
+            return new RedirectResponse('/admin/members');
+        }
+
+        $csv = "\xEF\xBB\xBF" . "姓名,登录名,新密码\n";
+        foreach ($credentials as $row) {
+            $csv .= implode(',', [
+                self::csvCell((string) $row['name']),
+                self::csvCell((string) $row['login_name']),
+                self::csvCell((string) $row['password']),
+            ]) . "\n";
+        }
+        unset($_SESSION[self::BATCH_CREDENTIALS]);
+        $this->log('member.reset_credentials', 'member', '', ['count' => count($credentials)]);
+
+        return new FileResponse($csv, 'text/csv; charset=utf-8', '委员账号新密码-' . date('Ymd-His') . '.csv');
+    }
+
+    /**
+     * 表单里的多选框（member_ids[]）：只留正整数，去重。
+     *
+     * @param mixed $raw
+     * @return list<int>
+     */
+    private static function idList($raw): array
+    {
+        if (!is_array($raw)) {
+            return [];
+        }
+        $ids = [];
+        foreach ($raw as $value) {
+            $id = (int) (is_string($value) ? $value : 0);
+            if ($id > 0) {
+                $ids[$id] = $id;
+            }
+        }
+
+        return array_values($ids);
     }
 
     private static function csvCell(string $value): string

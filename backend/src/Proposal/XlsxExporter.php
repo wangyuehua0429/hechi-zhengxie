@@ -16,9 +16,13 @@ final class XlsxExporter
         ['案由', 42],
         ['提案人类别', 12],
         ['提案人', 12],
+        ['联名委员', 20],
         ['界别', 14],
         ['专委会', 16],
+        ['办理联系人', 12],
+        ['联系电话', 14],
         ['类别', 14],
+        ['建议承办单位', 28],
         ['提交时间', 18],
         ['状态', 10],
         ['办理时间', 18],
@@ -37,7 +41,7 @@ final class XlsxExporter
             . self::row(1, array_map(static fn (array $column): string => $column[0], self::COLUMNS), true)
             . self::body($rows)
             . '</sheetData>'
-            . '<autoFilter ref="A1:K' . max(1, count($rows) + 1) . '"/>'
+            . '<autoFilter ref="A1:' . self::columnName(count(self::COLUMNS)) . max(1, count($rows) + 1) . '"/>'
             . '</worksheet>';
 
         return OfficePackage::build([
@@ -60,14 +64,22 @@ final class XlsxExporter
             $note = $status === ProposalWorkflow::RETURNED
                 ? (string) ($row['returned_reason'] ?? '')
                 : (string) ($row['review_note'] ?? '');
+            $contact = array_filter([
+                (string) ($row['contact_name'] ?? ''),
+                (string) ($row['contact_title'] ?? ''),
+            ], static fn (string $value): bool => trim($value) !== '');
             $xml .= self::row($index, [
                 (string) ($row['proposal_id'] ?? ''),
                 (string) ($row['title'] ?? ''),
                 ProposalWorkflow::proposerTypeLabel((string) ($row['proposer_type'] ?? 'personal')),
                 (string) ($row['proposer_name'] ?? ''),
+                (string) ($row['co_members'] ?? ''),
                 (string) ($row['sector'] ?? ''),
                 (string) ($row['committee'] ?? ''),
+                implode(' ', $contact),
+                (string) ($row['contact_mobile'] ?? ''),
                 (string) ($row['category'] ?? ''),
+                (string) ($row['host_units'] ?? ''),
                 (string) ($row['submitted_at'] ?? ''),
                 ProposalWorkflow::label($status),
                 (string) ($row['reviewed_at'] ?? ''),

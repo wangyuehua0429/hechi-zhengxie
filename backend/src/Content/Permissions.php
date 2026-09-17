@@ -26,6 +26,7 @@ final class Permissions
     public const PROPOSAL_REVIEW = 'proposal.review';
     public const PROPOSAL_EXPORT = 'proposal.export';
     public const MEMBER_MANAGE = 'member.manage';
+    public const UNIT_MANAGE = 'unit.manage';
 
     /**
      * 分组只为后台勾选界面的排版服务，不影响鉴权。
@@ -58,6 +59,7 @@ final class Permissions
                 self::PROPOSAL_REVIEW => '受理提案、退回补充',
                 self::PROPOSAL_EXPORT => '导出收件清单与提案表（Excel／Word）',
                 self::MEMBER_MANAGE   => '委员名册导入、账号开通与停用、重置密码',
+                self::UNIT_MANAGE     => '建议承办单位的市直单位清单维护',
             ],
         ];
     }

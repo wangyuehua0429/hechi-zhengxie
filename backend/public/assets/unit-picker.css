@@ -1,0 +1,92 @@
+/* 建议承办单位选择器（前后台共用，样式自带默认值，不依赖各页的主题变量） */
+.unit-picker { position: relative; }
+
+.unit-picker-label { display: block; margin-bottom: 4px; color: #444; font-size: 14px; }
+
+.unit-picker-field {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid #d7dbe0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: text;
+}
+
+.unit-picker.is-open .unit-picker-field {
+  border-color: #b30203;
+  box-shadow: 0 0 0 3px rgba(179, 2, 3, 0.12);
+}
+
+.unit-picker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border: 1px solid #e3c3c3;
+  border-radius: 999px;
+  background: #fdf3f3;
+  color: #8a1f1f;
+  font-size: 13px;
+}
+
+.unit-picker-chip button {
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.unit-picker-input {
+  flex: 1 1 160px;
+  min-width: 140px;
+  padding: 6px 2px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  color: #1f2328;
+}
+
+.unit-picker-panel {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid #d7dbe0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+}
+
+.unit-picker-list { margin: 0; padding: 6px; list-style: none; }
+
+.unit-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.unit-picker-option:hover,
+.unit-picker-option.is-active { background: #f3f4f6; }
+
+.unit-picker-option[aria-selected="true"] { color: #8a1f1f; font-weight: 600; }
+.unit-picker-option[aria-disabled="true"] { color: #9aa0a6; cursor: not-allowed; }
+.unit-picker-option[aria-disabled="true"]:hover { background: transparent; }
+
+.unit-picker-mark { width: 16px; color: #b30203; }
+
+.unit-picker-empty { margin: 0; padding: 10px 12px; color: #6f7780; font-size: 14px; }
+.unit-picker-hint { margin: 6px 0 0; color: #6f7780; font-size: 13px; }

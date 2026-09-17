@@ -63,6 +63,9 @@ if ($can('proposal.view')) {
 if ($can('member.manage')) {
     $proposalChildren['members'] = ['label' => '委员管理', 'url' => '/admin/members'];
 }
+if ($can('unit.manage')) {
+    $proposalChildren['units'] = ['label' => '市直单位', 'url' => '/admin/units'];
+}
 if ($proposalChildren !== []) {
     $navItems['proposals'] = ['label' => '提案管理', 'icon' => 'articles', 'children' => $proposalChildren];
 }
@@ -93,6 +96,7 @@ $sections = [
     'logs'      => ['label' => '操作日志', 'url' => '/admin/logs'],
     'proposals' => ['label' => '提案收件', 'url' => '/admin/proposals', 'parent' => $proposalCrumb],
     'members'   => ['label' => '委员管理', 'url' => '/admin/members', 'parent' => $proposalCrumb],
+    'units'     => ['label' => '市直单位', 'url' => '/admin/units', 'parent' => $proposalCrumb],
     'health'    => ['label' => '接口状态', 'url' => '/admin/health'],
 ];
 $section = $sections[$current] ?? null;

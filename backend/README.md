@@ -233,14 +233,15 @@ php backend/bin/fix-orig-title.php --show=64049   # 看单篇整理前后的正�
 门户首页（`/member`）是独立版式：甲方给的底图铺满整页，登录框浮在图上，下方接“登录指南”；这一页不套门户外壳（站头／页脚会让整幅底图断开），其余页面才用 `templates/member/layout.php`。
 
 ```bash
-# 迁移会建出四张表（sys_member / cms_proposal / cms_proposal_attachment / cms_proposal_log）
+# 迁移 005 建出四张表（sys_member / cms_proposal / cms_proposal_attachment / cms_proposal_log），
+# 迁移 006 按 2026-09-16 需求再加市直单位清单、联名委员、承办单位明细与改稿留痕四张表
 php backend/bin/migrate.php
 
 # 服务起来后：门户首页在 http://127.0.0.1:8080/member
-# 提案委用后台账号登录 /admin，侧栏「提案管理」里导名册、收件、受理
+# 提案委用后台账号登录 /admin，侧栏「提案管理」里导名册、维护市直单位、收件、调整、受理
 ```
 
-上手指路：先在 `/admin/members/import` 下载 CSV 模板填好委员名册（表头 `姓名,界别,职务,联系电话`，姓名与职务必填，UTF-8 与 GBK 都能识别）并上传，系统为每人生成随机初始密码，**下载一次性密码清单**线下发下去；零星增补不必攒名册：在 `/admin/members` 的「手工新建账号」里填一条或多条即可（与导入同一套校验、建号与一次性密码规则）。委员首次登录必须先改密，之后才能填写提案。
+上手指路：先在 `/admin/members/import` 下载 CSV 模板填好委员名册（表头 `姓名,界别,职务,联系电话`，姓名与职务必填，UTF-8 与 GBK 都能识别）并上传，系统为每人生成随机初始密码，**下载一次性密码清单**线下发下去；零星增补不必攒名册：在 `/admin/members` 的「手工新建账号」里填一条或多条即可（与导入同一套校验、建号与一次性密码规则）。委员首次登录必须先改密，之后才能填写提案。再在 `/admin/units` 把市直单位清单导进去（表头 `单位名称,排序号`），它决定委员端“建议承办单位”那个可搜索下拉里能选什么。
 
 **登录不进去先查这里**：门户首页 `/member` 能打开但登录总说“登录名或密码不正确”，九成是库里还没有委员账号——`sys_member` 是空的（新装或刚迁移完都是这样）。先用后台导入名册，或者用命令补开一个账号：
 
@@ -258,8 +259,12 @@ php backend/bin/member.php disable 13800000000                   # 停用
 1. **三态流转**：已提交 → 已受理／已退回；退回后委员可改稿重交，状态回到已提交。状态定义在 `backend/src/Content/ProposalWorkflow.php`，与稿件状态机同一写法。
 2. **附件不进 webroot**：提案附件落在 `backend/storage/proposals/{提案号}/`，下载走带鉴权的路由，直链取不到。
 3. **越权即 404**：委员取提案一律按“提案号 + 本人账号”查，取不到不区分“不存在”与“不是你的”。
-4. **导出靠 zip 扩展**：Excel 收件清单与 Word 提案表由 `backend/src/Proposal/` 手写 OOXML 生成，生产镜像已在 `deploy/php/Dockerfile` 里装上 `zip`；环境缺该扩展时导出入口给出明确错误。
-5. **不写静态页、不进 sitemap、不开对外接口**：提案数据只在门户与后台之间流转。
+4. **正文字数前后端同一算法**：`backend/src/Content/ProposalBody.php` 与服务端、`backend/public/assets/member-editor.js` 与前端，都是“HTML 转纯文本、去掉空白、数字符”，上限 2000 字；改一处必须同时改另一处。
+5. **正文入库前清洗**：走 `HtmlSanitizer::cleanProposal()` 的窄白名单（只留 `p,br,strong,b,em,i,u,ul,ol,li`），导出的 Word 用同一份内容翻译成段落与运行格式。
+6. **提案委改稿留痕**：每次真正改动都在 `cms_proposal_revision` 存一份改前快照，委员端会提示“提案委已对内容作了调整”。
+7. **导出靠 zip 扩展**：Excel 收件清单、单件与批量 Word 由 `backend/src/Proposal/` 手写 OOXML 生成，生产镜像已在 `deploy/php/Dockerfile` 里装上 `zip`；环境缺该扩展时导出入口给出明确错误。
+8. **不写静态页、不进 sitemap、不开对外接口**：提案数据只在门户与后台之间流转；例外是门户内的 `GET /member/roster`（已登录委员可查名册，只回姓名、单位及职务、联系电话）。
+9. **委员忘记密码**：系统不提供自助重置，委员管理页单个重置或在列表里勾选多个批量重置（每人不相同的随机密码，密码清单只给一次）。
 
 完整设计（表结构、路由、权限码、导入与导出口径、安全隔离）见 [../docs/提案系统设计说明.md](../docs/提案系统设计说明.md)，端到端检查见 `node tests/proposal-check.mjs`。
 

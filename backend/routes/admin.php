@@ -23,6 +23,7 @@ use HechiZx\Admin\PublishController;
 use HechiZx\Admin\RoleController;
 use HechiZx\Admin\SectionController;
 use HechiZx\Admin\SlideController;
+use HechiZx\Admin\UnitController;
 use HechiZx\Admin\UserController;
 use HechiZx\Admin\View;
 use HechiZx\Http\Router;
@@ -31,6 +32,7 @@ use HechiZx\Repository\ChannelRepository;
 use HechiZx\Repository\HomeRepository;
 use HechiZx\Repository\MemberRepository;
 use HechiZx\Repository\ProposalRepository;
+use HechiZx\Repository\UnitRepository;
 use HechiZx\Proposal\MemberImporter;
 use HechiZx\Support\Config;
 use HechiZx\Support\Db;
@@ -94,12 +96,14 @@ return static function (Router $router, Db $db, Config $config): void {
     );
     $proposals = new ProposalRepository($db, $siteId);
     $members = new MemberRepository($db);
+    $units = new UnitRepository($db);
     $proposalController = new ProposalController(
         $auth,
         $view,
         $db,
         $siteId,
         $proposals,
+        $units,
         (string) $config->get('paths.storage')
     );
     $memberController = new MemberController(
@@ -110,6 +114,7 @@ return static function (Router $router, Db $db, Config $config): void {
         $members,
         new MemberImporter($members)
     );
+    $unitController = new UnitController($auth, $view, $db, $siteId, $units);
 
     $router->get('/admin', [$dashboard, 'index']);
     $router->get('/admin/health', [$healthController, 'index']);
@@ -182,11 +187,21 @@ return static function (Router $router, Db $db, Config $config): void {
     $router->get('/admin/proposals', [$proposalController, 'index']);
     // 固定路径排在带参数的路由前面：路由表首条匹配生效
     $router->get('/admin/proposals/export.xlsx', [$proposalController, 'exportXlsx']);
+    $router->get('/admin/proposals/export.docx', [$proposalController, 'exportWord']);
     $router->get('/admin/proposal/{id}/word', [$proposalController, 'word']);
     $router->get('/admin/proposal/{id}/attachment/{aid}', [$proposalController, 'attachment']);
+    $router->post('/admin/proposal/{id}/edit', [$proposalController, 'edit']);
     $router->post('/admin/proposal/{id}/accept', [$proposalController, 'accept']);
     $router->post('/admin/proposal/{id}/return', [$proposalController, 'returnBack']);
     $router->get('/admin/proposal/{id}', [$proposalController, 'show']);
+
+    $router->get('/admin/units', [$unitController, 'index']);
+    $router->post('/admin/units', [$unitController, 'create']);
+    $router->get('/admin/units/import/template.csv', [$unitController, 'importTemplate']);
+    $router->post('/admin/units/import', [$unitController, 'import']);
+    $router->post('/admin/unit/{id}/rename', [$unitController, 'rename']);
+    $router->post('/admin/unit/{id}/status', [$unitController, 'toggleStatus']);
+    $router->post('/admin/unit/{id}/delete', [$unitController, 'remove']);
 
     $router->get('/admin/members', [$memberController, 'index']);
     $router->get('/admin/members/import', [$memberController, 'importForm']);
@@ -194,6 +209,8 @@ return static function (Router $router, Db $db, Config $config): void {
     $router->post('/admin/members/create', [$memberController, 'create']);
     $router->get('/admin/members/import/template.csv', [$memberController, 'importTemplate']);
     $router->get('/admin/members/credentials.csv', [$memberController, 'credentials']);
+    $router->get('/admin/members/batch-credentials.csv', [$memberController, 'batchCredentials']);
+    $router->post('/admin/members/reset-batch', [$memberController, 'resetBatch']);
     $router->post('/admin/member/{id}/status', [$memberController, 'toggleStatus']);
     $router->post('/admin/member/{id}/password', [$memberController, 'resetPassword']);
 

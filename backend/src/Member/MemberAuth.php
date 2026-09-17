@@ -179,7 +179,10 @@ final class MemberAuth
         $this->cached = null;
         $this->log('member.password', (string) $row['member_id']);
 
-        return ['ok' => true, 'message' => '密码已修改。'];
+        return [
+            'ok' => true,
+            'message' => '密码已修改。请妥善保存新密码：系统不提供自助重置，忘记密码只能联系提案委线下重置。',
+        ];
     }
 
     /**

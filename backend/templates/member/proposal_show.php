@@ -4,6 +4,9 @@
  * 提案详情：状态、正文、附件、流转记录与后续动作。
  *
  * @var array<string, mixed> $proposal
+ * @var list<array<string, mixed>> $coMembers
+ * @var list<array<string, mixed>> $units
+ * @var list<array<string,string>> $edges 提案委的改稿记录（摘要 + 时间）
  * @var list<array<string, mixed>> $attachments
  * @var list<array<string, mixed>> $logs
  * @var bool $canEdit
@@ -44,27 +47,56 @@ $proposalId = (int) $proposal['proposal_id'];
       （<?= hechi_e(\HechiZx\Content\ProposalWorkflow::proposerTypeLabel((string) $proposal['proposer_type'])) ?>）</dd>
     <dt>界别</dt><dd><?= hechi_e((string) $proposal['sector']) ?></dd>
     <dt>专委会</dt><dd><?= hechi_e((string) $proposal['committee']) ?></dd>
-    <dt>联系电话</dt><dd><?= hechi_e((string) $proposal['contact_mobile']) ?></dd>
     <dt>提案类别</dt><dd><?= hechi_e((string) $proposal['category']) ?></dd>
-    <?php if (trim((string) $proposal['co_members']) !== ''): ?>
-      <dt>联名委员</dt><dd><?= hechi_e((string) $proposal['co_members']) ?></dd>
-    <?php endif; ?>
+    <dt>建议承办单位</dt><dd>
+      <?= $units === [] ? '—' : hechi_e(implode('、', array_map(static fn (array $row): string => (string) $row['unit_name'], $units))) ?>
+    </dd>
     <?php if (trim((string) $proposal['collective_name']) !== ''): ?>
       <dt>集体名称</dt><dd><?= hechi_e((string) $proposal['collective_name']) ?></dd>
     <?php endif; ?>
+    <?php if ($coMembers !== []): ?>
+      <dt>联名委员</dt>
+      <dd>
+        <?php foreach ($coMembers as $row): ?>
+          <span class="m-sub">
+            <?= hechi_e((string) $row['name']) ?>
+            <?= trim((string) $row['org_title']) === '' ? '' : '（' . hechi_e((string) $row['org_title']) . '）' ?>
+            <?= trim((string) $row['mobile']) === '' ? '' : ' ' . hechi_e((string) $row['mobile']) ?>
+          </span>
+        <?php endforeach; ?>
+      </dd>
+    <?php endif; ?>
+    <dt>办理联系人</dt>
+    <dd>
+      <?= hechi_e((string) $proposal['contact_name']) ?>
+      <?= trim((string) $proposal['contact_title']) === '' ? '' : '（' . hechi_e((string) $proposal['contact_title']) . '）' ?>
+      · <?= hechi_e((string) $proposal['contact_mobile']) ?>
+      <span class="m-sub"><?= hechi_e((string) $proposal['contact_org']) ?>
+        <?= trim((string) $proposal['contact_address']) === '' ? '' : '　' . hechi_e((string) $proposal['contact_address']) ?>
+        <?= trim((string) $proposal['contact_postcode']) === '' ? '' : '（邮编 ' . hechi_e((string) $proposal['contact_postcode']) . '）' ?>
+      </span>
+    </dd>
     <?php if (trim((string) ($proposal['reviewed_at'] ?? '')) !== ''): ?>
       <dt><?= $statusKey === 'returned' ? '退回时间' : '受理时间' ?></dt><dd><?= hechi_e((string) $proposal['reviewed_at']) ?></dd>
     <?php endif; ?>
   </dl>
 </section>
 
+<?php if ($edges !== []): ?>
+  <div class="m-notice m-notice-warn">
+    <strong>提案委已对内容作了调整。</strong>
+    以下内容为调整后的版本：
+    <ul>
+      <?php foreach ($edges as $edge): ?>
+        <li><?= hechi_e($edge['created_at']) ?> 调整了：<?= hechi_e($edge['summary']) ?></li>
+      <?php endforeach; ?>
+    </ul>
+  </div>
+<?php endif; ?>
+
 <section class="m-card">
-  <h2>一、情况与问题</h2>
-  <div class="m-body"><?= nl2br(hechi_e((string) $proposal['problem_text'])) ?></div>
-  <h2>二、分析</h2>
-  <div class="m-body"><?= nl2br(hechi_e((string) $proposal['analysis_text'])) ?></div>
-  <h2>三、建议</h2>
-  <div class="m-body"><?= nl2br(hechi_e((string) $proposal['suggestion_text'])) ?></div>
+  <h2>提案内容</h2>
+  <div class="m-body"><?= (string) ($proposal['body_html'] ?? '') ?></div>
 </section>
 
 <?php if ($attachments !== []): ?>

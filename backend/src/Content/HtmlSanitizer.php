@@ -40,10 +40,52 @@ final class HtmlSanitizer
 
     private static ?\HTMLPurifier $purifier = null;
 
+    /**
+     * 提案正文的白名单：只留分段、加粗、下划线、列表，不进图片、链接、颜色与字号。
+     * 提案表要按统一版式归档打印，放开排版能力只会让导出结果五花八门。
+     */
+    private const PROPOSAL_ALLOWED = 'p,br,strong,b,u,em,i,ul,ol,li';
+
+    private const PROPOSAL_DEFINITION_REV = 1;
+
+    private static ?\HTMLPurifier $proposalPurifier = null;
+
     /** 清洗一段正文，返回可安全入库与输出的 HTML */
     public static function clean(string $html): string
     {
         return self::purifier()->purify($html);
+    }
+
+    /** 清洗提案正文（白名单比稿件正文严格），输出同样可安全入库与输出 */
+    public static function cleanProposal(string $html): string
+    {
+        return self::proposalPurifier()->purify($html);
+    }
+
+    private static function proposalPurifier(): \HTMLPurifier
+    {
+        if (self::$proposalPurifier instanceof \HTMLPurifier) {
+            return self::$proposalPurifier;
+        }
+
+        $auto = dirname(__DIR__, 2) . '/vendor/htmlpurifier/library/HTMLPurifier.auto.php';
+        if (!is_file($auto)) {
+            throw new \RuntimeException('正文清洗组件缺失：' . $auto);
+        }
+        require_once $auto;
+
+        $config = \HTMLPurifier_Config::createDefault();
+        $config->set('Core.Encoding', 'UTF-8');
+        $config->set('Cache.SerializerPath', self::cacheDir());
+        $config->set('HTML.Doctype', 'HTML 4.01 Transitional');
+        $config->set('HTML.Allowed', self::PROPOSAL_ALLOWED);
+        // 定义单独挂一个 ID：与稿件正文共用定义会命中对方的缓存
+        $config->set('HTML.DefinitionID', 'hechi-proposal');
+        $config->set('HTML.DefinitionRev', self::PROPOSAL_DEFINITION_REV);
+
+        self::$proposalPurifier = new \HTMLPurifier($config);
+
+        return self::$proposalPurifier;
     }
 
     private static function purifier(): \HTMLPurifier

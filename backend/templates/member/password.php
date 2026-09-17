@@ -13,7 +13,7 @@ declare(strict_types=1);
 <section class="m-card m-narrow">
   <h1>修改密码</h1>
   <?php if ($required): ?>
-    <p class="m-notice">这是首次登录，请先修改初始密码后再使用系统。</p>
+    <p class="m-notice">这是首次登录（或提案委刚重置过密码），请先设置自己的密码再使用系统。</p>
   <?php endif; ?>
   <p class="m-note">当前账号：<?= hechi_e((string) ($member['name'] ?? '')) ?>
     （登录名 <?= hechi_e((string) ($member['login_name'] ?? '')) ?>）</p>
@@ -28,7 +28,8 @@ declare(strict_types=1);
 
     <label for="confirm_password">确认新密码</label>
     <input type="password" id="confirm_password" name="confirm_password" autocomplete="new-password" required>
-    <p class="m-hint">至少 8 位，建议字母与数字混用，不要与其他网站相同。</p>
+    <p class="m-hint">至少 8 位，建议字母与数字混用，不要与其他网站相同。
+      请把新密码记好或存进密码本：系统不提供自助重置，忘记密码只能联系提案委线下重置。</p>
 
     <button type="submit" class="m-btn m-btn-primary">保存新密码</button>
   </form>

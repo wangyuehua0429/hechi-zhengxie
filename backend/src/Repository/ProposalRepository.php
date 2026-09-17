@@ -53,18 +53,25 @@ final class ProposalRepository
         );
     }
 
-    /** @param array<string, mixed> $data */
+    /**
+     * 新建提案。$data 里的 co_member_rows / unit_rows 是子表明细，
+     * co_members / host_units 是给列表、导出与检索用的名称摘要（同一处写入，不各写各的）。
+     *
+     * @param array<string, mixed> $data
+     */
     public function create(int $memberId, array $data): int
     {
         $now = $this->db->now();
         $this->db->execute(
             'INSERT INTO cms_proposal
                (site_id, member_id, proposer_type, proposer_name, sector, committee, contact_mobile,
-                co_members, collective_name, category, title, problem_text, analysis_text, suggestion_text,
+                co_members, collective_name, category, title, body_html, host_units,
+                contact_name, contact_org, contact_title, contact_address, contact_postcode,
                 status, submitted_at, created_at, updated_at)
              VALUES
                (:site, :member, :ptype, :pname, :sector, :committee, :mobile,
-                :comembers, :collective, :category, :title, :problem, :analysis, :suggestion,
+                :comembers, :collective, :category, :title, :body, :units,
+                :cname, :corg, :ctitle, :caddress, :cpostcode,
                 :status, :submitted, :t, :t)',
             [
                 'site'       => $this->siteId,
@@ -78,16 +85,23 @@ final class ProposalRepository
                 'collective' => (string) ($data['collective_name'] ?? ''),
                 'category'   => (string) ($data['category'] ?? ''),
                 'title'      => (string) ($data['title'] ?? ''),
-                'problem'    => (string) ($data['problem_text'] ?? ''),
-                'analysis'   => (string) ($data['analysis_text'] ?? ''),
-                'suggestion' => (string) ($data['suggestion_text'] ?? ''),
+                'body'       => (string) ($data['body_html'] ?? ''),
+                'units'      => (string) ($data['host_units'] ?? ''),
+                'cname'      => (string) ($data['contact_name'] ?? ''),
+                'corg'       => (string) ($data['contact_org'] ?? ''),
+                'ctitle'     => (string) ($data['contact_title'] ?? ''),
+                'caddress'   => (string) ($data['contact_address'] ?? ''),
+                'cpostcode'  => (string) ($data['contact_postcode'] ?? ''),
                 'status'     => ProposalWorkflow::SUBMITTED,
                 'submitted'  => $now,
                 't'          => $now,
             ]
         );
 
-        return (int) $this->db->pdo()->lastInsertId();
+        $proposalId = (int) $this->db->pdo()->lastInsertId();
+        $this->writeDetail($proposalId, $data);
+
+        return $proposalId;
     }
 
     /**
@@ -102,8 +116,10 @@ final class ProposalRepository
             'UPDATE cms_proposal SET
                proposer_type = :ptype, proposer_name = :pname, sector = :sector, committee = :committee,
                contact_mobile = :mobile, co_members = :comembers, collective_name = :collective,
-               category = :category, title = :title, problem_text = :problem, analysis_text = :analysis,
-               suggestion_text = :suggestion, status = :status, returned_reason = :empty,
+               category = :category, title = :title, body_html = :body, host_units = :units,
+               contact_name = :cname, contact_org = :corg, contact_title = :ctitle,
+               contact_address = :caddress, contact_postcode = :cpostcode,
+               status = :status, returned_reason = :empty,
                submitted_at = :submitted, updated_at = :t
              WHERE proposal_id = :id AND site_id = :site',
             [
@@ -116,9 +132,13 @@ final class ProposalRepository
                 'collective' => (string) ($data['collective_name'] ?? ''),
                 'category'   => (string) ($data['category'] ?? ''),
                 'title'      => (string) ($data['title'] ?? ''),
-                'problem'    => (string) ($data['problem_text'] ?? ''),
-                'analysis'   => (string) ($data['analysis_text'] ?? ''),
-                'suggestion' => (string) ($data['suggestion_text'] ?? ''),
+                'body'       => (string) ($data['body_html'] ?? ''),
+                'units'      => (string) ($data['host_units'] ?? ''),
+                'cname'      => (string) ($data['contact_name'] ?? ''),
+                'corg'       => (string) ($data['contact_org'] ?? ''),
+                'ctitle'     => (string) ($data['contact_title'] ?? ''),
+                'caddress'   => (string) ($data['contact_address'] ?? ''),
+                'cpostcode'  => (string) ($data['contact_postcode'] ?? ''),
                 'status'     => ProposalWorkflow::SUBMITTED,
                 'empty'      => '',
                 'submitted'  => $now,
@@ -126,6 +146,175 @@ final class ProposalRepository
                 'id'         => $proposalId,
                 'site'       => $this->siteId,
             ]
+        );
+
+        $this->writeDetail($proposalId, $data);
+    }
+
+    /**
+     * 提案委调整提案（受理前）：只改内容类字段，不动提案人、状态与提交时间。
+     * 快照在调用方保存（控制器里先 snapshot() 再调这里），仓储只管写。
+     *
+     * @param array<string, mixed> $data
+     */
+    public function adminUpdate(int $proposalId, array $data, int $actorId): void
+    {
+        $now = $this->db->now();
+        $this->db->execute(
+            'UPDATE cms_proposal SET
+               category = :category, title = :title, body_html = :body, host_units = :units,
+               co_members = :comembers, collective_name = :collective,
+               contact_name = :cname, contact_org = :corg, contact_title = :ctitle,
+               contact_address = :caddress, contact_postcode = :cpostcode, contact_mobile = :mobile,
+               edited_by = :actor, edited_at = :t, updated_at = :t
+             WHERE proposal_id = :id AND site_id = :site',
+            [
+                'category'   => (string) ($data['category'] ?? ''),
+                'title'      => (string) ($data['title'] ?? ''),
+                'body'       => (string) ($data['body_html'] ?? ''),
+                'units'      => (string) ($data['host_units'] ?? ''),
+                'comembers'  => (string) ($data['co_members'] ?? ''),
+                'collective' => (string) ($data['collective_name'] ?? ''),
+                'cname'      => (string) ($data['contact_name'] ?? ''),
+                'corg'       => (string) ($data['contact_org'] ?? ''),
+                'ctitle'     => (string) ($data['contact_title'] ?? ''),
+                'caddress'   => (string) ($data['contact_address'] ?? ''),
+                'cpostcode'  => (string) ($data['contact_postcode'] ?? ''),
+                'mobile'     => (string) ($data['contact_mobile'] ?? ''),
+                'actor'      => $actorId,
+                't'          => $now,
+                'id'         => $proposalId,
+                'site'       => $this->siteId,
+            ]
+        );
+
+        $this->writeDetail($proposalId, $data);
+    }
+
+    /**
+     * 联名委员与承办单位明细：整组替换（数量少、顺序有意义，增量比对得不偿失）。
+     *
+     * @param array<string, mixed> $data
+     */
+    private function writeDetail(int $proposalId, array $data): void
+    {
+        $this->db->execute('DELETE FROM cms_proposal_co_member WHERE proposal_id = :id', ['id' => $proposalId]);
+        $sort = 0;
+        foreach ((array) ($data['co_member_rows'] ?? []) as $row) {
+            $name = trim((string) ($row['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $this->db->execute(
+                'INSERT INTO cms_proposal_co_member (proposal_id, name, org_title, mobile, sort_no)
+                 VALUES (:pid, :name, :org, :mobile, :sort)',
+                [
+                    'pid'    => $proposalId,
+                    'name'   => $name,
+                    'org'    => trim((string) ($row['org_title'] ?? '')),
+                    'mobile' => trim((string) ($row['mobile'] ?? '')),
+                    'sort'   => $sort,
+                ]
+            );
+            $sort++;
+        }
+
+        $this->db->execute('DELETE FROM cms_proposal_unit WHERE proposal_id = :id', ['id' => $proposalId]);
+        $sort = 0;
+        foreach ((array) ($data['unit_rows'] ?? []) as $row) {
+            $name = trim((string) ($row['unit_name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $this->db->execute(
+                'INSERT INTO cms_proposal_unit (proposal_id, unit_id, unit_name, sort_no)
+                 VALUES (:pid, :uid, :name, :sort)',
+                [
+                    'pid'  => $proposalId,
+                    'uid'  => (int) ($row['unit_id'] ?? 0),
+                    'name' => $name,
+                    'sort' => $sort,
+                ]
+            );
+            $sort++;
+        }
+    }
+
+    /** @return list<array<string,mixed>> 联名委员明细 */
+    public function coMembers(int $proposalId): array
+    {
+        return $this->db->select(
+            'SELECT * FROM cms_proposal_co_member WHERE proposal_id = :id ORDER BY sort_no, id',
+            ['id' => $proposalId]
+        );
+    }
+
+    /** @return list<array<string,mixed>> 建议承办单位明细 */
+    public function units(int $proposalId): array
+    {
+        return $this->db->select(
+            'SELECT * FROM cms_proposal_unit WHERE proposal_id = :id ORDER BY sort_no, id',
+            ['id' => $proposalId]
+        );
+    }
+
+    /**
+     * 改稿留痕：存改前的关键字段（含联名与承办单位明细），改坏了能照着还原。
+     *
+     * @return array<string,mixed>
+     */
+    public function snapshot(int $proposalId): array
+    {
+        $row = $this->find($proposalId) ?? [];
+        $fields = [
+            'title', 'category', 'body_html', 'host_units', 'co_members', 'collective_name',
+            'contact_name', 'contact_org', 'contact_title', 'contact_address', 'contact_postcode',
+            'contact_mobile',
+        ];
+        $snapshot = [];
+        foreach ($fields as $field) {
+            $snapshot[$field] = (string) ($row[$field] ?? '');
+        }
+        $snapshot['co_member_rows'] = array_map(
+            static fn (array $item): array => [
+                'name'      => (string) $item['name'],
+                'org_title' => (string) $item['org_title'],
+                'mobile'    => (string) $item['mobile'],
+            ],
+            $this->coMembers($proposalId)
+        );
+        $snapshot['unit_rows'] = array_map(
+            static fn (array $item): array => [
+                'unit_id'   => (int) $item['unit_id'],
+                'unit_name' => (string) $item['unit_name'],
+            ],
+            $this->units($proposalId)
+        );
+
+        return $snapshot;
+    }
+
+    public function addRevision(int $proposalId, int $actorId, string $summary, array $snapshot): void
+    {
+        $this->db->execute(
+            'INSERT INTO cms_proposal_revision (proposal_id, actor_id, summary, snapshot_json, created_at)
+             VALUES (:pid, :actor, :summary, :snapshot, :t)',
+            [
+                'pid'      => $proposalId,
+                'actor'    => $actorId,
+                'summary'  => $summary,
+                'snapshot' => json_encode($snapshot, JSON_UNESCAPED_UNICODE),
+                't'        => $this->db->now(),
+            ]
+        );
+    }
+
+    /** @return list<array<string,mixed>> 改稿记录（新的在前） */
+    public function revisions(int $proposalId): array
+    {
+        return $this->db->select(
+            'SELECT * FROM cms_proposal_revision WHERE proposal_id = :id ORDER BY revision_id DESC',
+            ['id' => $proposalId]
         );
     }
 
@@ -318,6 +507,12 @@ final class ProposalRepository
         if ($sector !== '') {
             $where[] = 'p.sector = :sector';
             $params['sector'] = $sector;
+        }
+        // 承办单位按名称摘要模糊匹配：一份提案最多 5 个单位，拆表联查不值当
+        $unit = (string) ($filters['unit'] ?? '');
+        if ($unit !== '') {
+            $params['kwUnit'] = self::likePattern($unit);
+            $where[] = "p.host_units LIKE :kwUnit ESCAPE '!'";
         }
         $keyword = (string) ($filters['keyword'] ?? '');
         if ($keyword !== '') {

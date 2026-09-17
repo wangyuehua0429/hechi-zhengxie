@@ -98,14 +98,23 @@ function makeClient(base) {
     let body;
     if (multipart) {
       const fd = new FormData();
-      for (const [key, value] of Object.entries(multipart.fields || {})) fd.append(key, value);
+      for (const [key, value] of Object.entries(multipart.fields || {})) {
+        // 多值字段（units[]、co_name[] 这类）要重复 append，不能拼成 "a,b"
+        if (Array.isArray(value)) value.forEach((item) => fd.append(key, item));
+        else fd.append(key, value);
+      }
       for (const file of multipart.files || []) {
         const content = file.buffer || file.content;
         fd.append(file.field, new Blob([content], { type: file.type || "application/octet-stream" }), file.filename);
       }
       body = fd;
     } else if (form) {
-      body = new URLSearchParams(form).toString();
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(form)) {
+        if (Array.isArray(value)) value.forEach((item) => params.append(key, item));
+        else params.append(key, value);
+      }
+      body = params.toString();
       headers["Content-Type"] = "application/x-www-form-urlencoded";
     }
     const res = await fetch(base + url, { method, headers, body, redirect: "manual" });
@@ -492,6 +501,62 @@ async function main() {
     check("委员列表显示导入的账号与提案数",
       membersAfter.text.includes("张三") && membersAfter.text.includes("13800000001") && membersAfter.text.includes("提案数"));
 
+    // ---------- 二之二、市直单位清单（建议承办单位的下拉来源） ----------
+    const unitsPage = await admin.get("/admin/units");
+    check("市直单位清单页可访问且初始为空提示",
+      unitsPage.status === 200 && unitsPage.text.includes("市直单位") && unitsPage.text.includes("清单还是空的"),
+      "状态 " + unitsPage.status);
+    check("侧栏出现「市直单位」入口",
+      unitsPage.text.includes("/admin/units") && unitsPage.text.includes("提案管理"));
+
+    const unitTemplate = await admin.get("/admin/units/import/template.csv");
+    check("市直单位导入模板可下载且表头固定",
+      unitTemplate.status === 200 && unitTemplate.text.includes("单位名称,排序号"),
+      "状态 " + unitTemplate.status);
+
+    const unitCsv = "单位名称,排序号\n"
+      + "河池市住房和城乡建设局,10\n"
+      + "河池市教育局,20\n"
+      + "河池市民政局,30\n"
+      + "河池市交通运输局,40\n"
+      + "河池市农业农村局,50\n"
+      + "河池市文化广电体育和旅游局,60\n";
+    const unitImportToken = csrfToken(unitsPage.text);
+    const unitImported = await admin.upload("/admin/units/import", { _token: unitImportToken }, [
+      { field: "units", filename: "units.csv", content: Buffer.from(unitCsv, "utf8"), type: "text/csv" }
+    ]);
+    const unitsAfterImport = await admin.get("/admin/units");
+    check("市直单位 CSV 导入：新增 6 个并列出",
+      unitImported.status === 302
+        && unitsAfterImport.text.includes("新增 6 个")
+        && unitsAfterImport.text.includes("河池市住房和城乡建设局"),
+      "状态 " + unitImported.status);
+
+    const unitCreateToken = csrfToken(unitsAfterImport.text);
+    const dupUnit = await admin.post("/admin/units", { _token: unitCreateToken, name: "河池市教育局", sort_no: "25" });
+    const afterDupUnit = await admin.get("/admin/units");
+    check("重名单位被挡下并说明原因",
+      dupUnit.status === 302 && afterDupUnit.text.includes("清单里已经有"), "状态 " + dupUnit.status);
+
+    const newUnit = await admin.post("/admin/units", {
+      _token: csrfToken(afterDupUnit.text),
+      name: "河池市卫生健康委员会",
+      sort_no: "70"
+    });
+    const afterNewUnit = await admin.get("/admin/units");
+    check("单个添加单位成功", newUnit.status === 302 && afterNewUnit.text.includes("河池市卫生健康委员会"));
+
+    const statusUnitToken = csrfToken(afterNewUnit.text);
+    const unitId = (/\/admin\/unit\/(\d+)\/status/.exec(afterNewUnit.text) || [])[1] || "";
+    check("清单页给出停用／删除入口", unitId !== "");
+    if (unitId) {
+      const disabled = await admin.post("/admin/unit/" + unitId + "/status", { _token: statusUnitToken });
+      const afterDisabled = await admin.get("/admin/units");
+      check("单位可以停用（不被删除，历史提案不受影响）",
+        disabled.status === 302 && afterDisabled.text.includes("已停用"));
+      await admin.post("/admin/unit/" + unitId + "/status", { _token: csrfToken(afterDisabled.text) });
+    }
+
     // 无提案权限的账号访问提案收件
     const editor = makeClient(base);
     const editorLoginPage = await editor.get("/admin/login");
@@ -557,6 +622,8 @@ async function main() {
       changed.status === 302 && (changed.headers.get("location") || "") === "/member/proposals");
     const listAfterChange = await memberA.get("/member/proposals");
     check("改密后可正常打开我的提案", listAfterChange.status === 200 && listAfterChange.text.includes("我的提案"));
+    check("改密成功提示委员保存好新密码（系统不提供自助重置）",
+      listAfterChange.text.includes("请妥善保存新密码") && listAfterChange.text.includes("联系提案委线下重置"));
 
     const byName = makeClient(base);
     const byNamePage = await byName.get("/member/login");
@@ -605,16 +672,61 @@ async function main() {
       byLegacyNameRes.status === 302 && (byLegacyNameRes.headers.get("location") || "") === "/member/password",
       "状态 " + byLegacyNameRes.status + " → " + (byLegacyNameRes.headers.get("location") || ""));
 
+    const passwordAgain = await memberA.get("/member/password");
+    check("首登改密后不再提供自助改密入口（直接跳回工作台）",
+      passwordAgain.status === 302 && (passwordAgain.headers.get("location") || "") === "/member/proposals",
+      "状态 " + passwordAgain.status + " → " + passwordAgain.headers.get("location"));
+    const passwordPost = await memberA.post("/member/password", {
+      _token: csrfToken((await memberA.get("/member/proposals")).text),
+      current_password: MEMBER_PASSWORD,
+      new_password: "another-new-2026",
+      confirm_password: "another-new-2026"
+    });
+    const afterPasswordPost = await memberA.get("/member/proposals");
+    check("非首登提交改密表单被挡下并说明联系提案委",
+      passwordPost.status === 302
+        && (passwordPost.headers.get("location") || "") === "/member/proposals"
+        && afterPasswordPost.text.includes("系统不提供自助修改密码"),
+      "状态 " + passwordPost.status);
+    check("工作台导航里没有「修改密码」入口",
+      !afterPasswordPost.text.includes(">修改密码<"));
+
     // ---------- 四、提交提案 ----------
     const formPage = await memberA.get("/member/proposal/new");
-    check("填写提案页可访问且字段齐全",
+    check("填写提案页可访问且字段齐全（联名、承办单位、正文、办理联系人）",
       formPage.status === 200
         && formPage.text.includes('name="title"')
-        && formPage.text.includes('name="problem_text"')
-        && formPage.text.includes('name="analysis_text"')
-        && formPage.text.includes('name="suggestion_text"')
+        && formPage.text.includes('name="body_html"')
+        && formPage.text.includes('name="co_name[]"')
+        && formPage.text.includes('name="units[]"')
+        && formPage.text.includes('name="contact_name"')
+        && formPage.text.includes('name="contact_org"')
+        && formPage.text.includes('name="contact_title"')
+        && formPage.text.includes('name="contact_address"')
+        && formPage.text.includes('name="contact_postcode"')
+        && formPage.text.includes('name="contact_mobile"')
         && formPage.text.includes('name="attachments[]"'),
       "状态 " + formPage.status);
+    check("正文字数上限按 2000 字提示，且给出需求原文的填写提示",
+      formPage.text.includes("2000 字")
+        && formPage.text.includes("提案一事一案，简明扼要，字数不超过 2000 字，否则无法上传，有关材料可作为附件提交"));
+    check("承办单位下拉带出市直单位清单（7 个）",
+      formPage.text.includes("河池市住房和城乡建设局")
+        && formPage.text.includes("河池市卫生健康委员会")
+        && formPage.text.includes("最多选 5 个"));
+    check("承办单位是可搜索的下拉（原生多选作无脚本回退）",
+      formPage.text.includes("data-unit-picker")
+        && formPage.text.includes("data-unit-search")
+        && formPage.text.includes("data-unit-native")
+        && formPage.text.includes("/assets/unit-picker.js")
+        && formPage.text.includes("/assets/unit-picker.css"));
+    check("正文编辑器与勘误入口已挂上",
+      formPage.text.includes("/assets/editor/suneditor.min.js")
+        && formPage.text.includes("/assets/member-editor.js")
+        && formPage.text.includes("/member/proposal/check-text"));
+
+    const unitIds = [...formPage.text.matchAll(/<option value="(\d+)"[^>]*>\s*河池市/g)].map((m) => m[1]);
+    check("能从页面取到承办单位编号（供下面提交用）", unitIds.length === 7, "取到 " + unitIds.length + " 个");
 
     const invalid = await memberA.post("/member/proposal/create", {
       _token: csrfToken(formPage.text),
@@ -622,15 +734,16 @@ async function main() {
       proposer_name: "张三",
       sector: "中国共产党",
       committee: "提案委员会",
-      contact_mobile: "13800000001",
       category: "经济建设",
       title: "",
-      problem_text: "",
-      analysis_text: "",
-      suggestion_text: ""
+      body_html: ""
     });
     check("必填项为空时留在表单页并给出提示",
-      invalid.status === 400 && invalid.text.includes("请填写案由") && invalid.text.includes("请填写「建议」"),
+      invalid.status === 400
+        && invalid.text.includes("请填写案由")
+        && invalid.text.includes("请填写提案内容")
+        // 姓名／单位／电话会先带出委员自己的资料，缺的是剩下三项
+        && invalid.text.includes("请填写提案办理联系人：职务、联系地址、邮政编码"),
       "状态 " + invalid.status);
 
     const longTitle = "案".repeat(51);
@@ -638,30 +751,139 @@ async function main() {
       _token: csrfToken((await memberA.get("/member/proposal/new")).text),
       proposer_type: "collective",
       proposer_name: "张三",
-      contact_mobile: "13800000001",
       category: "社会建设",
       title: longTitle,
-      problem_text: "情况",
-      suggestion_text: "建议"
+      body_html: "情况",
+      contact_name: "张三",
+      contact_org: "河池市某某局",
+      contact_title: "科长",
+      contact_address: "河池市宜州区某某路 1 号",
+      contact_postcode: "547000",
+      contact_mobile: "13800000001"
     });
     check("案由超过 50 字被挡下，且集体提案要求填写集体名称",
       invalidTitle.status === 400
         && invalidTitle.text.includes("案由不能超过 50 个字")
         && invalidTitle.text.includes("集体提案请填写提出单位或界别名称"));
 
-    const title = "关于完善城区老旧小区充电设施的建议";
-    const created = await memberA.upload("/member/proposal/create", {
-      _token: csrfToken((await memberA.get("/member/proposal/new")).text),
+    const baseFields = {
       proposer_type: "personal",
       proposer_name: "张三",
       sector: "中国共产党",
       committee: "提案委员会",
-      contact_mobile: "13800000001",
       category: "经济建设",
+      contact_name: "张三",
+      contact_org: "河池市某某局",
+      contact_title: "科长",
+      contact_address: "河池市宜州区某某路 1 号",
+      contact_postcode: "547000",
+      contact_mobile: "13800000001"
+    };
+    const postCreate = (fields) => memberA.post("/member/proposal/create", {
+      _token: formFieldToken,
+      ...baseFields,
+      ...fields
+    });
+    let formFieldToken = csrfToken((await memberA.get("/member/proposal/new")).text);
+
+    const badPostcode = await postCreate({ title: "测试邮编", body_html: "正文", contact_postcode: "54700" });
+    check("邮政编码不是 6 位数字被挡下",
+      badPostcode.status === 400 && badPostcode.text.includes("邮政编码请填 6 位数字"));
+
+    const overLimit = await postCreate({ title: "测试超字数", body_html: "字".repeat(2001) });
+    check("正文 2001 字被挡下并报出实际字数",
+      overLimit.status === 400 && overLimit.text.includes("提案内容 2001 字")
+        && overLimit.text.includes("超出 2000 字上限"), "状态 " + overLimit.status);
+
+    // 边界：正好 2000 字不算超（这一条故意不给案由，只用来验证字数不再报错）
+    formFieldToken = csrfToken((await memberA.get("/member/proposal/new")).text);
+    const atLimit = await postCreate({ title: "", body_html: "字".repeat(2000) });
+    check("正文正好 2000 字不再报超限",
+      atLimit.status === 400
+        && atLimit.text.includes("请填写案由")
+        && !atLimit.text.includes("超出 2000 字上限"), "状态 " + atLimit.status);
+
+    const jointNoMember = await postCreate({ title: "测试联名", body_html: "正文", proposer_type: "joint" });
+    check("选联名但没填联名委员被挡下",
+      jointNoMember.status === 400 && jointNoMember.text.includes("联名提案请至少填写一位联名委员的资料"));
+
+    formFieldToken = csrfToken((await memberA.get("/member/proposal/new")).text);
+    const jointNoName = await memberA.post("/member/proposal/create", {
+      _token: formFieldToken,
+      ...baseFields,
+      proposer_type: "joint",
+      title: "测试联名缺姓名",
+      body_html: "正文",
+      "co_name[]": "",
+      "co_org[]": "河池市某某公司",
+      "co_mobile[]": "13900000000"
+    });
+    check("联名委员只填了单位没填姓名被挡下",
+      jointNoName.status === 400 && jointNoName.text.includes("联名委员请填写姓名（第 1 位）"));
+
+    formFieldToken = csrfToken((await memberA.get("/member/proposal/new")).text);
+    const tooManyUnits = await memberA.post("/member/proposal/create", {
+      _token: formFieldToken,
+      ...baseFields,
+      title: "测试六个承办单位",
+      body_html: "正文",
+      "units[]": unitIds.slice(0, 6)
+    });
+    check("建议承办单位选到 6 个被挡下",
+      tooManyUnits.status === 400 && tooManyUnits.text.includes("建议承办单位最多选 5 个"));
+
+    formFieldToken = csrfToken((await memberA.get("/member/proposal/new")).text);
+    const unknownUnit = await memberA.post("/member/proposal/create", {
+      _token: formFieldToken,
+      ...baseFields,
+      title: "测试无效承办单位",
+      body_html: "正文",
+      "units[]": ["999999"]
+    });
+    check("选了清单里没有的承办单位被挡下",
+      unknownUnit.status === 400 && unknownUnit.text.includes("已停用或不存在"));
+
+    // 名册检索：联名委员带出用
+    const roster = await memberA.get("/member/roster?keyword=" + encodeURIComponent("李四"));
+    check("名册检索接口按姓名带出单位职务与电话",
+      roster.status === 200
+        && roster.headers.get("content-type").includes("application/json")
+        && roster.text.includes('"name":"李四"')
+        && roster.text.includes("河池市某某公司总经理")
+        && roster.text.includes("13800000002"),
+      "状态 " + roster.status);
+    const rosterEmpty = await memberA.get("/member/roster?keyword=");
+    check("名册检索不给关键词时不返回名册内容", rosterEmpty.text.includes('"items":[]'));
+    const rosterGuest = await guest.get("/member/roster?keyword=" + encodeURIComponent("李四"));
+    check("未登录不能检索委员名册", rosterGuest.text.includes("请先登录"));
+
+    // 错别字勘误：只预留接口
+    formFieldToken = csrfToken((await memberA.get("/member/proposal/new")).text);
+    const proofread = await memberA.post("/member/proposal/check-text", {
+      _token: formFieldToken,
+      return_to: "/member/proposal/new",
+      body_html: "<p>正文有一处错别字</p>"
+    });
+    const proofreadFlash = await memberA.get("/member/proposal/new");
+    check("错别字勘误走了预留接口并提示待接入",
+      proofread.status === 302
+        && (proofread.headers.get("location") || "") === "/member/proposal/new"
+        && proofreadFlash.text.includes("错别字勘误功能待接入"), "状态 " + proofread.status);
+
+    const title = "关于完善城区老旧小区充电设施的建议";
+    const created = await memberA.upload("/member/proposal/create", {
+      _token: csrfToken((await memberA.get("/member/proposal/new")).text),
+      ...baseFields,
       title,
-      problem_text: "城区老旧小区电动自行车充电设施不足。",
-      analysis_text: "既有线路与场地条件受限。",
-      suggestion_text: "由住建部门牵头，分批加装集中充电棚。"
+      // 正文带加粗、下划线与列表；另外塞进脚本标签、事件属性与越界样式，验证清洗
+      body_html: '<p>城区老旧小区电动自行车充电设施不足。</p><p>既有线路与场地条件受限。</p>'
+        + '<p><strong>由住建部门牵头</strong>，<u>分批加装集中充电棚</u>。</p>'
+        + '<ul><li>第一批 20 个小区</li></ul><script>alert(1)</script>'
+        + '<p style="position:fixed" onclick="alert(2)">建议分批推进。</p>',
+      "units[]": unitIds.slice(0, 2),
+      "co_name[]": "李四",
+      "co_org[]": "河池市某某公司总经理",
+      "co_mobile[]": "13800000002"
     }, [
       { field: "attachments[]", filename: "调研底稿.txt", content: Buffer.from("附件内容：调研底稿", "utf8"), type: "text/plain" }
     ]);
@@ -671,12 +893,33 @@ async function main() {
       created.status === 302 && proposalId !== "", "状态 " + created.status + " → " + location);
 
     const detail = await memberA.get("/member/proposal/" + proposalId);
-    check("详情页显示已提交与三段正文",
+    check("详情页显示已提交、合并后的正文、联名委员与承办单位",
       detail.status === 200
         && detail.text.includes("已提交")
-        && detail.text.includes("一、情况与问题")
+        && detail.text.includes("提案内容")
+        && detail.text.includes("河池市住房和城乡建设局")
+        && detail.text.includes("李四")
         && detail.text.includes("调研底稿.txt"),
       "状态 " + detail.status);
+    check("富文本保留加粗与下划线，脚本、事件属性与内联样式被清洗",
+      detail.text.includes("<strong>由住建部门牵头</strong>")
+        && detail.text.includes("<u>分批加装集中充电棚</u>")
+        && detail.text.includes("<li>第一批 20 个小区</li>")
+        && !detail.text.includes("<script")
+        && !detail.text.includes("onclick")
+        && !detail.text.includes("position:fixed"));
+    check("办理联系人六项在详情页显示",
+      detail.text.includes("河池市某某局") && detail.text.includes("科长")
+        && detail.text.includes("547000") && detail.text.includes("河池市宜州区某某路 1 号"));
+
+    const editFormPrefill = await memberA.get("/member/proposal/" + proposalId + "/edit");
+    check("非退回状态不能进编辑页", editFormPrefill.status === 302);
+
+    const newProposalForm = await memberA.get("/member/proposal/new");
+    check("办理联系人填过一次后，下次填提案自动带出",
+      newProposalForm.text.includes('value="河池市某某局"')
+        && newProposalForm.text.includes('value="547000"')
+        && newProposalForm.text.includes('value="河池市宜州区某某路 1 号"'));
 
     const memberListPage = await memberA.get("/member/proposals");
     check("我的提案列表出现该提案",
@@ -692,11 +935,23 @@ async function main() {
       "状态 " + adminList.status);
 
     const adminDetail = await admin.get("/admin/proposal/" + proposalId);
-    check("后台详情页带出三段正文与委员账号",
+    check("后台详情页带出正文、承办单位、联名委员与办理联系人",
       adminDetail.status === 200
         && adminDetail.text.includes("城区老旧小区电动自行车充电设施不足")
+        && adminDetail.text.includes("河池市住房和城乡建设局")
+        && adminDetail.text.includes("河池市某某局")
+        && adminDetail.text.includes("李四")
         && adminDetail.text.includes("13800000001"),
       "状态 " + adminDetail.status);
+    check("后台详情页给出「调整提案」表单（受理前可改）",
+      adminDetail.text.includes("调整提案")
+        && adminDetail.text.includes('id="proposal-edit-form"')
+        && adminDetail.text.includes('name="body_html"')
+        && adminDetail.text.includes("/assets/admin-proposal-editor.js"));
+    check("后台改稿的承办单位同样是可搜索下拉",
+      adminDetail.text.includes("data-unit-picker")
+        && adminDetail.text.includes("data-unit-native")
+        && adminDetail.text.includes("/assets/unit-picker.js"));
 
     const returnToken = csrfToken(adminDetail.text);
     const emptyReturn = await admin.post("/admin/proposal/" + proposalId + "/return", { _token: returnToken, returned_reason: "" });
@@ -729,18 +984,91 @@ async function main() {
 
     const resubmit = await memberA.post("/member/proposal/" + proposalId + "/submit", {
       _token: csrfToken(editPage.text),
-      proposer_type: "personal",
-      proposer_name: "张三",
-      sector: "中国共产党",
-      committee: "提案委员会",
-      contact_mobile: "13800000001",
-      category: "经济建设",
+      ...baseFields,
       title,
-      problem_text: "城区老旧小区电动自行车充电设施不足，消防隐患突出。",
-      analysis_text: "既有线路与场地条件受限。",
-      suggestion_text: "由住建部门牵头，分批加装集中充电棚，资金来源由财政与物业共担。"
+      body_html: "<p>城区老旧小区电动自行车充电设施不足，消防隐患突出。</p><p>建议分批加装集中充电棚，资金来源由财政与物业共担。</p>",
+      "units[]": unitIds.slice(0, 1),
+      "co_name[]": "",
+      "co_org[]": "",
+      "co_mobile[]": ""
     });
     check("修改后重新提交成功", resubmit.status === 302 && (resubmit.headers.get("location") || "").includes("/member/proposal/" + proposalId));
+    const afterResubmitDetail = await memberA.get("/member/proposal/" + proposalId);
+    check("重交后承办单位与联名委员按新内容更新",
+      afterResubmitDetail.text.includes("河池市住房和城乡建设局")
+        && afterResubmitDetail.text.includes("河池市教育局") === false
+        && afterResubmitDetail.text.includes("李四") === false);
+
+    // ---------- 五之二、提案委调整提案（留痕 + 委员端可见） ----------
+    const editPageBefore = await admin.get("/admin/proposal/" + proposalId);
+    const editToken = csrfToken(editPageBefore.text);
+    const adminEdit = await admin.post("/admin/proposal/" + proposalId + "/edit", {
+      _token: editToken,
+      title,
+      category: "经济建设",
+      collective_name: "",
+      body_html: "<p>城区老旧小区电动自行车充电设施不足，消防隐患突出。</p>"
+        + "<p><strong>提案委补充：</strong>建议先<u>做摸底台账</u>再分批实施。</p>",
+      "units[]": unitIds.slice(0, 2),
+      "co_name[]": "",
+      "co_org[]": "",
+      "co_mobile[]": "",
+      contact_name: "张三",
+      contact_org: "河池市某某局",
+      contact_title: "科长",
+      contact_address: "河池市宜州区某某路 1 号",
+      contact_postcode: "547000",
+      contact_mobile: "13800000001"
+    });
+    const afterAdminEdit = await admin.get("/admin/proposal/" + proposalId);
+    check("提案委保存调整后给出改动清单",
+      adminEdit.status === 302
+        && afterAdminEdit.text.includes("已保存调整")
+        && afterAdminEdit.text.includes("正文"),
+      "状态 " + adminEdit.status);
+    check("后台能看到内容调整记录与调整时间",
+      afterAdminEdit.text.includes("内容调整记录") && afterAdminEdit.text.includes("内容调整"));
+    check("调整后的承办单位已生效",
+      afterAdminEdit.text.includes("河池市住房和城乡建设局") && afterAdminEdit.text.includes("河池市教育局"));
+
+    const memberAfterAdminEdit = await memberA.get("/member/proposal/" + proposalId);
+    check("委员端提示「提案委已对内容作了调整」并看到调整后正文",
+      memberAfterAdminEdit.text.includes("提案委已对内容作了调整")
+        && memberAfterAdminEdit.text.includes("提案委补充："));
+
+    const noChangeEdit = await admin.post("/admin/proposal/" + proposalId + "/edit", {
+      _token: csrfToken(afterAdminEdit.text),
+      title,
+      category: "经济建设",
+      collective_name: "",
+      body_html: "<p>城区老旧小区电动自行车充电设施不足，消防隐患突出。</p>"
+        + "<p><strong>提案委补充：</strong>建议先<u>做摸底台账</u>再分批实施。</p>",
+      "units[]": unitIds.slice(0, 2),
+      "co_name[]": "",
+      "co_org[]": "",
+      "co_mobile[]": "",
+      contact_name: "张三",
+      contact_org: "河池市某某局",
+      contact_title: "科长",
+      contact_address: "河池市宜州区某某路 1 号",
+      contact_postcode: "547000",
+      contact_mobile: "13800000001"
+    });
+    const afterNoChange = await admin.get("/admin/proposal/" + proposalId);
+    check("内容没变时不写留痕（提示「没有改动」）",
+      noChangeEdit.status === 302 && afterNoChange.text.includes("没有改动"),
+      "状态 " + noChangeEdit.status);
+
+    const postcodeEdit = await admin.post("/admin/proposal/" + proposalId + "/edit", {
+      _token: csrfToken(afterNoChange.text),
+      title,
+      category: "经济建设",
+      body_html: "<p>正文</p>",
+      contact_postcode: "5470"
+    });
+    const afterPostcodeEdit = await admin.get("/admin/proposal/" + proposalId);
+    check("后台改稿的邮政编码同样按 6 位校验",
+      postcodeEdit.status === 302 && afterPostcodeEdit.text.includes("邮政编码请填 6 位数字"));
 
     const detailAfterResubmit = await memberA.get("/member/proposal/" + proposalId);
     check("重交后状态回到已提交且办理记录有两条",
@@ -771,6 +1099,31 @@ async function main() {
       new_password: MEMBER2_PASSWORD,
       confirm_password: MEMBER2_PASSWORD
     });
+
+    // 第二个委员也交一份，供下面验证批量导出装订两件提案
+    const secondForm = await memberB.get("/member/proposal/new");
+    const secondCreated = await memberB.post("/member/proposal/create", {
+      _token: csrfToken(secondForm.text),
+      proposer_type: "personal",
+      proposer_name: "李四",
+      sector: "经济界",
+      committee: "经济委员会",
+      category: "经济建设",
+      title: "关于优化工业园区物流通道的建议",
+      body_html: "<p>工业园区货运通道拥堵。</p><p>建议错峰并拓宽出口。</p>",
+      contact_name: "李四",
+      contact_org: "河池市某某公司",
+      contact_title: "总经理",
+      contact_address: "河池市金城江区某某路 8 号",
+      contact_postcode: "547000",
+      contact_mobile: "13800000002",
+      "units[]": unitIds.slice(2, 3)
+    });
+    const secondId = (/\/member\/proposal\/(\d+)/.exec(secondCreated.headers.get("location") || "") || [])[1] || "";
+    check("第二个委员也能提交提案（批量导出要用两件）",
+      secondCreated.status === 302 && secondId !== "" && secondId !== proposalId,
+      "状态 " + secondCreated.status);
+
     const otherProposal = await memberB.get("/member/proposal/" + proposalId);
     check("委员访问他人提案返回 404", otherProposal.status === 404, "状态 " + otherProposal.status);
 
@@ -800,25 +1153,94 @@ async function main() {
         && sheet.includes("关于完善城区老旧小区充电设施的建议")
         && sheet.includes("已受理"),
       "状态 " + xlsx.status);
+    check("收件清单带上联名委员、办理联系人与建议承办单位三列",
+      sheet.includes("联名委员") && sheet.includes("办理联系人")
+        && sheet.includes("建议承办单位") && sheet.includes("河池市住房和城乡建设局"));
 
     const word = await admin.get("/admin/proposal/" + proposalId + "/word", { binary: true });
     const documentXml = word.status === 200 ? unzipPart(word.buffer, "word/document.xml", tmpRoot, "proposal.docx") : "";
-    check("单件 Word 提案表可解析且三段与意见齐全",
+    check("单件 Word 提案表可解析：正文、承办单位、办理联系人与意见齐全",
       word.status === 200
         && documentXml.includes("关于完善城区老旧小区充电设施的建议")
-        && documentXml.includes("一、情况与问题")
-        && documentXml.includes("三、建议")
+        && documentXml.includes("提案内容")
+        && documentXml.includes("河池市住房和城乡建设局")
+        && documentXml.includes("提案办理联系人")
+        // 下划线部分自成一个运行，XML 里不会连成整句
+        && documentXml.includes("提案委补充：")
+        && documentXml.includes("做摸底台账")
         && documentXml.includes("予以立案"),
       "状态 " + word.status);
     check("Word 导出带政务排版设置（A4、宋体、固定行距 28 磅）",
       documentXml.includes('w:w="11906"') && documentXml.includes('w:eastAsia="宋体"') && documentXml.includes('w:line="560"'));
+    check("Word 里保留正文的加粗与下划线",
+      documentXml.includes("<w:b/>") && documentXml.includes('<w:u w:val="single"/>'));
+
+    const batchWord = await admin.get("/admin/proposals/export.docx", { binary: true });
+    const batchXml = batchWord.status === 200
+      ? unzipPart(batchWord.buffer, "word/document.xml", tmpRoot, "proposals.docx") : "";
+    check("批量导出把两件提案装进同一个 Word",
+      batchWord.status === 200
+        && batchXml.includes("关于完善城区老旧小区充电设施的建议")
+        && batchXml.includes("关于优化工业园区物流通道的建议"),
+      "状态 " + batchWord.status);
+    check("批量导出每件提案独立起页",
+      (batchXml.match(/w:br w:type="page"/g) || []).length >= 1);
+    check("批量导出的文件名带「提案汇总」",
+      decodeURIComponent(batchWord.headers.get("content-disposition") || "").includes("提案汇总"));
 
     const memberWord = await memberA.get("/member/proposal/" + proposalId + "/word", { binary: true });
     const memberDoc = memberWord.status === 200 ? unzipPart(memberWord.buffer, "word/document.xml", tmpRoot, "member.docx") : "";
     check("委员端可下载自己提案的 Word 版",
       memberWord.status === 200 && memberDoc.includes("关于完善城区老旧小区充电设施的建议"));
 
-    // ---------- 八、停用账号后无法登录 ----------
+    // ---------- 八、批量重置密码 ----------
+    const membersPage = await admin.get("/admin/members");
+    const memberIds = [...new Set([...membersPage.text.matchAll(/name="member_ids\[\]" value="(\d+)"/g)].map((m) => m[1]))];
+    check("委员管理页给出勾选框与批量重置入口",
+      memberIds.length >= 3
+        && membersPage.text.includes("/admin/members/reset-batch")
+        && membersPage.text.includes("重置登录密码"),
+      "取到 " + memberIds.length + " 个账号");
+
+    const resetBatchToken = csrfToken(membersPage.text);
+    const emptyBatch = await admin.post("/admin/members/reset-batch", { _token: resetBatchToken, action: "reset" });
+    const afterEmptyBatch = await admin.get("/admin/members");
+    check("没勾选任何账号时批量重置被挡下",
+      emptyBatch.status === 302 && afterEmptyBatch.text.includes("请先勾选要重置密码的委员"));
+
+    const targetIds = memberIds.slice(0, 2);
+    const batchReset = await admin.post("/admin/members/reset-batch", {
+      _token: csrfToken(afterEmptyBatch.text),
+      action: "reset",
+      "member_ids[]": targetIds
+    });
+    const afterBatchReset = await admin.get("/admin/members");
+    check("批量重置给出结果并提示下载密码清单",
+      batchReset.status === 302
+        && afterBatchReset.text.includes("已重置 2 个账号的密码")
+        && afterBatchReset.text.includes("/admin/members/batch-credentials.csv"),
+      "状态 " + batchReset.status);
+
+    const batchCredentials = await admin.get("/admin/members/batch-credentials.csv");
+    const batchPasswords = [...batchCredentials.text.matchAll(/,([A-Za-z0-9]{8,})\r?\n/g)].map((m) => m[1]);
+    const uniquePasswords = new Set(batchPasswords);
+    const batchMemberAPw = (batchCredentials.text.split(/\r?\n/).find((line) => line.startsWith("张三,")) || "").split(",")[2] || "";
+    check("批量重置的密码清单每人一个不同密码且可下载",
+      batchCredentials.status === 200
+        && batchCredentials.text.includes("姓名,登录名,新密码")
+        && batchPasswords.length === 2
+        && uniquePasswords.size === 2,
+      "状态 " + batchCredentials.status + "，密码 " + batchPasswords.length + " 条");
+
+    const batchCredentialsAgain = await admin.get("/admin/members/batch-credentials.csv");
+    const afterBatchDownload = await admin.get("/admin/members");
+    check("批量密码清单只给一次：第二次被挡回，页面也不再提示",
+      batchCredentialsAgain.status === 302
+        && (batchCredentialsAgain.headers.get("location") || "").includes("/admin/members")
+        && !afterBatchDownload.text.includes("有 2 个账号的密码已重置"),
+      "状态 " + batchCredentialsAgain.status);
+
+    // ---------- 九、停用账号后无法登录 ----------
     const rosterPage = await admin.get("/admin/members?keyword=13800000001");
     const statusToken = csrfToken(rosterPage.text);
     const memberIdMatch = /\/admin\/member\/(\d+)\/status/.exec(rosterPage.text);
@@ -832,7 +1254,7 @@ async function main() {
       await disabled.post("/member/login", {
         _token: csrfToken(disabledPage.text),
         login_name: "13800000001",
-        password: MEMBER_PASSWORD
+        password: batchMemberAPw
       });
       const disabledFlash = await disabled.get("/member/login");
       check("停用后登录被拒并说明原因", disabledFlash.text.includes("该账号已停用"));

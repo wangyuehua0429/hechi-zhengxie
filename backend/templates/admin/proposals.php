@@ -24,13 +24,16 @@ $query = static function (array $override) use ($filters): string {
 <div class="page-head">
   <h1>提案收件</h1>
   <?php if ($canExport): ?>
-    <a class="btn" href="/admin/proposals/export.xlsx<?= hechi_e($query([])) ?>">导出收件清单</a>
+    <div class="row-actions">
+      <a class="btn" href="/admin/proposals/export.xlsx<?= hechi_e($query([])) ?>">导出收件清单（Excel）</a>
+      <a class="btn" href="/admin/proposals/export.docx<?= hechi_e($query([])) ?>">批量导出提案表（Word）</a>
+    </div>
   <?php endif; ?>
 </div>
 
 <p class="muted">
-  委员在门户提交后在这里收件；受理即确认收下，退回须写明意见，委员可在门户里看到意见并修改后重新提交。
-  本系统不含交办与答复环节，交办后按线下流程办理。
+  委员在门户提交后在这里收件；受理前可调整案由、正文、承办单位等内容，受理即确认收下，
+  退回须写明意见，委员可在门户里看到意见并修改后重新提交。本系统不含交办与答复环节，交办后按线下流程办理。
 </p>
 
 <p class="muted">
@@ -38,7 +41,7 @@ $query = static function (array $override) use ($filters): string {
   <?php foreach ($statuses as $key => $label): ?>
     <a href="/admin/proposals<?= hechi_e($query(['status' => (string) $key, 'page' => ''])) ?>"><?= hechi_e($label) ?> <?= (int) ($counts[$key] ?? 0) ?></a><?= $key === array_key_last($statuses) ? '' : ' · ' ?>
   <?php endforeach; ?>
-  <?php if ($filters['status'] !== '' || $filters['category'] !== '' || $filters['keyword'] !== '' || $filters['sector'] !== '' || $filters['from'] !== '' || $filters['to'] !== ''): ?>
+  <?php if ($filters['status'] !== '' || $filters['category'] !== '' || $filters['keyword'] !== '' || $filters['sector'] !== '' || $filters['unit'] !== '' || $filters['from'] !== '' || $filters['to'] !== ''): ?>
     ·<a href="/admin/proposals">清除筛选</a>
   <?php endif; ?>
 </p>
@@ -63,6 +66,9 @@ $query = static function (array $override) use ($filters): string {
   <label>界别
     <input type="text" name="sector" value="<?= hechi_e($filters['sector']) ?>" placeholder="如：经济界">
   </label>
+  <label>承办单位
+    <input type="text" name="unit" value="<?= hechi_e($filters['unit']) ?>" placeholder="如：住房和城乡建设局">
+  </label>
   <label>关键词
     <input type="text" name="keyword" value="<?= hechi_e($filters['keyword']) ?>" placeholder="案由或提案人姓名">
   </label>
@@ -85,6 +91,7 @@ $query = static function (array $override) use ($filters): string {
         <th>提案人</th>
         <th>界别</th>
         <th>类别</th>
+        <th>建议承办单位</th>
         <th>提交时间</th>
         <th>状态</th>
         <th></th>
@@ -99,6 +106,7 @@ $query = static function (array $override) use ($filters): string {
           <td class="nowrap"><?= hechi_e((string) $row['proposer_name']) ?></td>
           <td class="nowrap"><?= hechi_e((string) $row['sector']) ?></td>
           <td class="nowrap"><?= hechi_e((string) $row['category']) ?></td>
+          <td><?= hechi_e((string) $row['host_units']) ?></td>
           <td class="nowrap"><?= hechi_e((string) ($row['submitted_at'] ?? '')) ?></td>
           <td class="nowrap">
             <span class="tag tag-<?= hechi_e($status) ?>"><?= hechi_e(\HechiZx\Content\ProposalWorkflow::label($status)) ?></span>
@@ -107,7 +115,7 @@ $query = static function (array $override) use ($filters): string {
         </tr>
       <?php endforeach; ?>
       <?php if ($rows === []): ?>
-        <tr><td colspan="8" class="empty">没有符合条件的提案。</td></tr>
+        <tr><td colspan="9" class="empty">没有符合条件的提案。</td></tr>
       <?php endif; ?>
     </tbody>
   </table>

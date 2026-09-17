@@ -84,6 +84,76 @@ final class MemberRepository
         return $this->db->select('SELECT member_id, name, login_name, mobile FROM sys_member');
     }
 
+    /**
+     * 联名委员带出用：按姓名／手机号／单位职务检索在册委员。
+     * 只回三个字段，不外泄登录名、界别分布与停用状态；关键词为空时不返回任何数据。
+     *
+     * @return list<array<string,mixed>>
+     */
+    public function search(string $keyword, int $limit = 10): array
+    {
+        $keyword = trim($keyword);
+        if ($keyword === '') {
+            return [];
+        }
+        $pattern = self::likePattern($keyword);
+
+        return $this->db->select(
+            "SELECT name, org_title, mobile FROM sys_member
+             WHERE status = 'enabled'
+               AND (name LIKE :kwName ESCAPE '!' OR mobile LIKE :kwMobile ESCAPE '!'
+                    OR org_title LIKE :kwOrg ESCAPE '!')
+             ORDER BY member_id LIMIT " . max(1, $limit),
+            ['kwName' => $pattern, 'kwMobile' => $pattern, 'kwOrg' => $pattern]
+        );
+    }
+
+    /** 委员自己维护的办理联系人资料（下次登录自动带出用） */
+    public function updateContactProfile(int $memberId, array $data): void
+    {
+        $this->db->execute(
+            'UPDATE sys_member SET contact_name = :name, contact_org = :org, contact_title = :title,
+               contact_address = :address, contact_postcode = :postcode, contact_mobile = :mobile,
+               updated_at = :t WHERE member_id = :id',
+            [
+                'name'     => (string) ($data['contact_name'] ?? ''),
+                'org'      => (string) ($data['contact_org'] ?? ''),
+                'title'    => (string) ($data['contact_title'] ?? ''),
+                'address'  => (string) ($data['contact_address'] ?? ''),
+                'postcode' => (string) ($data['contact_postcode'] ?? ''),
+                'mobile'   => (string) ($data['contact_mobile'] ?? ''),
+                't'        => $this->db->now(),
+                'id'       => $memberId,
+            ]
+        );
+    }
+
+    /**
+     * 按 id 批量取委员（批量重置密码用）。
+     *
+     * @param list<int> $memberIds
+     * @return list<array<string,mixed>>
+     */
+    public function findMany(array $memberIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $memberIds), static fn (int $id): bool => $id > 0)));
+        if ($ids === []) {
+            return [];
+        }
+        $placeholders = [];
+        $params = [];
+        foreach ($ids as $index => $id) {
+            $placeholders[] = ':id' . $index;
+            $params['id' . $index] = $id;
+        }
+
+        return $this->db->select(
+            'SELECT member_id, name, login_name, status FROM sys_member WHERE member_id IN ('
+                . implode(', ', $placeholders) . ') ORDER BY member_id',
+            $params
+        );
+    }
+
     /** @param array<string, mixed> $data */
     public function create(array $data): int
     {
