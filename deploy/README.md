@@ -1,10 +1,10 @@
 # 本地与生产环境
 
-两条路都能跑通本项目，按手上有没有 Docker 选：
+两条路都能跑通本项目，按手上有没有Docker选：
 
 ## 一、SQLite（推荐先跑通接口与发布）
 
-不需要 Docker，也不需要 MySQL。步骤见 [../backend/README.md](../backend/README.md)，三步：
+不需要Docker，也不需要MySQL。步骤见 [../backend/README.md](../backend/README.md)，三步：
 
 ```bash
 php backend/bin/migrate.php
@@ -24,19 +24,19 @@ docker compose exec php php bin/migrate.php
 - 站点：<http://127.0.0.1:8080>（首页即站点页面），后台 <http://127.0.0.1:8080/admin>，接口自检 `/api/v1/health`
 - MySQL：`127.0.0.1:3307`，库 `hechi_zx`，账号见 `docker-compose.yml`（**示例口令，上线前必须换成密钥管理下发的强口令**）
 - Redis：`127.0.0.1:6380`
-- 静态化产物：`backend/storage/publish/`，由 Nginx 直出 `/article/`、`/channel/` 与 `/sitemap.xml`
+- 静态化产物：`backend/storage/publish/`，由Nginx直出 `/article/`、`/channel/` 与 `/sitemap.xml`
 
 > 内容只有一个来源（MySQL）：快照（`frontend/home/data`）是阶段A的演示与测试夹具，已不挂进容器、
 > 也不在生产执行 `seed.php`（2026-09-17口径）。老库升级只需补首页四类初始配置时，用
 > `php backend/bin/seed.php --home-only`。
 
-> 站点页面、接口、后台同源：`/api` 与 `/admin` 交给同一个 PHP 入口，前端取数不需要跨域。
+> 站点页面、接口、后台同源：`/api` 与 `/admin` 交给同一个PHP入口，前端取数不需要跨域。
 
-> 本目录的编排文件尚未在本机验证（开发机未安装 Docker），首次在有 Docker 的机器上跑时，先确认 `deploy/nginx/default.conf` 里的 `fastcgi_pass php:9000` 与实际服务名一致。
+> 本目录的编排文件尚未在本机验证（开发机未安装Docker），首次在有Docker的机器上跑时，先确认 `deploy/nginx/default.conf` 里的 `fastcgi_pass php:9000` 与实际服务名一致。
 
 ## 三、上线前的必改项
 
 1. 数据库口令、`APP_DEBUG=0` 走 `.env`，不进仓库。
-2. 时区：`APP_TIMEZONE`（默认 `Asia/Shanghai`）要设对。PHP 不设会走 php.ini 的 UTC，后台时间会差 8 小时；MySQL 容器同时要把 `--default-time-zone='+08:00'` 或 `TZ=Asia/Shanghai` 设上，应用连接时也会 `SET time_zone`，两边不能只改一边。
-3. 旧地址 301：先跑 `php backend/bin/redirects.php --out=/var/www/publish --check=/var/www/publish`（带 `--legacy-site=` 可对照旧站目录列出未登记地址），再把生成片段 `redirects/nginx-301.conf` 放到发布目录；`deploy/nginx/default.conf` 已经 `include` 它，映射明细由 PHP 入口查 `sys_url_redirect` 判定并累计命中数。规则与未覆盖项见 [../docs/旧地址301映射说明.md](../docs/旧地址301映射说明.md)。
-4. HTTPS、WAF、等保二级相关配置（日志留存 180 天、防篡改、主备与异地备份）在此模板之外单独落地。
+2. 时区：`APP_TIMEZONE`（默认 `Asia/Shanghai`）要设对。PHP不设会走php.ini的UTC，后台时间会差8小时；MySQL容器同时要把 `--default-time-zone='+08:00'` 或 `TZ=Asia/Shanghai` 设上，应用连接时也会 `SET time_zone`，两边不能只改一边。
+3. 旧地址301：先跑 `php backend/bin/redirects.php --out=/var/www/publish --check=/var/www/publish`（带 `--legacy-site=` 可对照旧站目录列出未登记地址），再把生成片段 `redirects/nginx-301.conf` 放到发布目录；`deploy/nginx/default.conf` 已经 `include` 它，映射明细由PHP入口查 `sys_url_redirect` 判定并累计命中数。规则与未覆盖项见 [../docs/旧地址301映射说明.md](../docs/旧地址301映射说明.md)。
+4. HTTPS、WAF、等保二级相关配置（日志留存180天、防篡改、主备与异地备份）在此模板之外单独落地。
