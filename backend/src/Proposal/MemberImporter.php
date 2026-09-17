@@ -118,7 +118,7 @@ final class MemberImporter
             }
             $mobile = $row['mobile'] ?? '';
             if ($mobile !== '' && isset($usedMobiles[$mobile])) {
-                $failed[] = ['line' => $line, 'name' => $name, 'reason' => '手机号重复：' . $mobile];
+                $failed[] = ['line' => $line, 'name' => $name, 'reason' => '联系电话重复：' . $mobile];
                 continue;
             }
 

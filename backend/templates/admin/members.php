@@ -150,7 +150,7 @@ declare(strict_types=1);
 
 <form class="filters" method="get" action="/admin/members">
   <label>关键词
-    <input type="text" name="keyword" value="<?= hechi_e($filters['keyword']) ?>" placeholder="姓名、登录名或手机号">
+    <input type="text" name="keyword" value="<?= hechi_e($filters['keyword']) ?>" placeholder="姓名、登录名或联系电话">
   </label>
   <label>状态
     <select name="status">
@@ -186,7 +186,7 @@ declare(strict_types=1);
           <th>登录名</th>
           <th>界别</th>
           <th>专委会</th>
-          <th>手机号</th>
+          <th>联系电话</th>
           <th>提案数</th>
           <th>状态</th>
           <th>最后登录</th>

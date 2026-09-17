@@ -320,8 +320,8 @@ async function main() {
       { field: "roster", filename: "dup.csv", content: Buffer.from(dupCsv, "utf8"), type: "text/csv" }
     ]);
     const dupPage = await admin.get("/admin/members/import");
-    check("手机号重复的行被挡下并说明原因",
-      dupPage.text.includes("手机号重复") && dupPage.text.includes("第 2 行"));
+    check("联系电话重复的行被挡下并说明原因",
+      dupPage.text.includes("联系电话重复") && dupPage.text.includes("第 2 行"));
 
     const dupNameCsv = "姓名,手机号,界别,专委会,单位及职务,届次,备注\n张三,13800000004,教育界,教科卫体委员会,河池市某某中学教师,五届,与前面重名\n";
     const dupNameToken = csrfToken((await admin.get("/admin/members/import")).text);
