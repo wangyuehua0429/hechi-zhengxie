@@ -251,6 +251,30 @@ async function main() {
     check("顶栏姓名与角色名相同时只显示一次",
       (dashboard.text.match(/检查账号/g) || []).length === 1,
       "出现 " + (dashboard.text.match(/检查账号/g) || []).length + " 次");
+
+    // 2026-09-17：概览「发布全站」卡片的待发布条数
+    // 口径＝上次 publish.all 日志之后动过的稿件／栏目／首页配置（updated_at 比较）
+    check("从未发布过时不显示待发布行", !dashboard.text.includes("待发布："));
+    runPhp(php, "-r", env, [
+      "require 'backend/src/bootstrap.php';"
+        + " $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+        + " $db->execute(\"INSERT INTO sys_operation_log (user_id, action, target_type, target_id, detail_json, ip, user_agent, created_at)"
+        + " VALUES (0, 'publish.all', 'site', '1', '{}', '', 'cli', datetime('now', 'localtime'))\");"
+    ]);
+    const dashFresh = await client.get("/admin");
+    check("刚发布完显示「已是最新」", dashFresh.text.includes("待发布：<strong>已是最新</strong>"));
+    runPhp(php, "-r", env, [
+      "require 'backend/src/bootstrap.php';"
+        + " $db = new HechiZx\\Support\\Db((array) hechi_config('db'));"
+        + " $db->execute(\"UPDATE cms_article SET updated_at = '2099-01-01 00:00:00'"
+        + " WHERE article_id = (SELECT article_id FROM cms_article WHERE site_id = 1 AND status = 'published'"
+        + " AND public_scope = 'public' AND has_body = 1 LIMIT 1)\");"
+    ]);
+    const dashPending = await client.get("/admin");
+    check("发布后有改动时显示待发布条数",
+      dashPending.text.includes("待发布：<strong>1 处改动</strong>") && dashPending.text.includes("稿件 1 篇"),
+      (dashPending.text.match(/待发布：[\s\S]{0,60}/) || [""])[0].replace(/\s+/g, " "));
+
     check("侧栏一级菜单带内联 SVG 图标（不引图标库）",
       (dashboard.text.match(/class="ico"/g) || []).length >= 5);
 
@@ -1736,8 +1760,14 @@ async function main() {
       /\/admin\/article\/\d+\/order/.test(sectionsWithRows.text) &&
       /\/admin\/article\/\d+\/top/.test(sectionsWithRows.text) &&
       sectionsWithRows.text.includes("已发布"));
-    check("模块表格标出置顶状态与未入库的快照条目",
-      sectionsWithRows.text.includes("来自改版前的快照") || sectionsWithRows.text.includes("已置顶"));
+    // 2026-09-17：非公开与未入库的快照条目不再对外输出（首页出口过滤），后台因此通常
+    // 没有"另有 N 条来自改版前的快照"可标；这条改为核对模块状态与行内动作本身。
+    // 2026-09-17：原先这条还校验「已置顶」徽标或「另有 N 条来自改版前的快照」——
+    // 两者都是数据相关的（非公开与未入库的快照条目不再对外输出，后台通常没有余量可标），
+    // 改为校验每个模块都会显示的「首页当前显示 N 条」；行内排序／置顶动作由前一条断言覆盖。
+    check("模块卡片显示「首页当前显示 N 条」",
+      /首页当前显示 \d+ 条/.test(sectionsWithRows.text),
+      (sectionsWithRows.text.match(/首页当前显示 \d+ 条/) || [""])[0]);
 
     const noticeIds = (await client.get("/api/v1/channels/302?listSize=4", { json: true })).body?.channel?.list
       ?.map((i) => String(i.id)) || [];
@@ -1958,11 +1988,13 @@ async function main() {
     check("发布说明改成面对使用者的表述",
       dashboardAfter.text.includes("平时发稿不用点这里") && !dashboardAfter.text.includes("输出到 <code>"));
 
-    check("发布产物落盘（首页 / 栏目数据 / 详情静态页 / sitemap）",
+    check("发布产物落盘（首页 / 栏目静态页 / 详情静态页 / sitemap）",
       existsSync(path.join(publishDir, "index.html")) &&
-      existsSync(path.join(publishDir, "data/channel.json")) &&
+      existsSync(path.join(publishDir, "channel")) &&
       existsSync(path.join(publishDir, "article/" + SAMPLE_ID + ".html")) &&
       existsSync(path.join(publishDir, "sitemap.xml")));
+    // 2026-09-17 口径：数据快照（data/*.json）不再随默认发布产出，只在 --data-only 时产出
+    check("默认发布不再产数据快照", !existsSync(path.join(publishDir, "data")));
 
     if (existsSync(path.join(publishDir, "article/" + SAMPLE_ID + ".html"))) {
       const html = readFileSync(path.join(publishDir, "article/" + SAMPLE_ID + ".html"), "utf8");

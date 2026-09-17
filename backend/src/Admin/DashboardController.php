@@ -34,6 +34,7 @@ final class DashboardController extends AdminController
         }
 
         $recent = $this->articles->adminPaginate([], 1, 10);
+        $lastPublish = $this->lastPublish();
 
         return $this->view->page('admin/dashboard', [
             'current'     => 'dashboard',
@@ -42,9 +43,59 @@ final class DashboardController extends AdminController
             'recent'      => $recent['items'],
             'total'       => $recent['total'],
             'publishDir'  => $this->publishDir,
-            'lastPublish' => $this->lastPublish(),
+            'lastPublish' => $lastPublish,
+            'pending'     => $this->pendingPublish($lastPublish),
             'logCount'    => (int) $this->db->scalar('SELECT COUNT(*) FROM sys_operation_log'),
         ], '后台首页');
+    }
+
+    /**
+     * 待发布条数：上次发布之后动过的稿件／栏目／首页配置。
+     *
+     * 口径与边界（2026-09-17）：基准取最后一条 publish.all 日志的时间（后台按钮与命令行
+     * 发布都会写），比各表的 updated_at。它回答的是"上次发布之后动过几处"，不是"发布后
+     * 会多出几页"——稿件转归档/删除导致静态页被清掉（pruned）的那部分未必刷新 updated_at，
+     * 会漏报；绕过应用直接改库且不写 updated_at 的操作同样漏报；改了又改回来会轻度高估。
+     * 要做精确的"新增/修改/删除"三类，需要一张发布快照表（记录每次产出的稿件号与内容哈希），
+     * 那是增量发布阶段的活儿。
+     *
+     * @param array{at:string,by:string,pages:int,channels:int,articles:int}|null $lastPublish
+     * @return array{articles:int,channels:int,home:int,total:int}|null 从未发布过时返回 null
+     */
+    private function pendingPublish(?array $lastPublish): ?array
+    {
+        if ($lastPublish === null) {
+            return null;
+        }
+        $since = (string) $lastPublish['at'];
+        $count = function (string $sql) use ($since): int {
+            return (int) $this->db->scalar($sql, ['site' => $this->siteId, 'since' => $since]);
+        };
+
+        $articles = $count(
+            "SELECT COUNT(*) FROM cms_article
+             WHERE site_id = :site AND status = 'published' AND public_scope = 'public' AND has_body = 1
+               AND updated_at > :since"
+        );
+        $channels = $count(
+            "SELECT COUNT(*) FROM sys_channel
+             WHERE site_id = :site AND status = 'published' AND updated_at > :since"
+        );
+        // 没跑 003 迁移的老库没有这三张表：不能因为概览页挂在缺表上，缺表就当 0
+        try {
+            $home = $count("SELECT COUNT(*) FROM cms_home_section WHERE site_id = :site AND updated_at > :since")
+                + $count("SELECT COUNT(*) FROM cms_home_slide WHERE site_id = :site AND updated_at > :since")
+                + $count("SELECT COUNT(*) FROM cms_home_banner WHERE site_id = :site AND updated_at > :since");
+        } catch (\PDOException $e) {
+            $home = 0;
+        }
+
+        return [
+            'articles' => $articles,
+            'channels' => $channels,
+            'home'     => $home,
+            'total'    => $articles + $channels + $home,
+        ];
     }
 
     /**

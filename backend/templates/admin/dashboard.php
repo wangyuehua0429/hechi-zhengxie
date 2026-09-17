@@ -111,6 +111,16 @@ $adminIcons = require __DIR__ . '/_icons.php';
       还没有发布过。首次发布前前台不受影响，仍在走实时内容接口。
     <?php endif; ?>
   </p>
+  <?php if (($pending ?? null) !== null): ?>
+    <p class="muted publish-pending">
+      <?php if ((int) ($pending['total'] ?? 0) === 0): ?>
+        待发布：<strong>已是最新</strong>——上次发布之后没有内容改动。
+      <?php else: ?>
+        待发布：<strong><?= (int) $pending['total'] ?> 处改动</strong>——稿件 <?= (int) $pending['articles'] ?> 篇、
+        栏目 <?= (int) $pending['channels'] ?> 个、首页配置 <?= (int) $pending['home'] ?> 处（模块／轮播／横幅）。
+      <?php endif; ?>
+    </p>
+  <?php endif; ?>
 </section>
 
 <section class="card">

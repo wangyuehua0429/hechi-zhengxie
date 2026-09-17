@@ -11,7 +11,7 @@ backend/
 ├── bin/
 │   ├── migrate.php         建表 / 升级表结构
 │   ├── seed.php            把 frontend/home/data 的快照灌进库
-│   ├── publish.php         静态化发布（数据快照 + 全文静态页 + sitemap）
+│   ├── publish.php静态化发布（全文静态页 + sitemap；`--data-only` 另出数据快照）
 │   ├── redirects.php       旧地址 301：生成 sys_url_redirect、Nginx 片段与核对 CSV
 │   ├── scan-content.php    只读体检：扫存量正文里的可疑标签，给出清洗前后预览，不改库
 │   ├── fix-orig-title.php  存量修复：正文题区收进「原标题」三列，题区行统一首行空两格
@@ -43,7 +43,7 @@ backend/
 │                           提案附件落在 storage/proposals/，不在 webroot 下，只能经鉴权下载
 ├── vendor/htmlpurifier/    自托管第三方件：HTMLPurifier 4.19.0（LGPL-2.1，未改本体）
 └── templates/
-    ├── page.php            静态页模板（正式模板待阶段 C 用 frontend/home 结构替换）
+    ├── page.php静态页模板（正式版：站头／导航／面包屑／侧栏／页脚与frontend/home内页同结构，2026-09-17）
     ├── admin/              后台模板（layout / login / dashboard / articles / article_edit / channels / channel_edit / nav / slides / sections / banners / users / roles / logs / proposals / proposal_show / members / member_import / message）
     └── member/             委员门户模板（layout / home / password / proposals / proposal_form / proposal_show / message）
 ```
@@ -81,7 +81,7 @@ php -S 127.0.0.1:8080 -t backend/public backend/public/router.php
 > php backend/bin/migrate.php
 > ```
 >
-> 漏跑的后果不是提示页，而是**直接报错**：`/admin/sections` 与 `/api/v1/home` 都会返回 `no such column: ac.is_highlight`（前台接口取不到数就悄悄回退静态快照）。已跑003的库再补004用的也是这条命令，不要重跑 `seed.php`。
+> 漏跑的后果不是提示页，而是**直接报错**：`/admin/sections` 与 `/api/v1/home` 都会返回 `no such column: ac.is_highlight`（前台接口取不到数就提示加载失败，不会再拿快照顶）。已跑003的库再补004用的也是这条命令，不要重跑 `seed.php`。
 
 自检：
 
@@ -115,7 +115,7 @@ php backend/bin/user.php disable admin    # 停用
 
 | 功能 | 说明 |
 | --- | --- |
-| 概览 | 稿件总数、草稿/已发布/已下线计数、栏目数、上次发布时间、操作日志条数 |
+| 概览 | 稿件总数、草稿/已发布/已下线计数、栏目数、上次发布时间与**待发布条数**、操作日志条数 |
 | 导航栏目 | 首页与内页共用的18个顶部导航入口：改名、改链接、调顺序、隐藏／显示；每行显示对应栏目与稿件数 |
 | 滚动公告 | 首页导航条下方、搜索框左侧那条滚动要闻（前台读 `home.meta.marquee`）：改文字、看前台效果预览、按字数计数，最多500字；换行与连续空格保存时收成单个空格，清空后前台显示“暂无要闻”。**可停用**：勾选后前台整条滚条（连喇叭图标）收掉，搜索框仍贴右上角、宽度由341px放宽到560px，横栏高度不变，文字仍保留、取消勾选即恢复（停用写 `home.meta.marqueeHidden`）。公告与站点版权／备案号／联系方式存在同一个块（`cms_home_block` 的 `meta`），这一页只改 `marquee` 与 `marqueeHidden` 两个字段，其余原样写回 |
 | 头条轮换 | 首屏大图轮播：**从已发布稿件里选**（默认列最近发布，也可按标题检索，点标题可预览前台页面；自动带标题／摘要／链接，图缺省取稿件配图）或**手工新增外链条目**；上移／下移、上下线、删除；首屏效果预览支持拖动排序、点图预览，条目右上角红叉确认后删除 |
@@ -124,7 +124,7 @@ php backend/bin/user.php disable admin    # 停用
 | 稿件管理 | 列表：**一块筛选面板**收稿库（导航条）+ 栏目（导航条）+ 关键词 + 排序（发布时间／最近更新／稿件号）+ 每页条数（20／50／100），标题即编辑入口，**批量提交／审核通过／退回／撤回／重新发布／恢复**（单次 ≤100篇，按权限位出动作），分页含页码与跳转，空结果给下一步；新建稿件（先点导航条选栏目，再填内容，状态默认“已发布”）；编辑页两栏：左侧一张“摘要与正文”写作窗（标题带64字计数、原标题三项与来源、富文本正文），右侧稿库流转、稿件信息、附件、正文插图、回收站，保存条吸底，正文可预览并显示字数；**提交环节不再设置任何排序**（置顶已从编辑页移除），列表里的**预览**打开前台正式详情页（`/detail.html?id=`）、**复制链接**给发布器产出的对外地址 `/article/{id}.html`，两者都只对“已发布 + 公开发布”的稿件开放，未发布与归档稿置灰（归档稿的提示说明不对外发布），**高亮／徽标**改到首页管理维护；删除稿件走确认页（软删除，可恢复） |
 | 附件与插图 | 上传附件（pdf／doc／xls／ppt／zip／rar／txt，单个 ≤32 MB）；上传正文插图（自动追加到正文末尾并登记为图集图片）；编辑器里插图、mp4／webm视频走 `POST /admin/media/image` 与 `POST /admin/media/video`，插在光标处；可删除附件。新建稿件还没有稿件号时，素材先落 `backend/public/uploads/pending/`，保存稿件时自动迁进 `uploads/<稿件号>/` 并登记图集。**图片一律 ≤ 2 MB**（横幅、头条大图、正文插图、编辑器插图都算），附件与视频仍是32 MB |
 | 栏目管理 | **按一级栏目分组**展示43个栏目（组头给子栏目数、稿件条数、上下线数），组内可直接**上移／下移**，支持按栏目名／栏目号检索；可改一级栏目名、子栏目名、版式、排序、上下线、栏目简介；稿件数、前台页、编辑页都有直达入口。**新建栏目**（选归属、栏目号、URL标识、版式与状态，只做两级）与**删除栏目**（确认页；有稿件、子栏目、首页模块绑定或导航指向时逐条说明并挡下，确认后清理角色的栏目数据范围与该栏目的301映射）见 [../docs/栏目新建与删除说明（2026-09-12）.md](../docs/栏目新建与删除说明（2026-09-12）.md) |
-| 一键发布 | 重新生成数据快照 + 全文静态页 + sitemap，产物在 `backend/storage/publish/` |
+| 一键发布 | 重新生成全文静态页 + sitemap（默认不再产出数据快照），产物在 `backend/storage/publish/` |
 | 审计与安全 | 会话Cookie（HttpOnly + SameSite=Lax）、所有POST校验CSRF、口令 `password_hash`、登录与改动写 `sys_operation_log` |
 
 上传文件落在 `backend/public/uploads/{稿件号}/`，对外地址 `/uploads/...`（该目录在 `.gitignore` 里，不入库）；稿件还没保存、拿不到稿件号时先落在 `uploads/pending/`。
@@ -272,14 +272,14 @@ php backend/bin/member.php disable 13800000000                   # 停用
 
 1. **状态**：只有“已发布”的内容会进前台与接口，草稿、已下线只在后台可见（这是有意为之）。后台能搜到、前台搜不到，基本就是状态问题。
 2. **栏目**：稿件挂在哪个栏目，就去那个栏目页看；新建时选的栏目在编辑页顶部显示。新建稿件排在栏目列表最前（`sort_no = 0`）。
-3. **数据源**：前台优先走接口，取不到才回退静态快照（`data/*.json`）。地址栏加 `?api=1` 强制走接口；控制台执行 `SITE_DATA.mode()` 看当前生效的数据源，`SITE_DATA.apiError()` 看回退原因。
+3. **数据源**：前台只走接口（`/api/v1`），接口挂了由页面提示加载失败，**不再回退** `data/*.json` 快照（2026-09-17起）；对照快照或纯静态预览时在地址栏加 `?api=0`。控制台执行 `SITE_DATA.mode()` 看当前生效的数据源，`SITE_DATA.apiError()` 看接口故障原因。
 4. **缓存**：接口响应默认 `no-store`，不会因为浏览器缓存看不到；若把 `API_CACHE_MAX_AGE` 调大，改稿后要等过期。
 
-还要分清两件事：**“保存稿件”**决定前台能不能看到（走接口，已发布即时生效）；**“立即发布全站”**只重新生成静态化产物（详情静态页、sitemap、数据快照），不影响走接口的前台页面。
+还要分清两件事：**“保存稿件”**决定前台能不能看到（走接口，已发布即时生效）；**“立即发布全站”**只重新生成静态化产物（详情静态页、栏目静态页与sitemap），不影响走接口的前台页面。
 
 ## 前端如何取数
 
-前端统一通过 `frontend/home/js/data-source.js` 取数：**优先走 `/api/v1`，接口不可用时自动回退到 `data/*.json` 静态快照**（GitHub Pages这类纯静态托管上预览照常可用）。想验证接口实际返回，用地址栏开关覆盖：
+前端统一通过 `frontend/home/js/data-source.js` 取数：**只走 `/api/v1`**；`data/*.json` 快照只在显式 `?api=0` 时使用（对照快照、GitHub Pages这类纯静态预览），接口挂了不再自动回退。想验证接口实际返回，用地址栏开关覆盖：
 
 ```bash
 http://127.0.0.1:8080/channel.html?id=904&api=1   # 强制接口
@@ -299,8 +299,8 @@ php -S 127.0.0.1:8080 -t backend/public backend/public/router.php
 ## 静态化发布
 
 ```bash
-php backend/bin/publish.php                 # 全量：数据快照 + 静态页 + sitemap
-php backend/bin/publish.php --data-only     # 只出 data/*.json（前端可直接指向这里）
+php backend/bin/publish.php                 # 全量：静态页 + sitemap（对外唯一产物）
+php backend/bin/publish.php --data-only     # 只出data/*.json（离线预览／契约对拍，生产不产）
 php backend/bin/publish.php --out=/tmp/site # 指定输出目录
 ```
 
@@ -359,7 +359,7 @@ SQL方言只出现在 `database/migrations/<driver>/` 与 `src/Repository/`，�
 仍待办：
 
 1. **写接口**：`/api/v1/admin/*`（本版只有对外只读接口）。
-2. **正式模板**：把 `frontend/home` 的首页、栏目页、详情页结构搬进 `templates/`，替换当前的 `page.php` 最小模板；发布器接口不变。
+2. **正式模板（2026-09-17已完成详情页与栏目页）**：`templates/page.php` 已换成 `frontend/home` 内页那套外壳——站头横幅、主导航（旧站栏目地址在发布时换成静态栏目页地址）、面包屑、侧栏（最新新闻10条＋图片新闻4张）、页脚备案三栏，CSS直接复用 `/css/style.css`、`/css/inner.css`；静态页自带菜单／字号／高对比度／打印／复制链接／正文字号的小交互。仍待办：栏目页分页静态化（`/channel/<目录名>/page-<n>.html`）与首页静态化。
 3. **缓存与刷新**：Redis缓存、发布后按栏目/稿件粒度刷新、附件下载计数。
 4. **索引**：站内检索目前走 `LIKE`（SQLite无ngram索引）；MySQL下已建 `ft_article_title`，数据量上来后切全文索引，接口不变。
 5. **旧数据导入**：旧库20,705条稿件的导入清洗属阶段D，脚本落在 `tools/migrate/`；导入后重跑 `php backend/bin/redirects.php` 即把新库内容补进 `sys_url_redirect`（301生成本身已完成，见上文“旧地址301”）。
