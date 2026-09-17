@@ -434,6 +434,17 @@ const PUBLISH_CASES = [
     allowHttpErrors: true,
     kind: "static-media"
   },
+  // 2026-09-17：CSP script-src 'self' 下交互脚本必须走外链，这条用例专盯「脚本真的执行了」
+  {
+    name: "静态页·交互脚本（复制链接／适老化字号）",
+    page: "article/62180.html",
+    viewport: DESKTOP,
+    ready: "#copyLinkBtn",
+    waitUntil: "domcontentloaded",
+    allowBrokenImages: true,
+    allowHttpErrors: true,
+    kind: "static-toolbar"
+  },
   // 2026-09-17：静态栏目页与动态端对齐后的回归断言（分页 + 版式）
   {
     name: "静态页·栏目列表（904 第 1 页，每页 20 条 + 分页条）",
@@ -804,6 +815,22 @@ async function runCase(browser, base, c, opts) {
       } else {
         notes.push("提案系统入口 → " + href);
       }
+    }
+
+    // 5c) 静态页的交互脚本（外链 /js/static-page.js）真的跑起来了。
+    //     为什么单列一条：/article/ 与 /channel/ 的 CSP 是 script-src 'self'（无 unsafe-inline、无哈希），
+    //     脚本一旦写回内联就会被浏览器整段拒绝执行，而页面结构断言照样通过（2026-09-17 实测）。
+    if (c.kind === "static-toolbar") {
+      await page.click("#copyLinkBtn");
+      await page.waitForTimeout(100);
+      const copyText = ((await page.locator("#copyLinkBtn").first().textContent()) || "").trim();
+      if (copyText !== "已复制") failures.push("点「复制链接」后按钮文案是「" + copyText + "」，交互脚本没跑起来");
+      else notes.push("复制链接 → " + copyText);
+
+      await page.locator('.font-tools button[data-font="large"]').first().click();
+      const font = await page.evaluate(() => document.body.getAttribute("data-font"));
+      if (font !== "large") failures.push("点「放大字号」后 data-font 是「" + font + "」，适老化开关没生效");
+      else notes.push("适老化字号 → " + font);
     }
 
     // 6) 分页：点第 2 页后列表仍有内容，且页码文案同步

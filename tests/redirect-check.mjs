@@ -281,6 +281,27 @@ async function main() {
       routerPhp.includes("str_starts_with($path, '/uploadfiles/')")
         && routerPhp.includes("uploads/legacy/uploadfiles"));
 
+    // ---- CSP 与静态页脚本形态相容（2026-09-17 独立评审：/article/ 的 script-src 'self'
+    // 曾把 page.php 的内联交互脚本整段拦掉，线上按钮全失效，而本地 router.php 不带 CSP 测不出来）
+    const cspValues = [...deployConf.matchAll(/Content-Security-Policy "([^"]*)"/g)].map((m) => m[1]);
+    check("静态页 CSP 同时挂在 /article/ 与 /channel/，且逐字一致",
+      cspValues.length === 2 && cspValues[0] === cspValues[1],
+      cspValues.length + " 处：" + cspValues.map((c, i) => i + "=" + c.slice(0, 40)).join(" | "));
+    check("静态页 CSP 的 script-src 是 'self' 且没有 unsafe-inline",
+      cspValues.length > 0 && /script-src 'self';/.test(cspValues[0]) && !/script-src[^;]*unsafe-inline/.test(cspValues[0]),
+      cspValues[0] || "");
+    // 只要 CSP 不允许内联脚本，发布产物里就必须一个内联 <script> 都没有（脚本一律 /js/*.js 外链）
+    const publishedPages = [
+      path.join(publishDir, "article", "62180.html"),
+      path.join(channelDir, "zhengxie-dongtai-904", "index.html"),
+      path.join(channelDir, "zhengxie-gaikuang", "index.html")
+    ];
+    const inlineScripts = publishedPages
+      .filter((file) => existsSync(file))
+      .flatMap((file) => [...readFileSync(file, "utf8").matchAll(/<script(?![^>]*\ssrc=)[^>]*>/gi)].map(() => path.basename(file)));
+    check("发布产物里没有内联 <script>（否则会被 CSP 整段拦掉）",
+      inlineScripts.length === 0, inlineScripts.join(" "));
+
     // ---- 幂等
     const again = runPhp(php, "backend/bin/redirects.php", env, ["--dry-run"]);
     check("重复执行只报「不变」，不产生新增",
