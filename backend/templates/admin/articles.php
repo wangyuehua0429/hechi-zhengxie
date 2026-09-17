@@ -228,7 +228,7 @@ if ((string) $filters['keyword'] !== '') {
   <thead>
     <tr>
       <?php if ($bulkActions !== []): ?>
-        <th class="bulk-col" scope="col"><input type="checkbox" data-select-all aria-label="全选本页稿件"></th>
+        <th class="bulk-col" scope="col"><label class="bulk-cell"><input type="checkbox" data-select-all aria-label="全选本页稿件"></label></th>
       <?php endif; ?>
       <th scope="col">稿件</th>
       <th scope="col">栏目</th>
@@ -264,8 +264,11 @@ if ((string) $filters['keyword'] !== '') {
       <tr>
         <?php if ($bulkActions !== []): ?>
           <td class="bulk-col">
-            <input type="checkbox" form="bulk-form" name="ids[]" value="<?= $id ?>"
-                   data-row-select aria-label="选择稿件：<?= hechi_e($title) ?>">
+            <?php /* 复选框包进 label：窄屏上整格都能点，不用去戳 13px 的方框 */ ?>
+            <label class="bulk-cell">
+              <input type="checkbox" form="bulk-form" name="ids[]" value="<?= $id ?>"
+                     data-row-select aria-label="选择稿件：<?= hechi_e($title) ?>">
+            </label>
           </td>
         <?php endif; ?>
         <td class="col-title">
@@ -387,11 +390,12 @@ if ((string) $filters['keyword'] !== '') {
   ?>
   <nav class="pager" aria-label="分页">
     <?php if ($page > 1): ?>
-      <a class="btn btn-sm" href="<?= hechi_e($listUrl(['page' => '1'])) ?>">首页</a>
-      <a class="btn btn-sm" href="<?= hechi_e($listUrl(['page' => (string) ($page - 1)])) ?>">上一页</a>
+      <?php /* 翻页链、页码与「跳到」都走默认档（34）：同一行里 28 与 34 混排看着高低不齐 */ ?>
+      <a class="btn" href="<?= hechi_e($listUrl(['page' => '1'])) ?>">首页</a>
+      <a class="btn" href="<?= hechi_e($listUrl(['page' => (string) ($page - 1)])) ?>">上一页</a>
     <?php else: ?>
-      <span class="btn btn-sm is-disabled" aria-disabled="true">首页</span>
-      <span class="btn btn-sm is-disabled" aria-disabled="true">上一页</span>
+      <span class="btn is-disabled" aria-disabled="true">首页</span>
+      <span class="btn is-disabled" aria-disabled="true">上一页</span>
     <?php endif; ?>
 
     <?php if ($start > 1): ?>
@@ -411,11 +415,11 @@ if ((string) $filters['keyword'] !== '') {
     <?php endif; ?>
 
     <?php if ($page < $pages): ?>
-      <a class="btn btn-sm" href="<?= hechi_e($listUrl(['page' => (string) ($page + 1)])) ?>">下一页</a>
-      <a class="btn btn-sm" href="<?= hechi_e($listUrl(['page' => (string) $pages])) ?>">末页</a>
+      <a class="btn" href="<?= hechi_e($listUrl(['page' => (string) ($page + 1)])) ?>">下一页</a>
+      <a class="btn" href="<?= hechi_e($listUrl(['page' => (string) $pages])) ?>">末页</a>
     <?php else: ?>
-      <span class="btn btn-sm is-disabled" aria-disabled="true">下一页</span>
-      <span class="btn btn-sm is-disabled" aria-disabled="true">末页</span>
+      <span class="btn is-disabled" aria-disabled="true">下一页</span>
+      <span class="btn is-disabled" aria-disabled="true">末页</span>
     <?php endif; ?>
 
     <form class="pager-jump" method="get" action="/admin/articles">
@@ -425,10 +429,10 @@ if ((string) $filters['keyword'] !== '') {
       <input type="hidden" name="keyword" value="<?= hechi_e((string) $filters['keyword']) ?>">
       <input type="hidden" name="size" value="<?= $pageSize ?>">
       <input type="hidden" name="sort" value="<?= hechi_e($sortValue) ?>">
-      <label class="filter-field">跳到
+      <label class="filter-field field--xs">跳到
         <input type="number" name="page" min="1" max="<?= (int) $pages ?>" value="<?= (int) $page ?>" class="jump-input">
       </label>
-      <button type="submit" class="btn btn-sm">跳转</button>
+      <button type="submit" class="btn">跳转</button>
     </form>
   </nav>
 <?php endif; ?>

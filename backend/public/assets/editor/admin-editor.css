@@ -199,7 +199,8 @@
   gap: 4px;
   min-width: 0;
   margin: 0;
-  font-size: 12px;
+  /* 标签与输入框（14px，跟后台控件标准一致）别差两级：12px 的标签配 14px 的输入看着没对齐 */
+  font-size: 13px;
   color: var(--muted, #57606a);
 }
 

@@ -104,7 +104,7 @@ $isChild = $parent !== null;
           <?php endforeach; ?>
         </select>
       </label>
-      <label>状态
+      <label class="field--sm">状态
         <select name="status">
           <option value="published"<?= $channel['status'] === 'published' ? ' selected' : '' ?>>已上线</option>
           <option value="offline"<?= $channel['status'] === 'offline' ? ' selected' : '' ?>>已下线</option>
@@ -115,7 +115,7 @@ $isChild = $parent !== null;
 
     <details class="advanced">
       <summary>高级：手动指定排序值</summary>
-      <label class="field-inline">排序（越小越靠前）
+      <label class="field-inline field--sm">排序（越小越靠前）
         <input type="number" name="sort_no" value="<?= (int) $channel['sort_no'] ?>">
       </label>
       <p class="muted">一般用上面的「上移／下移」就够了。手填排序值会直接覆盖当前值，其它栏目不动。</p>

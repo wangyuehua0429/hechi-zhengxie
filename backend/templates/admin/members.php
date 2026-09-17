@@ -112,7 +112,7 @@ declare(strict_types=1);
       <table class="grid">
         <caption class="visually-hidden">手工新建的账号条目</caption>
         <thead>
-          <tr><th>姓名（必填）</th><th>界别</th><th>职务（必填）</th><th>联系电话</th><th>操作</th></tr>
+          <tr><th>姓名<span class="field-req">*</span></th><th>界别</th><th>职务<span class="field-req">*</span></th><th>联系电话</th><th>操作</th></tr>
         </thead>
         <tbody data-manual-rows>
           <?php for ($i = 0; $i < 3; $i++): ?>

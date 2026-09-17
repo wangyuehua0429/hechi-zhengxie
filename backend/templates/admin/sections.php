@@ -304,11 +304,10 @@ $renderChip = static function (array $chip): string {
           <textarea name="scope_tabs" rows="4" placeholder="904|市政协动态"><?= $section['kind'] === 'tabs' ? hechi_e($section['scopeText']) : '' ?></textarea>
         </label>
         <div class="row">
-          <label>首页显示条数（1—30）
+          <label class="field--sm">首页显示条数（1—30）
             <input type="number" name="page_size" min="1" max="30" value="<?= (int) $row['page_size'] ?>">
-            <span class="row-meta">显示绑定栏目里最新的已发布稿件，置顶稿排在最前；分标签模块每个标签各显示这么多篇。</span>
           </label>
-          <label>状态
+          <label class="field--sm">状态
             <select name="status">
               <option value="published"<?= $status === 'published' ? ' selected' : '' ?>>已上线</option>
               <option value="offline"<?= $status === 'offline' ? ' selected' : '' ?>>已下线</option>
@@ -318,6 +317,8 @@ $renderChip = static function (array $chip): string {
             <input type="text" name="more_url" value="<?= hechi_e((string) $row['more_url']) ?>">
           </label>
         </div>
+        <?php /* 长提示挪出字段本身：宽度档只管控件，提示跟着整行铺开才不会折成五行 */ ?>
+        <p class="field-hint">显示绑定栏目里最新的已发布稿件，置顶稿排在最前；分标签模块每个标签各显示这么多篇。</p>
         <div class="actions">
           <button type="submit" class="btn-primary"
                   data-confirm="保存模块「<?= hechi_e((string) $row['label']) ?>」？首页这张卡片会立刻按新的绑定与条数显示。">保存模块</button>

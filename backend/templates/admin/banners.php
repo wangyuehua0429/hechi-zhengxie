@@ -66,7 +66,7 @@ declare(strict_types=1);
           <input type="text" name="title" value="<?= hechi_e($row === null ? '' : (string) $row['title']) ?>">
         </label>
         <div class="row">
-          <label>状态
+          <label class="field--sm">状态
             <select name="status">
               <option value="published"<?= $status === 'published' ? ' selected' : '' ?>>已上线</option>
               <option value="offline"<?= $status === 'offline' ? ' selected' : '' ?>>已下线</option>

@@ -48,7 +48,7 @@ declare(strict_types=1);
       <label class="grow">单位名称
         <input type="text" name="name" maxlength="128" required placeholder="如：河池市住房和城乡建设局">
       </label>
-      <label>排序号
+      <label class="field--sm">排序号
         <input type="number" name="sort_no" value="0" min="0" max="9999">
       </label>
       <label class="grow">备注

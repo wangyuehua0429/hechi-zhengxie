@@ -22,25 +22,25 @@ $action = $isNew ? '/admin/user/create' : '/admin/user/' . (int) $user['user_id'
   <?= $csrf ?>
 
   <div class="row">
-    <label>登录账号
+    <label class="field--md">登录账号
       <input type="text" name="username" value="<?= hechi_e((string) ($user['username'] ?? '')) ?>"<?= $isNew ? ' required' : ' readonly' ?>>
     </label>
-    <label>姓名
+    <label class="field--md">姓名
       <input type="text" name="real_name" value="<?= hechi_e((string) ($user['real_name'] ?? '')) ?>">
     </label>
-    <label>部门
+    <label class="field--md">部门
       <input type="text" name="dept" value="<?= hechi_e((string) ($user['dept'] ?? '')) ?>" placeholder="如：办公室">
     </label>
   </div>
 
   <div class="row">
-    <label>手机
+    <label class="field--md">手机
       <input type="text" name="mobile" value="<?= hechi_e((string) ($user['mobile'] ?? '')) ?>">
     </label>
-    <label>邮箱
+    <label class="field--md">邮箱
       <input type="text" name="email" value="<?= hechi_e((string) ($user['email'] ?? '')) ?>">
     </label>
-    <label>状态
+    <label class="field--sm">状态
       <select name="status">
         <option value="enabled"<?= (string) ($user['status'] ?? 'enabled') === 'enabled' ? ' selected' : '' ?>>启用</option>
         <option value="disabled"<?= (string) ($user['status'] ?? '') === 'disabled' ? ' selected' : '' ?>>停用</option>
@@ -49,10 +49,10 @@ $action = $isNew ? '/admin/user/create' : '/admin/user/' . (int) $user['user_id'
   </div>
 
   <div class="row">
-    <label class="full"><?= $isNew ? '初始密码（至少 8 位）' : '重置密码（留空表示不改）' ?>
+    <label class="field--md"><?= $isNew ? '初始密码（至少 8 位）' : '重置密码（留空表示不改）' ?>
       <input type="password" name="password" autocomplete="new-password"<?= $isNew ? ' required' : '' ?>>
     </label>
-    <label class="full">备注
+    <label class="field--full">备注
       <input type="text" name="remark" value="<?= hechi_e((string) ($user['remark'] ?? '')) ?>" placeholder="如：负责市政协动态栏目">
     </label>
   </div>

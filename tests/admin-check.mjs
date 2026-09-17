@@ -1033,6 +1033,35 @@ async function main() {
       /prefers-color-scheme: dark/.test(cssText) &&
       /:root\[data-theme="dark"\]/.test(cssText) &&
       /--brand-ink/.test(cssText));
+    // 按钮与表单标准（视觉规范第7节）：一套三档控件刻度，不许再造尺寸
+    check("控件刻度三档齐全，且按钮/字段都从令牌取高度",
+      /--control-h-sm: 28px/.test(cssText) && /--control-h: 34px/.test(cssText) &&
+      /--control-h-lg: 40px/.test(cssText) &&
+      /\.btn, \.btn-primary \{\s*min-height: var\(--control-h\)/.test(cssText) &&
+      /\.btn\.btn-sm \{ min-height: var\(--control-h-sm\)/.test(cssText) &&
+      /\.btn\.btn-lg \{ min-height: var\(--control-h-lg\)/.test(cssText) &&
+      !/min-height: 38px/.test(cssText) && !/height: 30px; padding: 0 6px/.test(cssText));
+    check("字段解剖与勾选项有统一类名（提示/必填/错误/宽度档/两列勾选）",
+      [".field-label", ".field-hint", ".field-req", ".field-error", ".field--xs", ".field--md", ".field--full"]
+        .every((cls) => cssText.includes(cls + " {")) &&
+      /\.check-line,[\s\S]{0,120}grid-template-columns: auto minmax\(0, 1fr\)/.test(cssText));
+    check("只读/禁用字段有专属样式（不再与可编辑字段一样）",
+      /input\[disabled\], select\[disabled\], textarea\[disabled\],\s*input\[readonly\], textarea\[readonly\] \{/.test(cssText));
+    // 两轮独立评审抓到的回归，各留一条断言：勾选格要包 label、.check-line 只能定义一次、文件框要进档
+    check("表格勾选格包了 .bulk-cell（窄屏整格可点，不用戳 13px 方框）",
+      /<label class="bulk-cell">\s*<input type="checkbox"/.test(listPage.text) &&
+      /<label class="bulk-cell"><input type="checkbox" data-select-all/.test(listPage.text) &&
+      /\.bulk-cell \{/.test(cssText));
+    check(".check-line 只定义一处（重复定义会把网格顶回 flex）",
+      (cssText.match(/^\.check-line,/gm) || []).length === 1 &&
+      !/^\.check-line \{ display: flex/m.test(cssText));
+    check("文件框与分页器都在档位内（文件框 34/44，分页器默认档）",
+      /input\[type="file"\]::file-selector-button \{/.test(cssText) &&
+      /select, textarea, input\[type="file"\] \{/.test(cssText) &&
+      !/class="btn btn-sm" href="<\?= hechi_e\(\$listUrl/.test(listPage.text));
+    check("表单栅格与宽度档已落到模板：用户编辑页按档收窄字段",
+      /class="field--md">登录账号/.test((await client.get("/admin/user/1")).text) &&
+      /class="field--sm">状态/.test((await client.get("/admin/user/1")).text));
     // 规范第 5 节把这个列为坑位：两份深色令牌必须逐值一致，这里直接比对。
     const darkTokenMaps = (() => {
       const collect = (block) => {

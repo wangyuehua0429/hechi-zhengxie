@@ -60,6 +60,13 @@
   --text-base: 15px;
   --text-lg: 17px;
   --text-xl: 22px;
+  /* 控件刻度：按钮与表单字段共用这一套高度与字号。
+     现状曾有 30／34／38／44／46／48 六种高度混在同一页里，改一处要翻全文。 */
+  --control-h-sm: 28px;   /* 表格行内、徽标下拉、密集工具条 */
+  --control-h: 34px;      /* 默认：表单字段、筛选器、普通按钮 */
+  --control-h-lg: 40px;   /* 页面级主按钮、单任务表单（登录） */
+  --control-font: 14px;
+  --control-pad-x: 12px;
   --shadow-card: 0 1px 2px rgba(15, 23, 42, .04), 0 6px 18px rgba(15, 23, 42, .05);
   --shadow-float: 0 -8px 18px rgba(15, 23, 42, .07);
   --shadow-elevated: 0 18px 44px rgba(15, 23, 42, .18);
@@ -175,7 +182,7 @@ html.js .js-only { display: inline; }
   width: 34px; height: 34px;
   background: var(--brand);
   color: var(--on-brand);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-size: 15px;
   letter-spacing: 1px;
 }
@@ -187,7 +194,7 @@ html.js .js-only { display: inline; }
   /* 顶栏「退出」原来只有 30×21，低于 WCAG 2.5.8 的 24×24：用内边距补足命中区，
      再用等量负外边距抵掉，视觉位置不变。 */
   padding: 3px 8px; margin: -3px -8px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--brand-ink); cursor: pointer; font-size: 15px;
 }
 .inline { display: inline; }
@@ -283,7 +290,7 @@ code { background: var(--surface-3); padding: 1px 5px; border-radius: 3px; font-
   gap: var(--space-2);
   margin-bottom: 16px;
   padding: 10px 14px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border-left: 4px solid var(--ok);
   background: var(--ok-soft);
   color: var(--ok-ink);
@@ -447,16 +454,43 @@ a.stat:hover { text-decoration: none; border-color: var(--field-line); }
 .system-chip.active { color: var(--brand-ink); border-bottom-color: var(--brand-ink); font-weight: 700; }
 .check-set {
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 12px 16px 6px;
+  border-radius: var(--radius);
+  padding: 12px 16px;
   margin: 0 0 14px;
   background: var(--surface);
 }
 .check-set legend { padding: 0 6px; font-weight: 700; color: var(--ink-2); }
 .check-group { margin-bottom: 8px; }
 .check-group-title { color: var(--muted); font-size: 13px; margin: 4px 0; }
-.check-set .check-line { margin: 4px 0; }
-.check-set .check-line .muted { font-size: 13px; }
+/* 勾选项统一成「复选框 + 名称 + 灰色说明」的左对齐两列：
+   之前 .edit-form label 的字段解剖（纵向排列）权重更高，把这里挤成了居中竖排，
+   角色多选一屏占掉半页还读不出「勾的是哪个」。 */
+.check-line,
+.edit-form .check-line,
+.check-set .check-line {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 2px 8px;
+  margin: 6px 0;
+  font-size: var(--control-font);
+  color: var(--ink);
+}
+.check-line > input[type="checkbox"], .check-line > input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+}
+.check-line .muted, .check-line .field-hint, .check-line .row-note { grid-column: 2; font-size: 12px; }
+/* 表格里的勾选格：把复选框包进 label，整格都能点（原来只有 13×13 的方框可点） */
+.bulk-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  cursor: pointer;
+}
 .channel-picker {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -468,49 +502,135 @@ a.stat:hover { text-decoration: none; border-color: var(--field-line); }
 .check-inline { white-space: nowrap; }
 
 /* 表单 */
-.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 14px; }
-.filters label, .edit-form label { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--ink-2); }
+.filters { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; margin-bottom: 14px; }
 .filters input, .filters select { min-width: 150px; }
-input[type="text"], input[type="password"], input[type="search"], input[type="date"], input[type="time"], input[type="number"], select, textarea {
-  padding: 7px 9px;
+input[type="text"], input[type="password"], input[type="search"], input[type="date"], input[type="time"], input[type="number"], select, textarea, input[type="file"] {
+  min-height: var(--control-h);
+  padding: 0 10px;
   border: 1px solid var(--field-line);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font: inherit;
+  font-size: var(--control-font);
   background: var(--surface);
   color: var(--ink);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+/* 文件框原来只有 .upload-form 里的那几处吃到了高度，裸的（横幅／头条轮换／名册导入／单位导入）
+   还是原生 25px，和同卡片的字段差一截；这里补上，连原生按钮一起对齐 */
+input[type="file"] { padding: 4px 10px; }
+input[type="file"]::file-selector-button {
+  min-height: calc(var(--control-h) - 14px);
+  margin-right: 8px;
+  padding: 0 10px;
+  border: 1px solid var(--field-line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
 }
 /* 占位文字：浏览器默认的 #757575 在白底勉强够、在深底上只有 3.63:1，跟着 --muted 走 */
 input::placeholder, textarea::placeholder { color: var(--muted); opacity: 1; }
-textarea { resize: vertical; width: 100%; }
+/* 焦点：控件用「描边变色 + 一圈浅底」，比全局那圈 3px 硬描边轻，也仍然是看得见的焦点指示 */
+input:focus-visible, select:focus-visible, textarea:focus-visible,
+input:focus, select:focus, textarea:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+  outline: none;
+}
+textarea { min-height: 72px; padding: 8px 10px; line-height: 1.6; resize: vertical; width: 100%; }
 textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
-.edit-form .row { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 12px; }
-.edit-form .row label { flex: 1 1 200px; }
-.edit-form .full { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+/* 字段解剖：标签在上、控件在下、提示在最后，所有表单容器统一到这一套 */
+.filters > label, .edit-form label, .filter-field, .writing-field, .login-field, .field, .check-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: var(--control-font);
+  color: var(--ink-2);
+}
+.field-label { font-size: 13px; font-weight: 700; color: var(--ink-2); }
+/* 必填与字段级错误：服务端校验退回后按这个写，不用新造一套 */
+.field-req { margin-left: 2px; color: var(--err-ink); }
+.field-hint { color: var(--muted); font-size: 12px; line-height: 1.6; }
+.field-error { color: var(--err-ink); font-size: 12px; }
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] {
+  border-color: var(--err-ink);
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+/* 只读与禁用字段要一眼看出「这不是给你改的」：底纹降一档、文字用次要色、光标不给 */
+input[disabled], select[disabled], textarea[disabled],
+input[readonly], textarea[readonly] {
+  background: var(--surface-2);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+input[disabled], select[disabled] { border-color: var(--line); }
+/* 宽度分档：短字段不再被拉成整行，长字段不吃满整页 */
+.field--xs { max-width: 88px; }
+.field--sm { max-width: 140px; }
+.field--md { max-width: 220px; }
+.field--lg { max-width: 320px; }
+.field--full { max-width: none; }
+/* 表单栅格：等宽列自动折行，代替各处 flex + 一次性 basis */
+.edit-form .row {
+  display: grid;
+  /* 列宽封顶 260px：字段本身有宽度档，列再无限拉宽只会在右侧留一大片空 */
+  grid-template-columns: repeat(auto-fit, minmax(200px, 260px));
+  justify-content: start;
+  gap: 12px 16px;
+  margin-bottom: 10px;
+}
+.edit-form .row label { flex: none; }
+.edit-form .row label.grow { grid-column: span 2; }
+.edit-form .row .field--full { grid-column: 1 / -1; }
+.edit-form .row > .full { grid-column: 1 / -1; }
+.edit-form .full { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
 .edit-form .full input, .edit-form .full textarea { width: 100%; }
 .edit-form .check { flex-direction: row; align-items: center; gap: 6px; padding-top: 20px; }
-.actions { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+/* 组级提示贴在它解释的那一行下面，别飘到两组中间（原来两组之间的空当一样宽，读不出属于谁）。
+   选择器不加 >：提示常写在 <section class="card"> 里，直系匹配会漏掉一半页面。 */
+.edit-form p.muted, .edit-form .field-hint, .edit-form .hint-line {
+  margin: -4px 0 16px;
+  font-size: 12px;
+  line-height: 1.7;
+}
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 8px; }
 .actions .muted { margin-left: 4px; }
 
 .btn, .btn-primary {
-  min-height: 44px;          /* 触控目标下限，配合内边距保证手机上点得中 */
-  padding: 9px 18px;
-  border-radius: 4px;
+  min-height: var(--control-h);
+  padding: 0 var(--control-pad-x);
+  border-radius: var(--radius-sm);
   border: 1px solid var(--field-line);
   background: var(--surface);
   color: var(--ink);
   cursor: pointer;
   font: inherit;
+  font-size: var(--control-font);
+  line-height: 1.2;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  white-space: nowrap;   /* 按钮文字不折行：窄容器里折成两行会破坏整排按钮的等高 */
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease;
 }
-.btn:hover { text-decoration: none; border-color: var(--ink); background: var(--surface-2); }
+.btn:hover { text-decoration: none; border-color: var(--muted); background: var(--surface-2); }
+.btn:active { background: var(--surface-3); }
 .btn-primary {
   background: var(--brand);
   border-color: var(--brand-ink);
   color: var(--on-brand);
 }
 .btn-primary:hover { background: var(--brand-dark); border-color: var(--brand-dark); }
+.btn-primary:active { background: var(--brand-dark); }
+/* 三档之外不再造尺寸：小按钮进表格与工具条，大按钮只留给「一页只有一个主动作」的地方 */
+.btn.btn-lg { min-height: var(--control-h-lg); padding: 0 18px; font-size: 15px; font-weight: 700; }
+@media (prefers-reduced-motion: reduce) {
+  .btn:active { transform: none; }
+}
 
 /* 分页 */
 .pager { display: flex; align-items: center; gap: 14px; margin-top: 14px; color: var(--muted); }
@@ -596,12 +716,13 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
 
 /* 上传与危险操作 */
 .upload-form { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 12px; }
-.upload-form input[type="file"] { border: 1px dashed var(--field-line-soft); padding: 6px 10px; border-radius: 4px; background: var(--surface-2); }
+.upload-form input[type="file"] { min-height: var(--control-h); border: 1px dashed var(--field-line-soft); padding: 4px 10px; border-radius: var(--radius-sm); background: var(--surface-2); }
 .btn-danger { background: var(--surface); border-color: var(--danger-line); color: var(--err-ink); }
 .btn-primary.btn-danger { background: var(--err-fill); border-color: var(--err-fill); color: var(--on-brand); }
 .btn-primary.btn-danger:hover { background: var(--err-fill-strong); border-color: var(--err-fill-strong); }
 .danger-zone { border-color: var(--danger-line-soft); background: var(--soft-tint); }
-.check-line { display: flex; align-items: center; gap: 8px; margin: 12px 0; font-size: 14px; }
+/* .check-line 的排布统一在上面的「勾选项」那条规则里，这里不再重复定义——
+   同一个选择器写两处时，后面那条会把网格布局顶回 flex，导航栏目页与删除确认页就不一致了。 */
 .hint-line { flex: 1 1 100%; color: var(--muted); font-size: 13px; }
 
 /* 登录页：单列单任务，品牌条 + 错误摘要 + 44px 触控 */
@@ -644,7 +765,7 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
 .login-card h1 { margin: 0; font-size: 19px; line-height: 1.35; }
 .login-sub { color: var(--muted); font-size: 13px; }
 .login-field { display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--ink-2); }
-.login-field input { min-height: 44px; padding: 10px 12px; font-size: 15px; }
+.login-field input { min-height: var(--control-h-lg); padding: 0 12px; font-size: 15px; }
 
 /* 失败时的错误摘要：role="alert" + 可聚焦，键盘与读屏都能第一时间定位 */
 .login-error {
@@ -653,7 +774,7 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
   gap: 2px;
   padding: 10px 12px;
   border-left: 4px solid var(--err);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--danger-soft);
   color: var(--danger-ink-soft);
   font-size: 14px;
@@ -694,7 +815,7 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
 .pw-toggle.is-revealed .pw-icon--on { display: none; }
 .pw-toggle.is-revealed .pw-icon--off { display: block; }
 
-.login-submit { min-height: 48px; font-size: 16px; font-weight: 700; letter-spacing: 2px; }
+.login-submit { min-height: var(--control-h-lg); font-size: 15px; font-weight: 700; letter-spacing: 2px; }
 .login-submit[disabled] { opacity: .8; cursor: default; }
 .login-help { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.7; }
 .login-hint {
@@ -767,7 +888,9 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, mono
   border-top: 1px dashed var(--line);
 }
 .filter-field { display: flex; flex-direction: column; gap: 4px; font-size: 14px; color: var(--ink-2); }
-.filter-field input, .filter-field select { min-height: 38px; }
+.filter-field input, .filter-field select { min-width: 150px; }
+/* 分页器里的跳转输入框是定宽的，别被上面这条 min-width 撑走 */
+.pager-jump .jump-input { min-width: 0; }
 
 /* 批量操作条：只有脚本可用时出现（渐进增强，见 admin.js） */
 .bulk-bar {
@@ -802,7 +925,7 @@ html.js .bulk-bar { display: flex; }
 /* 批量操作条里的字段是「标签 + 控件」并排，不是上面筛选面板那种上下堆叠 */
 .bulk-field { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; color: var(--ink-2); }
 .bulk-field input { min-width: 240px; }
-.bulk-field select, .bulk-field input { min-height: 38px; }
+
 .bulk-col { width: 1%; }
 html:not(.js) .bulk-col { display: none; }
 
@@ -860,7 +983,7 @@ html:not(.js) [data-manual-remove] { display: none; }
 .tag-highlight { background: var(--brand-soft); color: var(--brand-ink); }
 .tag-badge { background: var(--badge-soft); color: var(--badge-ink); }
 .badge-form { display: inline-flex; align-items: center; gap: 4px; }
-.badge-form select { height: 30px; padding: 0 6px; font-size: 13px; }
+.badge-form select { min-height: var(--control-h-sm); padding: 0 6px; font-size: 13px; }
 .badge-custom { width: 7.2em; }
 .badge-custom[hidden] { display: none; }
 .warn-text { color: var(--danger-ink); }
@@ -879,12 +1002,14 @@ html:not(.js) [data-manual-remove] { display: none; }
 }
 
 /* 小按钮与次要按钮：行内动作不再是纯文字链接，目标更大也更整齐 */
-.btn-sm { min-height: 34px; padding: 5px 12px; font-size: 14px; }
+/* 用 .btn.btn-sm 而不是 .btn-sm：元素限定选择器（如 .pick-list button）的权重比单个类高，
+   不升级权重的话，同一档按钮在不同页面里字号会一个 13px 一个 14px。 */
+.btn.btn-sm { min-height: var(--control-h-sm); padding: 0 10px; font-size: 13px; }
 .btn-ghost { border-color: transparent; color: var(--brand-ink); background: var(--surface); }
 .btn-ghost:hover { border-color: var(--field-line); background: var(--surface-2); }
 .btn-danger-outline { border-color: var(--danger-line); color: var(--err-ink); background: var(--surface); }
 .btn-danger-outline:hover { border-color: var(--err-ink); background: var(--danger-soft); }
-.btn-icon { min-width: 34px; padding: 5px 8px; font-size: 15px; line-height: 1; }
+.btn.btn-icon { min-width: var(--control-h-sm); padding: 0 6px; font-size: 14px; line-height: 1; }
 /* 禁用态不再靠半透明：整块降到 45% 后文字只剩 2.76:1，翻到末页时「下一页／末页」几乎看不见。
    改成描边、底纹与文字色各降一档，仍保持 5:1 以上。 */
 .btn[disabled], .btn.is-disabled {
@@ -906,11 +1031,11 @@ html:not(.js) [data-manual-remove] { display: none; }
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 34px;
-  min-height: 34px;
+  min-width: var(--control-h);
+  min-height: var(--control-h);
   padding: 0 8px;
   border: 1px solid var(--field-line);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--ink);
   background: var(--surface);
   font-size: 14px;
@@ -919,7 +1044,7 @@ html:not(.js) [data-manual-remove] { display: none; }
 .page-num.active { background: var(--brand); border-color: var(--brand-ink); color: var(--on-brand); font-weight: 700; }
 .page-gap { color: var(--muted); padding: 0 2px; }
 .pager-jump { display: flex; align-items: flex-end; gap: 8px; margin-left: auto; }
-.pager-jump .jump-input { width: 84px; min-height: 34px; }
+.pager-jump .jump-input { width: 84px; }
 
 /* 稿件编辑：左表单 + 右侧栏 */
 .edit-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
@@ -1004,7 +1129,7 @@ kbd {
   padding: 1px 5px;
   border: 1px solid var(--line);
   border-bottom-width: 2px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--ink-2);
   font: inherit;
@@ -1027,7 +1152,8 @@ kbd {
 .preview-panel iframe { display: block; width: 100%; height: 420px; border: 0; background: var(--surface); }
 .advanced { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
 .advanced summary { cursor: pointer; color: var(--brand-ink); font-size: 14px; }
-.advanced .field-inline { display: flex; flex-direction: column; gap: 4px; margin: 10px 0 4px; font-size: 14px; color: var(--ink-2); max-width: 220px; }
+/* 宽度交给 .field--* 档位（原本在这里写死 220px，会把档位盖掉） */
+.advanced .field-inline { display: flex; flex-direction: column; gap: 4px; margin: 10px 0 4px; font-size: var(--control-font); color: var(--ink-2); }
 /* 概览页「什么时候才要点发布全站」：把长说明折起来，首屏只留一句结论 */
 .publish-advanced p { margin: 8px 0 0; }
 .edit-form .row label.grow { flex: 2 1 260px; }
@@ -1073,9 +1199,19 @@ kbd {
   .main { padding: 16px 14px 40px; }
   /* 顶栏原来固定 56px 高，窄屏上站点名换行会溢出格子 */
   .topbar { height: auto; padding: 8px 12px; }
-  .site { font-size: 14px; }
+  /* 站点名可以让位、不能换行：让它省略号收尾，顶栏才能保持一行 */
+  .topbar-left { min-width: 0; }
+  .site { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar-right { flex: 0 0 auto; gap: 8px; }
   .who-role { display: none; }
   .logo { width: 28px; height: 28px; font-size: 13px; }
+  /* 手机上字段是单列，宽度档全部放开——留着半屏空白反而像没做完 */
+  .field--xs, .field--sm, .field--md, .field--lg { max-width: none; }
+  /* 栅格在窄屏也回到单列铺满：260px 的列宽上限会把字段关在左半边，
+     顺带消掉 .grow（span 2）在单列行里多出来的隐式轨道。 */
+  .edit-form .row { grid-template-columns: minmax(0, 1fr); }
+  .edit-form .row label.grow, .edit-form .row .field--full { grid-column: 1 / -1; }
+  .upload-form input[type="file"] { min-height: 44px; }
   .page-head { flex-direction: column; align-items: stretch; }
   .head-actions { justify-content: flex-start; }
   .pager-jump { margin-left: 0; }
@@ -1086,10 +1222,23 @@ kbd {
   .action-buttons .btn, .action-buttons .btn-primary {
     flex: 1 1 0;
     min-width: 0;
-    padding: 9px 10px;
+    padding: 0 10px;
     font-size: 14px;
     white-space: nowrap;
   }
+  /* 窄屏一律回到触控尺寸：桌面那套 34／28 的紧凑刻度在手指上点不准。
+     这是「同一条刻度」的第二档，不是另造一套（见视觉规范「按钮与表单标准」）。 */
+  /* 用两类的写法跟基础档同权重：只写 .btn-sm 会被 .btn.btn-sm 压回 28px，手机上就点不准了 */
+  .btn, .btn-primary, .btn.btn-lg { min-height: 44px; }
+  .btn.btn-sm { min-height: 40px; }
+  .btn.btn-icon { min-width: 40px; min-height: 40px; }
+  input[type="text"], input[type="password"], input[type="search"], input[type="date"],
+  input[type="time"], input[type="number"], select, input[type="file"] { min-height: 44px; }
+  /* 表格里的徽标下拉属密集档，窄屏也要抬到 40 才点得中（与规范第7节一致） */
+  .badge-form select { min-height: 40px; }
+  /* 表格行的勾选格：整格都是点击区，不用去戳 13px 的方框 */
+  .bulk-cell { min-width: 40px; min-height: 40px; }
+  .page-num { min-width: 40px; min-height: 40px; }
   /* 窄屏上「返回列表」回到普通按钮的样子，别再用竖线分隔（一行放不下就会单独占一行） */
   .action-buttons .btn[href] {
     flex: 0 0 auto;
@@ -1133,7 +1282,7 @@ kbd {
     padding: 6px;
     gap: 4px;
   }
-  .row-more-menu .btn { padding: 6px 10px; white-space: nowrap; }
+  .row-more-menu .btn { padding: 0 10px; white-space: nowrap; }
 }
 
 /* ============================================================ 首页四大类页面 */
@@ -1178,7 +1327,7 @@ kbd {
   justify-content: center;
   height: 100px;
   border: 1px dashed var(--line);
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   color: var(--muted);
   font-size: 12px;
   text-align: center;
