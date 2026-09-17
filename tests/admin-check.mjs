@@ -1194,7 +1194,7 @@ async function main() {
         subtitle: "",
         source: "检查脚本",
         author: "检查作者",
-        editor: "",
+        editor: "检查编辑",
         published_date: "2026-09-11",
         published_time: "09:40",
         status: "draft",
@@ -1210,6 +1210,7 @@ async function main() {
       const attachedEdit = await client.get("/admin/article/" + attachedId);
       check("新建页提交的附件已登记进素材条", attachedEdit.text.includes("检查附件.txt"));
       check("新建页提交的作者已写入稿件", /name="author" value="检查作者"/.test(attachedEdit.text));
+      check("新建页提交的责任编辑已写入稿件", /name="editor" value="检查编辑"/.test(attachedEdit.text));
       const attachedUrl = (/href="(\/uploads\/[^"]+\.txt)"/.exec(attachedEdit.text) || [])[1] || "";
       check("新建页提交的附件文件可直接访问",
         attachedUrl !== "" && (await client.get(attachedUrl)).status === 200, attachedUrl);

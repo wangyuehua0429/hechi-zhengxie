@@ -199,10 +199,10 @@ async function main() {
         && editorHtml.includes('name="source"')
         && editorHtml.includes("data-title-count"),
       "写作区结构不完整");
-    // 作者框 2026-09-17 加回写作纸（编辑要能自己填）；责任编辑仍不在编辑页维护，
-    // 详情页按库里的署名显示，保存时不带这一列就不会被清空。
-    check("编辑页：作者框在写作区、责任编辑仍不在编辑页维护",
-      /name="author"/.test(editorHtml) && !/name="editor"/.test(editorHtml),
+    // 作者与责任编辑 2026-09-17 均加回写作纸：作者进详情页 meta 行、责任编辑落文末署名，
+    // 两个框都留空则不显示；表单不带这两列时（老客户端）保存仍不会清空库里原有署名。
+    check("编辑页：作者与责任编辑都在写作区",
+      /name="author"/.test(editorHtml) && /name="editor"/.test(editorHtml),
       "作者／责任编辑字段与预期不符");
     check("编辑页：标题、原标题、来源都已移出基本信息卡",
       !/基本信息[\s\S]{0,900}name="(title|orig_title|source)"/.test(editorHtml),
@@ -444,15 +444,15 @@ async function main() {
         titleInside: !!document.querySelector(".writing-paper input[name='title']"),
         origInside: !!document.querySelector(".writing-paper input[name='orig_title']"),
         authorInside: !!document.querySelector(".writing-paper input[name='author']"),
-        noEditorInput: !document.querySelector(".writing-paper input[name='editor']"),
+        editorInside: !!document.querySelector(".writing-paper input[name='editor']"),
         countText: (document.querySelector("[data-title-count]") || {}).textContent || "",
         placeholder: (document.querySelector(".se-placeholder") || {}).textContent || "",
       }));
       check("新建页：写作区渲染正常（标题、原标题、标题字数）",
         writingUi.paper && writingUi.titleInside && writingUi.origInside && /\/64$/.test(writingUi.countText),
         JSON.stringify(writingUi));
-      check("新建页：作者框在写作区、责任编辑不在编辑页维护",
-        writingUi.authorInside && writingUi.noEditorInput, JSON.stringify(writingUi));
+      check("新建页：作者与责任编辑都在写作区",
+        writingUi.authorInside && writingUi.editorInside, JSON.stringify(writingUi));
       check("新建页：正文占位符是「从这里开始写正文」",
         writingUi.placeholder.includes("从这里开始写正文"), JSON.stringify(writingUi));
       const writingOrder = await page.evaluate(() => Array.prototype.map.call(
@@ -484,8 +484,8 @@ async function main() {
         steps: document.querySelectorAll(".card .step-no").length,
         pick: (document.querySelector(".pick-current") || {}).textContent || "",
       }));
-      check("新建页：标题、原标题三列、来源与作者都有可见标签",
-        paperUi.titleLabel.trim() === "网页标题" && paperUi.labels.join("/") === "引题/主标题/副题/来源/作者",
+      check("新建页：标题、原标题三列与三个署名字段都有可见标签",
+        paperUi.titleLabel.trim() === "网页标题" && paperUi.labels.join("/") === "引题/主标题/副题/来源/作者/责任编辑",
         JSON.stringify(paperUi));
       check("新建页：两张卡片带步骤号，栏目卡显示当前选择",
         paperUi.steps === 2 && paperUi.pick.includes("当前："), JSON.stringify(paperUi));

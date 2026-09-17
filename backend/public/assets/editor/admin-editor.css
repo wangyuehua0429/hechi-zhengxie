@@ -96,7 +96,7 @@
   font-size: 14px;
 }
 
-/* 来源与作者一行两块（责任编辑仍不在编辑页维护，详情页按库里的署名显示） */
+/* 来源、作者与责任编辑排成一行（窄屏自动换行）：前两项进详情页 meta 行，责任编辑落在文末署名 */
 .writing-meta {
   display: flex;
   flex-wrap: wrap;
@@ -105,7 +105,7 @@
 }
 
 .writing-meta .writing-field {
-  flex: 1 1 260px;
+  flex: 1 1 200px;
   min-width: 0;
 }
 

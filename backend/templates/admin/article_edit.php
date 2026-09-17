@@ -3,7 +3,7 @@
 /**
  * 稿件编辑 / 新建。
  *
- * 结构上分成两栏：左边是内容表单（写作纸：网页标题 / 原标题 / 来源与作者 / 正文 / 素材），
+ * 结构上分成两栏：左边是内容表单（写作纸：网页标题 / 原标题 / 来源、作者与责任编辑 / 正文 / 素材），
  * 右边是「随手要用」的东西（稿库流转、稿件信息、回收站），
  * 这样改稿时不用在长页面里上下找保存按钮与流转按钮。
  *
@@ -161,6 +161,11 @@ $statusKey = $isNew ? ArticleWorkflow::DRAFT : ArticleWorkflow::normalize((strin
               <span class="writing-field-label">作者</span>
               <input type="text" name="author" value="<?= hechi_e($article['author'] ?? '') ?>" class="writing-author"
                      placeholder="如：黄正华；留空则详情页不显示作者">
+            </label>
+            <label class="writing-field writing-field--inline">
+              <span class="writing-field-label">责任编辑</span>
+              <input type="text" name="editor" value="<?= hechi_e($article['editor'] ?? '') ?>" class="writing-author"
+                     placeholder="如：刁海音；留空则文末不署">
             </label>
           </div>
           <p class="writing-hint"><span class="writing-hint-name">正文</span>可直接插图与 mp4／webm 视频，图片单个 ≤ 2 MB；粘贴网页或 Word 内容时图片自动上传。</p>
