@@ -26,7 +26,11 @@ $query = static function (array $override) use ($filters): string {
   <?php if ($canExport): ?>
     <div class="row-actions">
       <a class="btn" href="/admin/proposals/export.xlsx<?= hechi_e($query([])) ?>">导出收件清单（Excel）</a>
-      <a class="btn" href="/admin/proposals/export.docx<?= hechi_e($query([])) ?>">批量导出提案表（Word）</a>
+      <a class="btn" href="/admin/proposals/export.docx<?= hechi_e($query([])) ?>">批量导出提案表（Word，单次最多 <?= (int) ($wordLimit ?? 200) ?> 件）</a>
+      <?php if ((int) $total > (int) ($wordLimit ?? 200)): ?>
+        <?php /* 超限时先说清楚，不让人点一次、被挡回来才知道 */ ?>
+        <span class="muted">当前筛选 <?= (int) $total ?> 件，超过 Word 批量导出的单次上限，直接点会被挡回并提示分批；请先按状态或提交日期缩小范围。</span>
+      <?php endif; ?>
     </div>
   <?php endif; ?>
 </div>

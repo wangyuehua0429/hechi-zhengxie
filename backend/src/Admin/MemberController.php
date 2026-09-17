@@ -72,6 +72,10 @@ final class MemberController extends AdminController
             'page'    => $page,
             'pages'   => max(1, (int) ceil($result['total'] / self::PAGE_SIZE)),
             'filters' => $filters,
+            // 批量重置的单次上限与篮子键：上限就是服务端常量（前端不再自己记一个数），
+            // 篮子键只跟归一化后的筛选有关，换关键词或状态时不会串上一篮子的勾选
+            'maxBulk' => self::BATCH_LIMIT,
+            'bulkKey' => substr(sha1(http_build_query($filters)), 0, 12),
             'counts'  => $this->members->statusCounts(),
             'reset'   => is_array($reset) ? $reset : null,
             'batchPending' => is_array($batch) ? count($batch) : 0,
@@ -390,6 +394,11 @@ final class MemberController extends AdminController
             return new RedirectResponse('/admin/members');
         }
 
+        // 每个账号都要算一次 bcrypt（与导入建号同一笔开销），整份名册重置会跑几十秒，
+        // 不放开执行时限会被 max_execution_time（默认 30 秒）掐在循环中途：
+        // 已改的密码落了库，而密码清单还没写进会话，谁也拿不到新密码。
+        set_time_limit(300);
+
         $rows = $this->members->findMany($ids);
         if ($rows === []) {
             Flash::set('error', '勾选的账号都不存在，请刷新页面后重试。');
@@ -405,8 +414,9 @@ final class MemberController extends AdminController
                 'login_name' => (string) $row['login_name'],
                 'password'   => $password,
             ];
+            // 逐行写回会话：万一请求还是被掐断，已经改过密码的账号也在清单里，不至于发不出去
+            $_SESSION[self::BATCH_CREDENTIALS] = $credentials;
         }
-        $_SESSION[self::BATCH_CREDENTIALS] = $credentials;
         $this->log('member.reset_batch', 'member', '', ['count' => count($credentials)]);
 
         Flash::set('ok', '已重置 ' . count($credentials)

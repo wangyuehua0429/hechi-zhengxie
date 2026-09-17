@@ -68,6 +68,8 @@ final class ProposalController extends AdminController
             'categories' => ProposalWorkflow::categories(),
             'statuses' => ProposalWorkflow::places(),
             'canExport' => $this->can(Permissions::PROPOSAL_EXPORT),
+            // 批量导出 Word 的单次上限（模板上明写，免得使用者当成全量归档）
+            'wordLimit' => self::BATCH_LIMIT,
         ], '提案收件');
     }
 
@@ -185,8 +187,11 @@ final class ProposalController extends AdminController
     }
 
     /**
-     * 批量导出：按当前筛选范围把全部提案合并成一个 Word，每份独立起页。
+     * 批量导出：按当前筛选范围把提案合并成一个 Word，每份独立起页。
      * 走系统内置的标准提案表格式；提案委的办理文件模板到位后再做套版。
+     *
+     * 超过单次上限（BATCH_LIMIT）就不导出，提示分批：归档用途宁可让使用者缩小范围，
+     * 也不静默给一份少了几件的「全量」文件（2026-09-17 review-team 报出）。
      */
     public function exportWord(Request $request): HtmlResponse|RedirectResponse|FileResponse
     {
@@ -198,10 +203,17 @@ final class ProposalController extends AdminController
         }
 
         $filters = $this->filters($request);
-        $rows = $this->proposals->exportRows($filters, self::BATCH_LIMIT);
+        // 多取一条：用来判断这次是不是撞上了上限
+        $rows = $this->proposals->exportRows($filters, self::BATCH_LIMIT + 1);
         if ($rows === []) {
             Flash::set('error', '当前筛选条件下没有提案可导出。');
-            return new RedirectResponse('/admin/proposals');
+            return new RedirectResponse($this->listUrl($filters));
+        }
+        if (count($rows) > self::BATCH_LIMIT) {
+            Flash::set('error', '当前筛选条件下超过 ' . self::BATCH_LIMIT
+                . ' 份提案，一次导出装不下（收件清单 Excel 的单次上限是 ' . self::EXPORT_LIMIT
+                . ' 份）。请按状态或提交日期分批导出。');
+            return new RedirectResponse($this->listUrl($filters));
         }
 
         $items = [];
@@ -252,7 +264,12 @@ final class ProposalController extends AdminController
         }
 
         $note = $request->post('review_note');
-        $this->proposals->accept((int) $proposal['proposal_id'], (int) $this->user()['user_id'], $note);
+        $affected = $this->proposals->accept((int) $proposal['proposal_id'], (int) $this->user()['user_id'], $note);
+        if ($affected === 0) {
+            // 状态条件写进了 UPDATE：这里命中说明另一个请求刚刚先处理过这份提案
+            Flash::set('error', '这份提案刚刚已经被处理过了，请刷新页面看最新状态。');
+            return new RedirectResponse('/admin/proposal/' . (int) $proposal['proposal_id']);
+        }
         $this->proposals->writeLog(
             (int) $proposal['proposal_id'],
             'staff',
@@ -283,13 +300,27 @@ final class ProposalController extends AdminController
         if ($proposal === null) {
             return $this->notFound();
         }
+        // 与受理同口径先看状态：退回状态里的提案不能再退一次，否则两个页面同时操作会把
+        // 前一位写的退回意见覆盖掉（状态机 transitions()['return'] 也不含 returned）
+        $status = ProposalWorkflow::normalize((string) $proposal['status']);
+        if (!in_array($status, ProposalWorkflow::transitions()['return']['from'], true)) {
+            Flash::set('error', $status === ProposalWorkflow::RETURNED
+                ? '该提案已经被退回补充过了，退回意见见页面下方。等委员修改后重新提交，再作受理或退回。'
+                : '该提案当前是「' . ProposalWorkflow::label($status) . '」，不能再退回补充。');
+            return new RedirectResponse('/admin/proposal/' . (int) $proposal['proposal_id']);
+        }
         $reason = $request->post('returned_reason');
         if ($reason === '') {
             Flash::set('error', '退回应写明意见，委员需要据此修改。');
             return new RedirectResponse('/admin/proposal/' . (int) $proposal['proposal_id']);
         }
 
-        $this->proposals->returnBack((int) $proposal['proposal_id'], (int) $this->user()['user_id'], $reason);
+        $affected = $this->proposals->returnBack((int) $proposal['proposal_id'], (int) $this->user()['user_id'], $reason);
+        if ($affected === 0) {
+            // 上面那次读状态到这次写库之间，另一份请求可能已经先退回了
+            Flash::set('error', '该提案已经被退回补充过了，退回意见见页面下方。等委员修改后重新提交，再作受理或退回。');
+            return new RedirectResponse('/admin/proposal/' . (int) $proposal['proposal_id']);
+        }
         $this->proposals->writeLog(
             (int) $proposal['proposal_id'],
             'staff',
@@ -314,7 +345,13 @@ final class ProposalController extends AdminController
         }
 
         $filters = $this->filters($request);
-        $rows = $this->proposals->exportRows($filters, self::EXPORT_LIMIT);
+        // 与 Word 批量导出同口径：多取一条判断是否撞上限，撞上就提示分批，不静默截断
+        $rows = $this->proposals->exportRows($filters, self::EXPORT_LIMIT + 1);
+        if (count($rows) > self::EXPORT_LIMIT) {
+            Flash::set('error', '当前筛选条件下超过 ' . self::EXPORT_LIMIT
+                . ' 份提案，一次导出装不下。请按状态或提交日期分批导出。');
+            return new RedirectResponse($this->listUrl($filters));
+        }
         $binary = XlsxExporter::proposalList($rows);
         $this->log('proposal.export', 'proposal', '', ['count' => count($rows), 'filters' => $filters]);
 
@@ -394,6 +431,18 @@ final class ProposalController extends AdminController
             'from'     => (string) ($request->query('from', '') ?? ''),
             'to'       => (string) ($request->query('to', '') ?? ''),
         ];
+    }
+
+    /**
+     * 列表页地址（带上当前筛选）：导出被挡回时跳这里，使用者的筛选条件不会被清掉。
+     *
+     * @param array<string, string> $filters
+     */
+    private function listUrl(array $filters): string
+    {
+        $query = array_filter($filters, static fn ($value): bool => (string) $value !== '');
+
+        return '/admin/proposals' . ($query === [] ? '' : '?' . http_build_query($query));
     }
 
     /**
@@ -485,6 +534,7 @@ final class ProposalController extends AdminController
         $labels = [
             'title'       => '案由',
             'category'    => '提案类别',
+            'collective_name' => '集体名称',
             'body_html'   => '正文',
             'host_units'  => '建议承办单位',
             'co_members'  => '联名委员',
@@ -501,8 +551,42 @@ final class ProposalController extends AdminController
                 $changed[] = $label;
             }
         }
+        // 明细行不在 $labels 里：只改某位联名委员的单位职务或电话时，co_members 名称摘要不变，
+        // 光比标量会判成「没有改动」把修改丢掉（2026-09-17 review-team 报出）。
+        if (self::coMemberSignature($before) !== self::coMemberSignature($after)) {
+            $changed[] = '联名委员资料';
+        }
+        if (self::unitSignature($before) !== self::unitSignature($after)) {
+            $changed[] = '建议承办单位明细';
+        }
 
         return implode('、', $changed);
+    }
+
+    /** 联名委员明细的可比签名（姓名／单位职务／电话，含顺序） */
+    private static function coMemberSignature(array $data): string
+    {
+        $rows = [];
+        foreach ((array) ($data['co_member_rows'] ?? []) as $row) {
+            $rows[] = [
+                (string) ($row['name'] ?? ''),
+                (string) ($row['org_title'] ?? ''),
+                (string) ($row['mobile'] ?? ''),
+            ];
+        }
+
+        return json_encode($rows, JSON_UNESCAPED_UNICODE) ?: '';
+    }
+
+    /** 建议承办单位明细的可比签名（编号／名称，含顺序） */
+    private static function unitSignature(array $data): string
+    {
+        $rows = [];
+        foreach ((array) ($data['unit_rows'] ?? []) as $row) {
+            $rows[] = [(int) ($row['unit_id'] ?? 0), (string) ($row['unit_name'] ?? '')];
+        }
+
+        return json_encode($rows, JSON_UNESCAPED_UNICODE) ?: '';
     }
 
     /** @return list<string> */

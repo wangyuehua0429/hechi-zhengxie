@@ -133,7 +133,8 @@ declare(strict_types=1);
               <?php if ((int) $row['used_count'] === 0): ?>
                 <form method="post" action="/admin/unit/<?= (int) $row['unit_id'] ?>/delete">
                   <?= $csrf ?>
-                  <button type="submit" class="btn btn-sm btn-danger-outline">删除</button>
+                  <button type="submit" class="btn btn-sm btn-danger-outline"
+                          data-confirm="确认从清单里删除「<?= hechi_e((string) $row['name']) ?>」？删除后不能恢复，需要时只能重新添加。">删除</button>
                 </form>
               <?php endif; ?>
             </div>

@@ -147,13 +147,20 @@
     }
   });
 
-  /* 错别字勘误：本期只留入口，点一下回到服务端的预留接口 */
+  /* 错别字勘误：编校服务本期未接入，按钮只在页内给提示，不发请求、不离开本页——
+     发请求回跳会把已填内容冲掉（2026-09-17 review-team 报出）。
+     提示语整句写在模板里（没有脚本时按钮也不是死的），这里只补当前的实时字数。 */
   var proofread = form.querySelector("[data-proofread]");
+  var proofreadCount = form.querySelector("[data-proofread-count]");
   if (proofread) {
     proofread.addEventListener("click", function () {
       if (editor && editor.$.html) {
         textarea.value = editor.$.html.get();
       }
+      if (!proofreadCount) {
+        return;
+      }
+      proofreadCount.textContent = "当前正文 " + countChars(textarea.value) + " 字，上限 " + limit + " 字。";
     });
   }
 

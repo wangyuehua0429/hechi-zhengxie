@@ -61,47 +61,49 @@ final class ProposalRepository
      */
     public function create(int $memberId, array $data): int
     {
-        $now = $this->db->now();
-        $this->db->execute(
-            'INSERT INTO cms_proposal
-               (site_id, member_id, proposer_type, proposer_name, sector, committee, contact_mobile,
-                co_members, collective_name, category, title, body_html, host_units,
-                contact_name, contact_org, contact_title, contact_address, contact_postcode,
-                status, submitted_at, created_at, updated_at)
-             VALUES
-               (:site, :member, :ptype, :pname, :sector, :committee, :mobile,
-                :comembers, :collective, :category, :title, :body, :units,
-                :cname, :corg, :ctitle, :caddress, :cpostcode,
-                :status, :submitted, :t, :t)',
-            [
-                'site'       => $this->siteId,
-                'member'     => $memberId,
-                'ptype'      => (string) ($data['proposer_type'] ?? 'personal'),
-                'pname'      => (string) ($data['proposer_name'] ?? ''),
-                'sector'     => (string) ($data['sector'] ?? ''),
-                'committee'  => (string) ($data['committee'] ?? ''),
-                'mobile'     => (string) ($data['contact_mobile'] ?? ''),
-                'comembers'  => (string) ($data['co_members'] ?? ''),
-                'collective' => (string) ($data['collective_name'] ?? ''),
-                'category'   => (string) ($data['category'] ?? ''),
-                'title'      => (string) ($data['title'] ?? ''),
-                'body'       => (string) ($data['body_html'] ?? ''),
-                'units'      => (string) ($data['host_units'] ?? ''),
-                'cname'      => (string) ($data['contact_name'] ?? ''),
-                'corg'       => (string) ($data['contact_org'] ?? ''),
-                'ctitle'     => (string) ($data['contact_title'] ?? ''),
-                'caddress'   => (string) ($data['contact_address'] ?? ''),
-                'cpostcode'  => (string) ($data['contact_postcode'] ?? ''),
-                'status'     => ProposalWorkflow::SUBMITTED,
-                'submitted'  => $now,
-                't'          => $now,
-            ]
-        );
+        return $this->transactional(function () use ($memberId, $data): int {
+            $now = $this->db->now();
+            $this->db->execute(
+                'INSERT INTO cms_proposal
+                   (site_id, member_id, proposer_type, proposer_name, sector, committee, contact_mobile,
+                    co_members, collective_name, category, title, body_html, host_units,
+                    contact_name, contact_org, contact_title, contact_address, contact_postcode,
+                    status, submitted_at, created_at, updated_at)
+                 VALUES
+                   (:site, :member, :ptype, :pname, :sector, :committee, :mobile,
+                    :comembers, :collective, :category, :title, :body, :units,
+                    :cname, :corg, :ctitle, :caddress, :cpostcode,
+                    :status, :submitted, :t, :t)',
+                [
+                    'site'       => $this->siteId,
+                    'member'     => $memberId,
+                    'ptype'      => (string) ($data['proposer_type'] ?? 'personal'),
+                    'pname'      => (string) ($data['proposer_name'] ?? ''),
+                    'sector'     => (string) ($data['sector'] ?? ''),
+                    'committee'  => (string) ($data['committee'] ?? ''),
+                    'mobile'     => (string) ($data['contact_mobile'] ?? ''),
+                    'comembers'  => (string) ($data['co_members'] ?? ''),
+                    'collective' => (string) ($data['collective_name'] ?? ''),
+                    'category'   => (string) ($data['category'] ?? ''),
+                    'title'      => (string) ($data['title'] ?? ''),
+                    'body'       => (string) ($data['body_html'] ?? ''),
+                    'units'      => (string) ($data['host_units'] ?? ''),
+                    'cname'      => (string) ($data['contact_name'] ?? ''),
+                    'corg'       => (string) ($data['contact_org'] ?? ''),
+                    'ctitle'     => (string) ($data['contact_title'] ?? ''),
+                    'caddress'   => (string) ($data['contact_address'] ?? ''),
+                    'cpostcode'  => (string) ($data['contact_postcode'] ?? ''),
+                    'status'     => ProposalWorkflow::SUBMITTED,
+                    'submitted'  => $now,
+                    't'          => $now,
+                ]
+            );
 
-        $proposalId = (int) $this->db->pdo()->lastInsertId();
-        $this->writeDetail($proposalId, $data);
+            $proposalId = (int) $this->db->pdo()->lastInsertId();
+            $this->writeDetail($proposalId, $data);
 
-        return $proposalId;
+            return $proposalId;
+        });
     }
 
     /**
@@ -111,44 +113,46 @@ final class ProposalRepository
      */
     public function resubmit(int $proposalId, array $data): void
     {
-        $now = $this->db->now();
-        $this->db->execute(
-            'UPDATE cms_proposal SET
-               proposer_type = :ptype, proposer_name = :pname, sector = :sector, committee = :committee,
-               contact_mobile = :mobile, co_members = :comembers, collective_name = :collective,
-               category = :category, title = :title, body_html = :body, host_units = :units,
-               contact_name = :cname, contact_org = :corg, contact_title = :ctitle,
-               contact_address = :caddress, contact_postcode = :cpostcode,
-               status = :status, returned_reason = :empty,
-               submitted_at = :submitted, updated_at = :t
-             WHERE proposal_id = :id AND site_id = :site',
-            [
-                'ptype'      => (string) ($data['proposer_type'] ?? 'personal'),
-                'pname'      => (string) ($data['proposer_name'] ?? ''),
-                'sector'     => (string) ($data['sector'] ?? ''),
-                'committee'  => (string) ($data['committee'] ?? ''),
-                'mobile'     => (string) ($data['contact_mobile'] ?? ''),
-                'comembers'  => (string) ($data['co_members'] ?? ''),
-                'collective' => (string) ($data['collective_name'] ?? ''),
-                'category'   => (string) ($data['category'] ?? ''),
-                'title'      => (string) ($data['title'] ?? ''),
-                'body'       => (string) ($data['body_html'] ?? ''),
-                'units'      => (string) ($data['host_units'] ?? ''),
-                'cname'      => (string) ($data['contact_name'] ?? ''),
-                'corg'       => (string) ($data['contact_org'] ?? ''),
-                'ctitle'     => (string) ($data['contact_title'] ?? ''),
-                'caddress'   => (string) ($data['contact_address'] ?? ''),
-                'cpostcode'  => (string) ($data['contact_postcode'] ?? ''),
-                'status'     => ProposalWorkflow::SUBMITTED,
-                'empty'      => '',
-                'submitted'  => $now,
-                't'          => $now,
-                'id'         => $proposalId,
-                'site'       => $this->siteId,
-            ]
-        );
+        $this->transactional(function () use ($proposalId, $data): void {
+            $now = $this->db->now();
+            $this->db->execute(
+                'UPDATE cms_proposal SET
+                   proposer_type = :ptype, proposer_name = :pname, sector = :sector, committee = :committee,
+                   contact_mobile = :mobile, co_members = :comembers, collective_name = :collective,
+                   category = :category, title = :title, body_html = :body, host_units = :units,
+                   contact_name = :cname, contact_org = :corg, contact_title = :ctitle,
+                   contact_address = :caddress, contact_postcode = :cpostcode,
+                   status = :status, returned_reason = :empty,
+                   submitted_at = :submitted, updated_at = :t
+                 WHERE proposal_id = :id AND site_id = :site',
+                [
+                    'ptype'      => (string) ($data['proposer_type'] ?? 'personal'),
+                    'pname'      => (string) ($data['proposer_name'] ?? ''),
+                    'sector'     => (string) ($data['sector'] ?? ''),
+                    'committee'  => (string) ($data['committee'] ?? ''),
+                    'mobile'     => (string) ($data['contact_mobile'] ?? ''),
+                    'comembers'  => (string) ($data['co_members'] ?? ''),
+                    'collective' => (string) ($data['collective_name'] ?? ''),
+                    'category'   => (string) ($data['category'] ?? ''),
+                    'title'      => (string) ($data['title'] ?? ''),
+                    'body'       => (string) ($data['body_html'] ?? ''),
+                    'units'      => (string) ($data['host_units'] ?? ''),
+                    'cname'      => (string) ($data['contact_name'] ?? ''),
+                    'corg'       => (string) ($data['contact_org'] ?? ''),
+                    'ctitle'     => (string) ($data['contact_title'] ?? ''),
+                    'caddress'   => (string) ($data['contact_address'] ?? ''),
+                    'cpostcode'  => (string) ($data['contact_postcode'] ?? ''),
+                    'status'     => ProposalWorkflow::SUBMITTED,
+                    'empty'      => '',
+                    'submitted'  => $now,
+                    't'          => $now,
+                    'id'         => $proposalId,
+                    'site'       => $this->siteId,
+                ]
+            );
 
-        $this->writeDetail($proposalId, $data);
+            $this->writeDetail($proposalId, $data);
+        });
     }
 
     /**
@@ -159,40 +163,71 @@ final class ProposalRepository
      */
     public function adminUpdate(int $proposalId, array $data, int $actorId): void
     {
-        $now = $this->db->now();
-        $this->db->execute(
-            'UPDATE cms_proposal SET
-               category = :category, title = :title, body_html = :body, host_units = :units,
-               co_members = :comembers, collective_name = :collective,
-               contact_name = :cname, contact_org = :corg, contact_title = :ctitle,
-               contact_address = :caddress, contact_postcode = :cpostcode, contact_mobile = :mobile,
-               edited_by = :actor, edited_at = :t, updated_at = :t
-             WHERE proposal_id = :id AND site_id = :site',
-            [
-                'category'   => (string) ($data['category'] ?? ''),
-                'title'      => (string) ($data['title'] ?? ''),
-                'body'       => (string) ($data['body_html'] ?? ''),
-                'units'      => (string) ($data['host_units'] ?? ''),
-                'comembers'  => (string) ($data['co_members'] ?? ''),
-                'collective' => (string) ($data['collective_name'] ?? ''),
-                'cname'      => (string) ($data['contact_name'] ?? ''),
-                'corg'       => (string) ($data['contact_org'] ?? ''),
-                'ctitle'     => (string) ($data['contact_title'] ?? ''),
-                'caddress'   => (string) ($data['contact_address'] ?? ''),
-                'cpostcode'  => (string) ($data['contact_postcode'] ?? ''),
-                'mobile'     => (string) ($data['contact_mobile'] ?? ''),
-                'actor'      => $actorId,
-                't'          => $now,
-                'id'         => $proposalId,
-                'site'       => $this->siteId,
-            ]
-        );
+        $this->transactional(function () use ($proposalId, $data, $actorId): void {
+            $now = $this->db->now();
+            $this->db->execute(
+                'UPDATE cms_proposal SET
+                   category = :category, title = :title, body_html = :body, host_units = :units,
+                   co_members = :comembers, collective_name = :collective,
+                   contact_name = :cname, contact_org = :corg, contact_title = :ctitle,
+                   contact_address = :caddress, contact_postcode = :cpostcode, contact_mobile = :mobile,
+                   edited_by = :actor, edited_at = :t, updated_at = :t
+                 WHERE proposal_id = :id AND site_id = :site',
+                [
+                    'category'   => (string) ($data['category'] ?? ''),
+                    'title'      => (string) ($data['title'] ?? ''),
+                    'body'       => (string) ($data['body_html'] ?? ''),
+                    'units'      => (string) ($data['host_units'] ?? ''),
+                    'comembers'  => (string) ($data['co_members'] ?? ''),
+                    'collective' => (string) ($data['collective_name'] ?? ''),
+                    'cname'      => (string) ($data['contact_name'] ?? ''),
+                    'corg'       => (string) ($data['contact_org'] ?? ''),
+                    'ctitle'     => (string) ($data['contact_title'] ?? ''),
+                    'caddress'   => (string) ($data['contact_address'] ?? ''),
+                    'cpostcode'  => (string) ($data['contact_postcode'] ?? ''),
+                    'mobile'     => (string) ($data['contact_mobile'] ?? ''),
+                    'actor'      => $actorId,
+                    't'          => $now,
+                    'id'         => $proposalId,
+                    'site'       => $this->siteId,
+                ]
+            );
 
-        $this->writeDetail($proposalId, $data);
+            $this->writeDetail($proposalId, $data);
+        });
+    }
+
+    /**
+     * 把一段写库包进事务：主表与两张明细表要么一起落，要么一起不落——
+     * 中途失败时不会留下「提案在、联名委员与承办单位半截」的记录。
+     * 调用方已经在事务里时不再新开一层（SQLite 没有嵌套事务）。
+     *
+     * @template T
+     * @param callable():T $callback
+     * @return T
+     */
+    private function transactional(callable $callback): mixed
+    {
+        $pdo = $this->db->pdo();
+        if ($pdo->inTransaction()) {
+            return $callback();
+        }
+
+        $pdo->beginTransaction();
+        try {
+            $result = $callback();
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+        $pdo->commit();
+
+        return $result;
     }
 
     /**
      * 联名委员与承办单位明细：整组替换（数量少、顺序有意义，增量比对得不偿失）。
+     * 只由上面三个写入口在事务里调用。
      *
      * @param array<string, mixed> $data
      */
@@ -318,14 +353,22 @@ final class ProposalRepository
         );
     }
 
-    public function accept(int $proposalId, int $reviewerId, string $note): void
+    /**
+     * 受理。状态条件写进 UPDATE 的 WHERE：两位提案委同时处理同一件时，先到的写库成功，
+     * 后到的受影响行数为 0，由调用方给出「已经被处理过」的提示。
+     *
+     * @return int 受影响行数
+     */
+    public function accept(int $proposalId, int $reviewerId, string $note): int
     {
         $now = $this->db->now();
-        $this->db->execute(
+        [$fromSql, $fromParams] = $this->fromStatuses('accept');
+
+        return $this->db->execute(
             'UPDATE cms_proposal SET status = :status, reviewer_id = :reviewer, reviewed_at = :t,
                review_note = :note, returned_reason = :empty, updated_at = :t
-             WHERE proposal_id = :id AND site_id = :site',
-            [
+             WHERE proposal_id = :id AND site_id = :site AND ' . $fromSql,
+            array_merge([
                 'status'   => ProposalWorkflow::ACCEPTED,
                 'reviewer' => $reviewerId,
                 't'        => $now,
@@ -333,26 +376,51 @@ final class ProposalRepository
                 'empty'    => '',
                 'id'       => $proposalId,
                 'site'     => $this->siteId,
-            ]
+            ], $fromParams)
         );
     }
 
-    public function returnBack(int $proposalId, int $reviewerId, string $reason): void
+    /**
+     * 退回补充。与受理同一口径：状态条件进 WHERE，写入被抢先在前的请求挡回时返回 0。
+     *
+     * @return int 受影响行数
+     */
+    public function returnBack(int $proposalId, int $reviewerId, string $reason): int
     {
         $now = $this->db->now();
-        $this->db->execute(
+        [$fromSql, $fromParams] = $this->fromStatuses('return');
+
+        return $this->db->execute(
             'UPDATE cms_proposal SET status = :status, reviewer_id = :reviewer, reviewed_at = :t,
                returned_reason = :reason, updated_at = :t
-             WHERE proposal_id = :id AND site_id = :site',
-            [
+             WHERE proposal_id = :id AND site_id = :site AND ' . $fromSql,
+            array_merge([
                 'status'   => ProposalWorkflow::RETURNED,
                 'reviewer' => $reviewerId,
                 't'        => $now,
                 'reason'   => $reason,
                 'id'       => $proposalId,
                 'site'     => $this->siteId,
-            ]
+            ], $fromParams)
         );
+    }
+
+    /**
+     * 状态机里某个动作允许的起始状态 → SQL 片段与绑定参数（占位符逐个起名，PDO 不许复用同名占位符）。
+     *
+     * @return array{0:string,1:array<string,string>}
+     */
+    private function fromStatuses(string $action): array
+    {
+        $parts = [];
+        $params = [];
+        foreach (ProposalWorkflow::transitions()[$action]['from'] as $index => $status) {
+            $key = 'from' . $index . $action;
+            $parts[] = ':' . $key;
+            $params[$key] = $status;
+        }
+
+        return ['status IN (' . implode(', ', $parts) . ')', $params];
     }
 
     public function find(int $proposalId): ?array

@@ -162,18 +162,31 @@ declare(strict_types=1);
   <button type="submit" class="btn-primary">筛选</button>
 </form>
 
-<form method="post" action="/admin/members/reset-batch" id="bulk-form">
+<?php /* 批量重置与稿件页共用 admin.js 的跨页选择：class="bulk-form" 负责吸顶，
+         data-bulk-max 与服务端 MemberController::BATCH_LIMIT 同源，
+         data-bulk-key 由服务端按归一化后的筛选算，换筛选才不会串篮子，
+         字段名是 member_ids[]（稿件页是 ids[]），量词与提示语也在这里改。 */ ?>
+<form method="post" action="/admin/members/reset-batch" id="bulk-form" class="bulk-form"
+      data-bulk-max="<?= (int) ($maxBulk ?? 100) ?>"
+      data-bulk-key="<?= hechi_e((string) ($bulkKey ?? '')) ?>"
+      data-bulk-field="member_ids[]"
+      data-bulk-unit="人"
+      data-bulk-noun="委员">
   <?= $csrf ?>
   <div class="bulk-bar" data-bulk-bar>
-    <span class="bulk-count">已选 <strong data-bulk-count>0</strong> 人</span>
+    <span class="bulk-count">已选 <strong data-bulk-count>0</strong> 人<span class="bulk-scope" data-bulk-scope hidden></span></span>
     <label class="bulk-field">批量操作
       <select name="action" data-bulk-action>
         <option value="reset">重置登录密码</option>
       </select>
     </label>
-    <button type="submit" class="btn-primary">执行</button>
+    <?php /* 一次最多换掉 500 人的密码、旧密码立即失效、新密码清单只能下载一次：
+             与单位删除同口径先确认（admin.js 读 data-confirm）。 */ ?>
+    <button type="submit" class="btn-primary"
+            data-confirm="确认重置已选委员的登录密码？旧密码立即失效，新密码清单只能下载一次。">执行</button>
     <button type="button" class="btn btn-ghost" data-bulk-clear>取消选择</button>
-    <span class="muted">重置后每人生成不同的随机密码，委员下次登录必须改密；密码清单只能下载一次。</span>
+    <span class="muted">单次最多处理 <?= (int) ($maxBulk ?? 100) ?> 人<span class="js-only">，翻页不会丢掉已选</span>；重置后每人生成不同的随机密码，委员下次登录必须改密，密码清单只能下载一次。</span>
+    <p class="bulk-error" data-bulk-error hidden role="alert"></p>
   </div>
 
   <div class="table-scroll">
@@ -181,7 +194,10 @@ declare(strict_types=1);
       <caption class="visually-hidden">委员账号列表</caption>
       <thead>
         <tr>
-          <th class="bulk-col" scope="col"><input type="checkbox" data-select-all aria-label="全选本页委员"></th>
+          <th class="bulk-col" scope="col">
+            <?php /* 复选框包进 label：窄屏上整格都能点，不用去戳 13px 的方框（与稿件页同口径） */ ?>
+            <label class="bulk-cell"><input type="checkbox" data-select-all aria-label="全选本页委员"></label>
+          </th>
           <th>姓名</th>
           <th>登录名</th>
           <th>界别</th>
@@ -197,8 +213,10 @@ declare(strict_types=1);
         <?php foreach ($rows as $row): ?>
           <tr>
             <td class="bulk-col">
-              <input type="checkbox" name="member_ids[]" value="<?= (int) $row['member_id'] ?>"
-                     data-row-select aria-label="选择 <?= hechi_e((string) $row['name']) ?>">
+              <label class="bulk-cell">
+                <input type="checkbox" name="member_ids[]" value="<?= (int) $row['member_id'] ?>"
+                       data-row-select aria-label="选择 <?= hechi_e((string) $row['name']) ?>">
+              </label>
             </td>
             <td class="nowrap"><?= hechi_e((string) $row['name']) ?></td>
             <td class="nowrap"><?= hechi_e((string) $row['login_name']) ?></td>

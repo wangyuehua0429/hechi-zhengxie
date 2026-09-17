@@ -181,9 +181,19 @@ $returnTo = $isEdit ? '/member/proposal/' . $proposalId . '/edit' : '/member/pro
     <p class="m-hint" id="body-hint">可用工具条做加粗、下划线与列表；正文只保留这些格式，导出提案表时版式统一。</p>
 
     <div class="m-actions">
-      <button type="submit" class="m-btn" formaction="/member/proposal/check-text" data-proofread>
+      <?php /* 编校服务还没接入，所以按钮不发请求、只在页内给提示：
+              原先写成 type="submit" + formaction 指向预留接口，点一下会 302 回本页的 GET 地址，
+              填了一半的案由、正文与联名委员全没了（2026-09-17 review-team 报出）。
+              提示语本身写在模板里：不加载脚本时按钮也不会变成死按钮。
+              路由与接口保留，data-proofread-endpoint 指向它，接上编校服务后改回提交即可。 */ ?>
+      <button type="button" class="m-btn"
+              data-proofread data-proofread-endpoint="/member/proposal/check-text"
+              aria-describedby="proofread-note">
         错别字勘误（待接入）
       </button>
+      <p class="m-hint" id="proofread-note" data-proofread-note role="status">
+        本功能还没开放，暂时不能自动校对；点这个按钮不会提交，已填内容不会丢。可以先自己校读，或把正文复制到 Word 里校对后再提交。<span data-proofread-count></span>
+      </p>
     </div>
   </fieldset>
 

@@ -107,6 +107,11 @@
     // 单次上限由模板写进 data-bulk-max（源头是 ArticleController::MAX_BULK），
     // 前端不再自己记一个数，免得与服务端各改一半。
     const maxBulk = Number(bulkForm.getAttribute("data-bulk-max")) || 100;
+    /* 隐藏域字段名与提示语里的量词都跟着页面走：稿件页用 ids[]／篇／稿件，
+       委员页用 member_ids[]／人／委员。默认值就是稿件页原来的写法，那边不用改模板。 */
+    const bulkField = bulkForm.getAttribute("data-bulk-field") || "ids[]";
+    const bulkUnit = bulkForm.getAttribute("data-bulk-unit") || "篇";
+    const bulkNoun = bulkForm.getAttribute("data-bulk-noun") || "稿件";
 
     /* 跨页选择：勾了谁记在 sessionStorage 里，翻页回来还算数；
        不在本页的 id 用隐藏域补进表单，服务端收到的仍然是同一串 ids[]。
@@ -136,7 +141,7 @@
       offPageIds().forEach((id) => {
         const field = document.createElement("input");
         field.type = "hidden";
-        field.name = "ids[]";
+        field.name = bulkField;
         field.value = id;
         field.setAttribute("data-cross-page", "1");
         bulkForm.appendChild(field);
@@ -160,7 +165,7 @@
       if (scopeNode) {
         scopeNode.hidden = ids.length === 0;
         scopeNode.textContent = offCount > 0
-          ? "（本页 " + pageCount + " 篇，另 " + offCount + " 篇在其它页）"
+          ? "（本页 " + pageCount + " " + bulkUnit + "，另 " + offCount + " " + bulkUnit + "在其它页）"
           : "（都在本页）";
       }
       if (selectAll) {
@@ -239,12 +244,12 @@
       const ids = allIds();
       if (ids.length === 0) {
         event.preventDefault();
-        showError("请先勾选要处理的稿件。", selectAll || rows[0]);
+        showError("请先勾选要处理的" + bulkNoun + "。", selectAll || rows[0]);
         return;
       }
       if (ids.length > maxBulk) {
         event.preventDefault();
-        showError("已选 " + ids.length + " 篇，超过单次上限 " + maxBulk + " 篇，请先取消一部分。", clearButton || rows[0]);
+        showError("已选 " + ids.length + " " + bulkUnit + "，超过单次上限 " + maxBulk + " " + bulkUnit + "，请先取消一部分。", clearButton || rows[0]);
         return;
       }
       const option = actionSelect ? actionSelect.options[actionSelect.selectedIndex] : null;
@@ -583,6 +588,9 @@
   document.addEventListener("submit", (event) => {
     const form = event.target;
     if (!form || form.tagName !== "FORM") return;
+    // 页面自己的提交自检（批量表单的空选／超限／缺备注）已经挡下这次提交时不再弹确认框，
+    // 否则用户点了「确定」页面毫无反应，像是按钮坏了。
+    if (event.defaultPrevented) return;
     // 文案可以写在表单上（一条记录一个），也可以写在提交按钮上（同一表单多个按钮）
     const submitter = event.submitter;
     const source = submitter && submitter.hasAttribute && submitter.hasAttribute("data-confirm")

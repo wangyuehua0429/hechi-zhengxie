@@ -514,6 +514,24 @@ async function main() {
       unitTemplate.status === 200 && unitTemplate.text.includes("单位名称,排序号"),
       "状态 " + unitTemplate.status);
 
+    // 模板自带 BOM，又有一行「示例：…」；直接拿它当数据导入过会凭空多出两条垃圾单位
+    // 注意：res.text() 解码时已经把 BOM 吃掉，这里要显式补回去，才是「下载模板→原样传回」的真实字节
+    const templateImport = await admin.upload("/admin/units/import",
+      { _token: csrfToken(unitsPage.text) },
+      [{
+        field: "units",
+        filename: "template.csv",
+        content: Buffer.concat([Buffer.from([0xEF, 0xBB, 0xBF]), Buffer.from(unitTemplate.text, "utf8")]),
+        type: "text/csv"
+      }]);
+    const afterTemplateImport = await admin.get("/admin/units");
+    check("用系统自带模板导入不会凭空生成单位（BOM 表头与示例行都不入库）",
+      templateImport.status === 302
+        && afterTemplateImport.text.includes("新增 0 个")
+        && afterTemplateImport.text.includes("清单还是空的")
+        && afterTemplateImport.text.includes("示例：河池市住房和城乡建设局") === false,
+      "状态 " + templateImport.status);
+
     const unitCsv = "单位名称,排序号\n"
       + "河池市住房和城乡建设局,10\n"
       + "河池市教育局,20\n"
@@ -724,6 +742,12 @@ async function main() {
       formPage.text.includes("/assets/editor/suneditor.min.js")
         && formPage.text.includes("/assets/member-editor.js")
         && formPage.text.includes("/member/proposal/check-text"));
+    // 按钮原先写成 type="submit" + formaction 指向预留接口，点一下会 302 回本页的 GET 地址，
+    // 填了一半的正文与联名委员全丢；改成页内提示，接口与路由仍保留在 data 属性里
+    check("勘误按钮只在页内提示，不再提交表单（已填内容不会被冲掉）",
+      formPage.text.includes('data-proofread-endpoint="/member/proposal/check-text"')
+        && formPage.text.includes("data-proofread-note")
+        && !formPage.text.includes('formaction="/member/proposal/check-text"'));
 
     const unitIds = [...formPage.text.matchAll(/<option value="(\d+)"[^>]*>\s*河池市/g)].map((m) => m[1]);
     check("能从页面取到承办单位编号（供下面提交用）", unitIds.length === 7, "取到 " + unitIds.length + " 个");
@@ -968,6 +992,19 @@ async function main() {
     check("退回后状态为已退回并记录意见",
       afterReturn.text.includes("已退回") && afterReturn.text.includes(returnReason));
 
+    // 状态守卫：退回状态里的提案不能再退一次，否则会把前一条退回意见覆盖掉
+    const secondReturn = await admin.post("/admin/proposal/" + proposalId + "/return", {
+      _token: csrfToken(afterReturn.text),
+      returned_reason: "第二次退回意见（应被挡下）"
+    });
+    const afterSecondReturn = await admin.get("/admin/proposal/" + proposalId);
+    check("已退回的提案不能再退一次，前一条退回意见不被覆盖",
+      secondReturn.status === 302
+        && afterSecondReturn.text.includes("该提案已经被退回补充过了")
+        && afterSecondReturn.text.includes(returnReason)
+        && afterSecondReturn.text.includes("第二次退回意见") === false,
+      "状态 " + secondReturn.status);
+
     const memberDetailAfterReturn = await memberA.get("/member/proposal/" + proposalId);
     check("委员端能看到退回意见与「修改并重新提交」入口",
       memberDetailAfterReturn.status === 200
@@ -1031,33 +1068,84 @@ async function main() {
     check("调整后的承办单位已生效",
       afterAdminEdit.text.includes("河池市住房和城乡建设局") && afterAdminEdit.text.includes("河池市教育局"));
 
-    const memberAfterAdminEdit = await memberA.get("/member/proposal/" + proposalId);
-    check("委员端提示「提案委已对内容作了调整」并看到调整后正文",
-      memberAfterAdminEdit.text.includes("提案委已对内容作了调整")
-        && memberAfterAdminEdit.text.includes("提案委补充："));
-
-    const noChangeEdit = await admin.post("/admin/proposal/" + proposalId + "/edit", {
-      _token: csrfToken(afterAdminEdit.text),
+    const editBase = {
       title,
       category: "经济建设",
       collective_name: "",
       body_html: "<p>城区老旧小区电动自行车充电设施不足，消防隐患突出。</p>"
         + "<p><strong>提案委补充：</strong>建议先<u>做摸底台账</u>再分批实施。</p>",
       "units[]": unitIds.slice(0, 2),
-      "co_name[]": "",
-      "co_org[]": "",
-      "co_mobile[]": "",
       contact_name: "张三",
       contact_org: "河池市某某局",
       contact_title: "科长",
       contact_address: "河池市宜州区某某路 1 号",
       contact_postcode: "547000",
       contact_mobile: "13800000001"
+    };
+
+    const coAddEdit = await admin.post("/admin/proposal/" + proposalId + "/edit", {
+      ...editBase,
+      _token: csrfToken(afterAdminEdit.text),
+      "co_name[]": "李四",
+      "co_org[]": "河池市教育局副局长",
+      "co_mobile[]": "13900000002"
+    });
+    const afterCoAdd = await admin.get("/admin/proposal/" + proposalId);
+    check("联名委员资料写进明细并显示在详情页",
+      coAddEdit.status === 302
+        && afterCoAdd.text.includes("已保存调整")
+        && afterCoAdd.text.includes("河池市教育局副局长"),
+      "状态 " + coAddEdit.status);
+
+    // 名称摘要（co_members）没变、只改了单位职务：原先只比标量字段，会判成「没有改动」直接丢弃
+    const coOrgEdit = await admin.post("/admin/proposal/" + proposalId + "/edit", {
+      ...editBase,
+      _token: csrfToken(afterCoAdd.text),
+      "co_name[]": "李四",
+      "co_org[]": "河池市教育局局长",
+      "co_mobile[]": "13900000002"
+    });
+    const afterCoOrgEdit = await admin.get("/admin/proposal/" + proposalId);
+    check("只改联名委员的单位职务也算改动（不再判成「没有改动」而丢弃）",
+      coOrgEdit.status === 302
+        && afterCoOrgEdit.text.includes("已保存调整")
+        && afterCoOrgEdit.text.includes("联名委员资料")
+        && afterCoOrgEdit.text.includes("河池市教育局局长"),
+      "状态 " + coOrgEdit.status);
+
+    const memberAfterAdminEdit = await memberA.get("/member/proposal/" + proposalId);
+    check("委员端提示「提案委已对内容作了调整」并看到调整后正文",
+      memberAfterAdminEdit.text.includes("提案委已对内容作了调整")
+        && memberAfterAdminEdit.text.includes("提案委补充："));
+
+    const noChangeEdit = await admin.post("/admin/proposal/" + proposalId + "/edit", {
+      ...editBase,
+      _token: csrfToken(afterCoOrgEdit.text),
+      "co_name[]": "李四",
+      "co_org[]": "河池市教育局局长",
+      "co_mobile[]": "13900000002"
     });
     const afterNoChange = await admin.get("/admin/proposal/" + proposalId);
     check("内容没变时不写留痕（提示「没有改动」）",
       noChangeEdit.status === 302 && afterNoChange.text.includes("没有改动"),
       "状态 " + noChangeEdit.status);
+
+    // 同一类漏判：集体名称原先也不在比对清单里，只改它同样会被判成「没有改动」丢掉
+    const collectiveEdit = await admin.post("/admin/proposal/" + proposalId + "/edit", {
+      ...editBase,
+      _token: csrfToken(afterNoChange.text),
+      "co_name[]": "李四",
+      "co_org[]": "河池市教育局局长",
+      "co_mobile[]": "13900000002",
+      collective_name: "提案委代拟"
+    });
+    const afterCollectiveEdit = await admin.get("/admin/proposal/" + proposalId);
+    check("只改集体名称也算改动（不再判成「没有改动」而丢弃）",
+      collectiveEdit.status === 302
+        && afterCollectiveEdit.text.includes("已保存调整")
+        && afterCollectiveEdit.text.includes("集体名称")
+        && afterCollectiveEdit.text.includes("提案委代拟"),
+      "状态 " + collectiveEdit.status);
 
     const postcodeEdit = await admin.post("/admin/proposal/" + proposalId + "/edit", {
       _token: csrfToken(afterNoChange.text),
@@ -1188,6 +1276,38 @@ async function main() {
     check("批量导出的文件名带「提案汇总」",
       decodeURIComponent(batchWord.headers.get("content-disposition") || "").includes("提案汇总"));
 
+    // 导出上限：临时库里塞到 260 件，批量导出应被挡回（不静默截断），跳转还要保留当前筛选
+    const fillerScript = path.join(tmpRoot, "fill_proposals.php");
+    writeFileSync(fillerScript, [
+      "<?php",
+      "declare(strict_types=1);",
+      "$pdo = new PDO('sqlite:' . getenv('DB_DATABASE'));",
+      "$memberId = (int) $pdo->query('SELECT member_id FROM sys_member ORDER BY member_id LIMIT 1')->fetchColumn();",
+      "$stmt = $pdo->prepare(\"INSERT INTO cms_proposal",
+      "  (site_id, member_id, proposer_type, proposer_name, category, title, body_html, status, submitted_at, created_at, updated_at)",
+      "  VALUES (1, :member, 'personal', '张三', '经济建设', :title, '<p>导出上限用例</p>', 'submitted', :t, :t, :t)\");",
+      "$now = date('Y-m-d H:i:s');",
+      "for ($i = 1; $i <= 260; $i++) {",
+      "    $stmt->execute(['member' => $memberId, 'title' => '导出上限用例 ' . $i, 't' => $now]);",
+      "}",
+      "echo (int) $pdo->query('SELECT COUNT(*) FROM cms_proposal')->fetchColumn();"
+    ].join("\n") + "\n");
+    const filled = runPhp(php, fillerScript, env);
+    check("临时库塞到 260 件提案（供导出上限用）",
+      filled.status === 0 && Number((filled.stdout || "").trim()) >= 260,
+      (filled.stderr || "").trim().split("\n")[0]);
+
+    const overLimitKeyword = encodeURIComponent("导出上限用例");
+    const overLimitWord = await admin.get("/admin/proposals/export.docx?keyword=" + overLimitKeyword);
+    const overLimitList = await admin.get("/admin/proposals?keyword=" + overLimitKeyword);
+    check("Word 批量导出超过单次上限时挡回并提示分批（不再静默截断）",
+      overLimitWord.status === 302
+        && decodeURIComponent(overLimitWord.headers.get("location") || "").includes("keyword=导出上限用例")
+        && overLimitList.text.includes("一次导出装不下"),
+      "状态 " + overLimitWord.status + "，跳转 " + decodeURIComponent(overLimitWord.headers.get("location") || ""));
+    check("超限提示里写明两条导出的单次上限",
+      overLimitList.text.includes("单次上限是 3000 份") && overLimitList.text.includes("单次最多 200 件"));
+
     const memberWord = await memberA.get("/member/proposal/" + proposalId + "/word", { binary: true });
     const memberDoc = memberWord.status === 200 ? unzipPart(memberWord.buffer, "word/document.xml", tmpRoot, "member.docx") : "";
     check("委员端可下载自己提案的 Word 版",
@@ -1201,6 +1321,15 @@ async function main() {
         && membersPage.text.includes("/admin/members/reset-batch")
         && membersPage.text.includes("重置登录密码"),
       "取到 " + memberIds.length + " 个账号");
+    // 批量表单原先缺上限、篮子键、错误条与跨页字段名，勾超 100 人（服务端其实收 500）时
+    // 会被前端静默拦下、页面毫无反馈；跨页选中的人也会以 ids[] 提交、服务端收不到
+    check("委员页批量表单带上限、篮子键、错误条与跨页字段名",
+      membersPage.text.includes('data-bulk-max="500"')
+        && /data-bulk-key="[0-9a-f]{12}"/.test(membersPage.text)
+        && membersPage.text.includes('data-bulk-field="member_ids[]"')
+        && membersPage.text.includes("data-bulk-error")
+        && membersPage.text.includes("data-bulk-scope")
+        && membersPage.text.includes("单次最多处理 500 人"));
 
     const resetBatchToken = csrfToken(membersPage.text);
     const emptyBatch = await admin.post("/admin/members/reset-batch", { _token: resetBatchToken, action: "reset" });

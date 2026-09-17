@@ -201,12 +201,18 @@ final class UnitRepository
             if ($line === '') {
                 continue;
             }
-            $cells = str_getcsv($line);
+            // 第 4 个参数 $escape 必须显式传：PHP 8.5 起省略会每行报一条 Deprecated，
+            // PHP 9 起该参数的默认值还要改（不传就是按废弃默认解析）
+            $cells = str_getcsv($line, ',', '"', '\\');
             $name = self::normalizeName((string) ($cells[0] ?? ''));
             if ($name === '') {
                 continue;
             }
             if ($rowNumber === 1 && in_array($name, ['单位名称', '单位', '市直单位', '建议承办单位'], true)) {
+                continue;
+            }
+            // 模板里那行「示例：…」是给人看格式的，直接当数据导进来会变成一条垃圾单位
+            if (preg_match('/^(示例|例如)/u', $name) === 1) {
                 continue;
             }
             $sort = isset($cells[1]) && is_numeric(trim((string) $cells[1])) ? (int) trim((string) $cells[1]) : 0;
@@ -267,14 +273,19 @@ final class UnitRepository
         return trim(str_replace(["\xE3\x80\x80", "\t"], ' ', $name));
     }
 
-    /** 名单常从 Excel 导出成 GBK，与委员名册导入同一口径 */
+    /**
+     * 名单常从 Excel 导出成 GBK，与委员名册导入同一口径；BOM 必须剥掉，
+     * 否则模板第一行的表头会变成「\uFEFF单位名称」，识别不成表头就当成一条单位导进来
+     * （2026-09-17 review-team 实测：拿系统自带的模板导入会凭空多出两条垃圾单位）。
+     */
     public static function toUtf8(string $raw): string
     {
-        if (mb_check_encoding($raw, 'UTF-8')) {
-            return $raw;
+        $text = preg_replace('/^\xEF\xBB\xBF/', '', $raw) ?? $raw;
+        if (mb_check_encoding($text, 'UTF-8')) {
+            return $text;
         }
 
-        return mb_convert_encoding($raw, 'UTF-8', 'GB18030');
+        return mb_convert_encoding($text, 'UTF-8', 'GB18030');
     }
 
     private static function likePattern(string $keyword): string
