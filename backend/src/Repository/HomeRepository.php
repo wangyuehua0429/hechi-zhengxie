@@ -7,6 +7,7 @@ namespace HechiZx\Repository;
 use HechiZx\Support\Db;
 use HechiZx\Support\Json;
 use HechiZx\Content\BodyNormalizer;
+use HechiZx\Content\PublicScope;
 use HechiZx\Publish\StaticPaths;
 
 /**
@@ -399,10 +400,10 @@ final class HomeRepository
                         ac.is_highlight, ac.badge_text
                  FROM cms_article_channel ac
                  JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
-                 WHERE ac.site_id = :site AND a.status = :status AND a.public_scope = :scope
+                 WHERE ac.site_id = :site AND a.status = :status AND ' . PublicScope::sql('a') . '
                    AND ac.channel_type IN (' . implode(', ', $placeholders) . ')
                  ORDER BY ac.is_top DESC, ac.sort_no ASC, a.published_at DESC, a.article_id DESC',
-                $params + ['status' => 'published', 'scope' => 'public']
+                $params + ['status' => 'published']
             );
             foreach ($rows as $row) {
                 $id = (string) $row['article_id'];
@@ -642,10 +643,10 @@ final class HomeRepository
                     ac.is_highlight, ac.badge_text
              FROM cms_article_channel ac
              JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
-             WHERE ac.site_id = :site AND a.status = :status AND a.public_scope = :scope
+             WHERE ac.site_id = :site AND a.status = :status AND ' . PublicScope::sql('a') . '
                AND ac.channel_type IN (' . implode(', ', $placeholders) . ')
              ORDER BY ac.is_top DESC, ac.sort_no ASC, a.published_at DESC, a.article_id DESC',
-            $params + ['status' => 'published', 'scope' => 'public']
+            $params + ['status' => 'published']
         );
 
         $out = [];
@@ -702,7 +703,8 @@ final class HomeRepository
     /**
      * 稿件在库里的对外可见性。
      *
-     * @return string public=已发布且公开；private=在库但不能公开（归档／撤回／草稿／回收站）；missing=库里没有
+     * @return string public=已发布且对外；private=在库但不能对外（撤回／草稿／回收站，以及
+     *                年限口径下的归档稿）；missing=库里没有
      */
     private function articleVisibility(string $articleId): string
     {
@@ -716,7 +718,7 @@ final class HomeRepository
             );
             if ($row === null) {
                 $this->articleVisibilityCache[$articleId] = 'missing';
-            } elseif ((string) $row['status'] === 'published' && (string) $row['public_scope'] === 'public') {
+            } elseif ((string) $row['status'] === 'published' && PublicScope::allows((string) $row['public_scope'])) {
                 $this->articleVisibilityCache[$articleId] = 'public';
             } else {
                 $this->articleVisibilityCache[$articleId] = 'private';
@@ -807,7 +809,7 @@ final class HomeRepository
             );
             foreach ($rows as $row) {
                 $this->articleVisibilityCache[(string) $row['article_id']] =
-                    ((string) $row['status'] === 'published' && (string) $row['public_scope'] === 'public')
+                    ((string) $row['status'] === 'published' && PublicScope::allows((string) $row['public_scope']))
                         ? 'public' : 'private';
             }
         }
@@ -929,7 +931,7 @@ final class HomeRepository
     {
         return $this->db->selectOne(
             "SELECT article_id, title, summary, thumb, content_html FROM cms_article
-             WHERE site_id = :site AND article_id = :id AND status = 'published' AND public_scope = 'public'",
+             WHERE site_id = :site AND article_id = :id AND status = 'published' AND " . PublicScope::sql(),
             ['site' => $this->siteId, 'id' => $id]
         );
     }

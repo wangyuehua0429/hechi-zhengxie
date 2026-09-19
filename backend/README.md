@@ -318,7 +318,7 @@ publish/
 
 **栏目目录名**：slug唯一时用 `/channel/<slug>/`；slug重复的一级栏目（902—906都写 `zhengxie-dongtai`、601—607都写 `dangpai-tuanti` 等，43个栏目里23个如此）补上栏目号，写成 `/channel/<slug>-<栏目号>/`。规则在 `src/Publish/StaticPaths.php`；修正前43个栏目只写出25个静态页，sitemap里还有重复地址。
 
-**归档稿件不出静态页**（2026-09-12）：发布器只出 `status=published` **且** `public_scope=public` 且有正文的稿件；`public_scope=archive`（超出公开年限的历史稿，见 [旧库迁移说明](../docs/旧库迁移说明.md)）只留后台，不产 `/article/<id>.html`、不进sitemap。
+**归档稿件是否出静态页跟随公开口径**（2026-09-12定，2026-09-19起默认放开）：发布器出 `status=published` 且有正文的稿件；年限口径（`config.php` 的 `content.enforce_public_scope=true`）下再加 `public_scope=public`，此时 `public_scope=archive`（超出公开年限的历史稿，见 [旧库迁移说明](../docs/旧库迁移说明.md)）只留后台，不产 `/article/<id>.html`、不进sitemap。口径判断统一走 `src/Content/PublicScope.php`。
 
 ## 旧地址301
 
@@ -331,7 +331,7 @@ php backend/bin/redirects.php --legacy-site="/path/to/zhengxie2026/gxhczx.gov.cn
 
 产物在发布目录的 `redirects/` 下：`nginx-301.conf`（Nginx片段，`server{}` 里 `include`）、`url-map.csv`（逐条清单，交甲方核对）、`report.txt`（分类小计、目标缺失、未登记旧地址）。
 
-运行期：Nginx按片段把旧地址形态转给PHP入口，入口用 `src/Http/LegacyRedirect.php` 查 `sys_url_redirect` 精确判定，命中即301并把 `sys_url_redirect.hits` 加一，未命中照旧404。本地 `router.php` 同样只在“文件不存在”时查表。**只登记“已发布且有正文且 `public_scope=public`”的稿件**（与发布器的产出条件一致），所以不会出现301指到404；归档稿件不登记，旧地址返回404；县区子站参数（`q=<县区号>`）本期不映射。
+运行期：Nginx按片段把旧地址形态转给PHP入口，入口用 `src/Http/LegacyRedirect.php` 查 `sys_url_redirect` 精确判定，命中即301并把 `sys_url_redirect.hits` 加一，未命中照旧404。本地 `router.php` 同样只在“文件不存在”时查表。**只登记“已发布且有正文”且在当前公开口径下会产出静态页的稿件**（与发布器的产出条件一致），所以不会出现301指到404（年限口径下归档稿不登记，旧地址返回404）；县区子站参数（`q=<县区号>`）本期不映射。
 
 规则明细、旧地址出处与未覆盖项见 [../docs/旧地址301映射说明.md](../docs/旧地址301映射说明.md)；回归检查 `node tests/redirect-check.mjs`（48项）。
 

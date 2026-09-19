@@ -27,7 +27,7 @@
 | 缓存 | 接口默认**不缓存**（`Cache-Control: no-store`，可用 `API_CACHE_MAX_AGE` 调大）。后台改稿、发稿后前台要立刻可见，因此默认不做浏览器缓存；等接入Redis/CDN并实现“发布即失效”之后再开缓存 |
 | 鉴权 | 本期对外接口全部公开只读；`/api/v1/admin/*` 用会话（`sys_user` + `sys_role`），不走本版的匿名约定 |
 
-**可见性规则**：对外接口只返回 `status = published` 且 `public_scope = public` 的稿件（草稿、已下线、后台留存内容不出现）。后台按稿件号直读不受此限制，因此“保存为草稿”在后台可见、在前台与接口上都看不到。
+**可见性规则**：对外接口只返回 `status = published` 的稿件（草稿、待审、已撤回、回收站内容一律不出现）。是否再按 `public_scope` 过滤由 `config.php` 的 `content.enforce_public_scope` 决定：`true` 只出 `public_scope = public`（近3年口径），`false`（当前）放开年限、归档稿同样对外。后台按稿件号直读不受此限制，因此“保存为草稿”在后台可见、在前台与接口上都看不到。判断条件统一取 `HechiZx\Content\PublicScope`，不要在各处写死 `public_scope`。
 
 **提案数据不对外**：政协委员提案（`cms_proposal` 及其附件、流转记录）**不进本契约**——它只在委员门户 `/member` 与后台 `/admin` 之间经服务端渲染页面流转，不设任何对外接口，也不写静态页、不进sitemap。设计与字段见 [提案系统设计说明](提案系统设计说明.md)。
 
@@ -47,7 +47,7 @@
 | `intro` | string | 栏目简介 |
 | `layout` | string | 版式：`list`／`leaders`／`about`／`county`／`gallery`／`video`／`topic`／`interactive` |
 | `siblings` | array | 同级子栏目 `{type, name, url, active}` |
-| `total` | int | 栏目**当前公开条数**（`status=published` 且 `public_scope=public`，实时统计；2026-09-12起不再用快照常量 `sys_channel.total_count`） |
+| `total` | int | 栏目**当前对外条数**（`status=published`，年限口径下再加 `public_scope=public`；实时统计，2026-09-12起不再用快照常量 `sys_channel.total_count`） |
 | `list` | array | 稿件列表项，见3.2；`?withList=0` 时省略 |
 | `counties` | array? | 仅 `layout=county`：`{name, url}`，url为空表示该县区尚未建站 |
 | `note` | string? | 仅 `layout=interactive`：互动栏目说明 |
@@ -232,7 +232,7 @@
 | 栏目页 | `/channel/<目录名>/index.html`、分页 `/channel/<目录名>/page-<n>.html` | 列表分页静态；目录名规则见下 |
 | 详情页 | `/article/<id>.html` | 正文静态 |
 
-**归档不出静态页**（2026-09-12）：只有 `status=published` 且 `public_scope=public` 且有正文的稿件才产出 `/article/<id>.html` 并进sitemap；`public_scope=archive`（超出公开年限的历史稿）只留后台，旧地址返回404。
+**归档稿件是否出页跟随公开口径**（2026-09-12定，2026-09-19起默认放开）：产出 `/article/<id>.html` 并进sitemap的条件是 `status=published` 且有正文；年限口径（`content.enforce_public_scope=true`）下再加 `public_scope=public`，此时 `public_scope=archive`（超出公开年限的历史稿）只留后台、旧地址返回404。放开年限时归档稿照常出页并登记301。
 | 数据快照 | `/data/home.json`、`/data/channel.json`、`/data/article.json` | 与接口同构；**仅 `php backend/bin/publish.php --data-only` 产出**，默认发布不再产出（2026-09-17起，线上无消费者） |
 | 站点地图 | `/sitemap.xml` | 首页 + 栏目 + 详情 |
 
@@ -248,7 +248,7 @@
 
 1. `php backend/bin/redirects.php --out=<发布目录>` 按库内内容生成映射，并产出Nginx片段、核对用CSV与报告；
 2. Nginx按片段的旧地址形态把请求转给PHP入口，入口查表命中即301，并把命中数累加到 `sys_url_redirect.hits`；
-3. 只登记“已发布 + 有正文 + `public_scope=public`”的稿件，保证每条301都指向真实存在的静态页，不会301到404；归档稿件不登记（旧地址404）；县区子站（`q=<县区号>`）本期不映射。
+3. 只登记“已发布 + 有正文”且在当前公开口径下会产出静态页的稿件，保证每条301都指向真实存在的静态页，不会301到404（年限口径下归档稿不登记，旧地址404）；县区子站（`q=<县区号>`）本期不映射。
 
 逐条规则、旧地址出处与未覆盖项见 [旧地址301映射说明.md](旧地址301映射说明.md)。
 

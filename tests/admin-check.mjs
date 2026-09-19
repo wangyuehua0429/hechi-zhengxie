@@ -320,18 +320,30 @@ async function main() {
         && rowFor(publishedList.text, sampleId).includes('data-copy-link="/article/' + sampleId + '.html"'),
       "样例 #" + sampleId);
 
-    // 归档稿（public_scope=archive）超出公开年限、只留后台，不产静态页且接口取不到
+    // 归档稿（public_scope=archive）的「预览」「复制链接」跟随当前公开口径：
+    // 年限口径（ENFORCE_PUBLIC_SCOPE=1）下不产静态页、接口取不到，两个按钮置灰；
+    // 放开口径（默认）下照常对外，两个按钮可用。
     runPhp(php, "-r", env, [
       'require "backend/src/bootstrap.php"; $db = new HechiZx\\Support\\Db((array) hechi_config("db"));'
         + ' $db->execute("UPDATE cms_article SET public_scope = :s WHERE article_id = :id", ["s" => "archive", "id" => ' + SAMPLE_ID + ']);',
     ]);
     const archivedList = await client.get("/admin/articles?status=published&keyword=" + encodeURIComponent("许显辉"));
     const archivedRow = rowFor(archivedList.text, SAMPLE_ID);
-    check("归档稿的「预览」「复制链接」置灰并说明原因",
-      archivedRow.includes("is-disabled")
-        && !archivedRow.includes('href="/detail.html?id=' + SAMPLE_ID + '"')
-        && /归档稿不对外发布/.test(archivedRow),
-      archivedRow ? "该行已置灰" : "没找到该行");
+    const scopeEnforced = ((runPhp(php, "-r", env, [
+      "require 'backend/src/bootstrap.php'; echo HechiZx\\Content\\PublicScope::enforced() ? '1' : '0';"
+    ]).stdout || "").trim() === "1");
+    if (scopeEnforced) {
+      check("年限口径下归档稿的「预览」「复制链接」置灰并说明原因",
+        archivedRow.includes("is-disabled")
+          && !archivedRow.includes('href="/detail.html?id=' + SAMPLE_ID + '"')
+          && /归档稿不对外发布/.test(archivedRow),
+        archivedRow ? "该行已置灰" : "没找到该行");
+    } else {
+      check("放开口径下归档稿的「预览」「复制链接」可用",
+        archivedRow.includes('href="/detail.html?id=' + SAMPLE_ID + '"')
+          && archivedRow.includes('data-copy-link="/article/' + SAMPLE_ID + '.html"'),
+        archivedRow ? "该行两个按钮可用" : "没找到该行");
+    }
     runPhp(php, "-r", env, [
       'require "backend/src/bootstrap.php"; $db = new HechiZx\\Support\\Db((array) hechi_config("db"));'
         + ' $db->execute("UPDATE cms_article SET public_scope = :s WHERE article_id = :id", ["s" => "public", "id" => ' + SAMPLE_ID + ']);',
@@ -1031,8 +1043,10 @@ async function main() {
       listPage.text.includes(">更多<") &&
       (listPage.text.match(/class="row-more"/g) || []).length > 1);
     check("没有对外页面的稿件用真 disabled 按钮，并把原因写给读屏",
-      /<button type="button" class="btn btn-sm btn-ghost is-disabled" disabled title="[^"]*">\s*预览<span class="visually-hidden">/.test(archivedList.text),
-      "归档稿行");
+      // 用「已撤回」这一行做样本：它在任何公开口径下都没有对外页面
+      // （归档稿只在年限口径下没有，见上面的口径断言）
+      /<button type="button" class="btn btn-sm btn-ghost is-disabled" disabled title="[^"]*">\s*预览<span class="visually-hidden">/.test(withdrawnInAdmin.text),
+      "已撤回稿件行");
     check("批量条写的是真实上限（100 篇／跨页保留），并带站内提示容器",
       /单次最多处理 100 篇/.test(listPage.text) &&
       listPage.text.includes('class="js-only"') &&

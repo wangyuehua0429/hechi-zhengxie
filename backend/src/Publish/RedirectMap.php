@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace HechiZx\Publish;
 
+use HechiZx\Content\PublicScope;
 use HechiZx\Support\Db;
 
 /**
@@ -443,10 +444,11 @@ final class RedirectMap
     {
         $rows = $this->db->select(
             'SELECT article_id FROM cms_article
-             WHERE site_id = :site AND status = :status AND public_scope = :scope AND has_body = 1
+             WHERE site_id = :site AND status = :status AND ' . PublicScope::sql() . ' AND has_body = 1
              ORDER BY article_id ASC',
-            // 与发布器同一个条件：归档稿件不产静态页，也不该登记 301（否则会跳到 404）
-            ['site' => $this->siteId, 'status' => 'published', 'scope' => 'public']
+            // 与发布器同一个条件：不产静态页的稿件不该登记 301（否则会跳到 404）；
+            // 年限口径下归档稿不产页，放开年限后照常登记（见 docs/旧地址301映射说明.md）。
+            ['site' => $this->siteId, 'status' => 'published']
         );
         return array_map(static fn (array $row): int => (int) $row['article_id'], $rows);
     }

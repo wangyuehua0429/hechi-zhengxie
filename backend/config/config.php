@@ -64,4 +64,11 @@ return [
         // 上 Redis / CDN 并做了发布即失效之后再调大（见 docs/api-contract.md 第 2 节）。
         'cache_max_age'     => (int) (getenv('API_CACHE_MAX_AGE') ?: 0),
     ],
+
+    // 公开口径：true＝只出 public_scope=public（近 3 年公开，archive 只留后台）；
+    // false＝放开年限，status=published 的稿件一律对外（当前口径）。
+    // 要恢复年限口径，改这里或起进程时设 ENFORCE_PUBLIC_SCOPE=1。
+    'content' => [
+        'enforce_public_scope' => filter_var(getenv('ENFORCE_PUBLIC_SCOPE') ?: '0', FILTER_VALIDATE_BOOL),
+    ],
 ];

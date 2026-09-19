@@ -89,7 +89,10 @@ async function main() {
     DB_DATABASE: dbFile,
     PUBLISH_OUT: publishDir,
     APP_ENV: "local",
-    APP_DEBUG: "1"
+    APP_DEBUG: "1",
+    // 本脚本主体按年限口径跑（ENFORCE_PUBLIC_SCOPE=1），覆盖「归档稿不出页、不登记 301、
+    // 接口取不到」这些过滤分支；放开口径（当前默认）另有一组断言，见下面的 openEnv。
+    ENFORCE_PUBLIC_SCOPE: "1"
   };
   const port = 8981;
   const base = "http://127.0.0.1:" + port;
@@ -201,6 +204,36 @@ async function main() {
       pruned.status === 0 && !existsSync(path.join(publishDir, "article", archiveId + ".html"))
       && (pruned.stdout || "").includes("pruned"),
       (pruned.stdout || "").trim().split("\n").slice(-2).join(" / "));
+
+    // ---- 放开口径（ENFORCE_PUBLIC_SCOPE=0，当前默认口径）：归档稿照常出页、进 sitemap、登记 301
+    // 输出到独立目录，避免扰动上面那套年限口径的产物与映射表
+    const openEnv = { ...env, ENFORCE_PUBLIC_SCOPE: "0" };
+    const openDir = path.join(tmpRoot, "publish-open");
+    const openPublish = runPhp(php, "backend/bin/publish.php", openEnv, ["--out=" + openDir, "--html-only"]);
+    check("放开口径：归档稿产出静态页",
+      openPublish.status === 0 && existsSync(path.join(openDir, "article", archiveId + ".html")),
+      (openPublish.stderr || "").trim().split("\n")[0]);
+    const openSitemap = existsSync(path.join(openDir, "sitemap.xml"))
+      ? readFileSync(path.join(openDir, "sitemap.xml"), "utf8") : "";
+    check("放开口径：归档稿进 sitemap", openSitemap.includes("/article/" + archiveId + ".html"));
+    // 栏目页一页 20 条，这条 2019 年的稿件排在末页，翻页文件一起看
+    const openChannelDir = path.join(openDir, "channel", "zhengxie-dongtai-904");
+    const openChannelHtml = existsSync(openChannelDir)
+      ? readdirSync(openChannelDir).filter((f) => f.endsWith(".html"))
+        .map((f) => readFileSync(path.join(openChannelDir, f), "utf8")).join("\n")
+      : "";
+    check("放开口径：归档稿出现在所属栏目页列表里",
+      openChannelHtml.includes('href="/article/' + archiveId + '.html"'));
+    const openRedirects = runPhp(php, "backend/bin/redirects.php", openEnv, ["--out=" + openDir, "--check=" + openDir]);
+    const openCsvPath = path.join(openDir, "redirects/url-map.csv");
+    const openCsv = existsSync(openCsvPath) ? readFileSync(openCsvPath, "utf8") : "";
+    check("放开口径：归档稿登记旧地址 301",
+      openRedirects.status === 0
+      && openCsv.includes("/html/news-view-" + archiveId + ".html,/article/" + archiveId + ".html")
+      && openCsv.includes("/news_view.php?id=" + archiveId + ",/article/" + archiveId + ".html"),
+      (openRedirects.stdout || "").trim().split("\n").slice(-2).join(" / "));
+    // 映射表是库内的，跑完按年限口径重建一次，后面的断言（含运行期 404）仍按原口径走
+    runPhp(php, "backend/bin/redirects.php", env, ["--out=" + publishDir]);
 
     // ---- 旧站目录对照用的临时样本（真旧站目录不在每次检查里扫描）
     mkdirSync(path.join(legacyDir, "html"), { recursive: true });

@@ -306,7 +306,8 @@ async function main() {
       JSON.stringify((home.body?.home?.zxdt?.tabs || []).map((t) => (t.items || []).length)));
 
     // ---- 2026-09-17 独立评审 P2：首页出口的公开口径过滤要有回归断言
-    // 造一条归档稿 + 一个指向它的首页导航项，断言 /api/v1/home 里根本不出现它
+    // 造一条归档稿 + 一个指向它的首页导航项，断言 /api/v1/home 的输出与当前公开口径一致：
+    // 年限口径（ENFORCE_PUBLIC_SCOPE=1）下整条摘掉，放开口径（默认）下照常输出。
     // 只在本脚本自建临时库时造数据（--url 指向别人的服务时不动对方数据）
     if (dbEnv) runPhp(php, "-r", dbEnv, [
       "require 'backend/src/bootstrap.php';"
@@ -320,9 +321,20 @@ async function main() {
     ]);
     const guarded = await fetchJson(base, "/api/v1/home");
     const guardedText = JSON.stringify(guarded.body);
-    check("首页出口不输出归档稿的链接（公开口径过滤）",
-      !guardedText.includes("999001") && !guardedText.includes("归档检查项"),
-      guardedText.includes("999001") ? "归档稿 999001 出现在首页输出里" : "");
+    const scopeEnforced = dbEnv
+      ? ((runPhp(php, "-r", dbEnv, [
+        "require 'backend/src/bootstrap.php'; echo HechiZx\\Content\\PublicScope::enforced() ? '1' : '0';"
+      ]).stdout || "").trim() === "1")
+      : false;
+    if (!dbEnv) {
+      check("首页出口不输出归档稿的链接（--url 模式未造数据，只做兜底断言）",
+        !guardedText.includes("999001"));
+    } else {
+      const exposed = guardedText.includes("999001") && guardedText.includes("归档检查项");
+      check("首页出口与公开口径一致（" + (scopeEnforced ? "年限口径：不输出归档稿" : "放开口径：输出归档稿") + "）",
+        scopeEnforced ? !exposed : exposed,
+        exposed ? "首页输出里出现了归档稿 999001" : "首页输出里没有归档稿 999001");
+    }
 
     // ---- 错误处理
     const missingChannel = await fetchJson(base, "/api/v1/channels/999999");

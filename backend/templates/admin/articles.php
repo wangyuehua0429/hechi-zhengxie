@@ -30,6 +30,7 @@
 declare(strict_types=1);
 
 use HechiZx\Content\ArticleWorkflow;
+use HechiZx\Content\PublicScope;
 
 $places = $places ?? [];
 $transitions = $transitions ?? [];
@@ -309,12 +310,13 @@ if ((string) $filters['keyword'] !== '') {
             <?php
               // 预览打开的是正式对外页面（前台详情页，与首页／栏目页点进去的是同一个）；
               // 复制链接给的仍是发布器产出的对外地址 /article/{id}.html。
-              // 只有「已发布 + 公开发布」的稿件才有对外页面：归档稿（public_scope=archive，超出
-              // 公开年限只留后台）既不产静态页、接口也取不到，两个按钮一律置灰。
+              // 只有「已发布 + 在当前公开口径下对外」的稿件才有对外页面：年限口径下归档稿
+              // （public_scope=archive）不产静态页、接口也取不到，两个按钮置灰；放开年限后
+              // 归档稿照常对外，按钮不再置灰（口径见 PublicScope）。
               $official = '/article/' . $id . '.html';
               $previewUrl = '/detail.html?id=' . $id;
               $isPublished = (string) $item['status'] === 'published';
-              $isPublic = (string) ($item['public_scope'] ?? 'public') === 'public';
+              $isPublic = PublicScope::allows((string) ($item['public_scope'] ?? 'public'));
               // 置灰时把原因同时写给鼠标（title）与读屏（按钮内 visually-hidden 文本）：
               // 只写在 title 里，键盘与读屏用户拿不到这个信息。
               $previewReason = $isPublished ? '归档稿不对外发布，没有对外页面' : '发布后可预览';

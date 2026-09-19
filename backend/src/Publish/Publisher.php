@@ -9,6 +9,7 @@ use HechiZx\Repository\ChannelRepository;
 use HechiZx\Repository\HomeRepository;
 use HechiZx\Content\BodyNormalizer;
 use HechiZx\Content\HtmlSanitizer;
+use HechiZx\Content\PublicScope;
 use HechiZx\Support\Db;
 use HechiZx\Support\Json;
 
@@ -271,7 +272,7 @@ final class Publisher
         $public = $this->db->selectOne(
             "SELECT article_id FROM cms_article
              WHERE site_id = :site AND article_id = :id
-               AND status = 'published' AND public_scope = 'public' AND has_body = 1",
+               AND status = 'published' AND " . PublicScope::sql() . " AND has_body = 1",
             ['site' => $this->siteId, 'id' => $articleId]
         );
         if ($public === null) {
@@ -342,7 +343,7 @@ final class Publisher
     {
         $rows = $this->db->select(
             "SELECT article_id FROM cms_article
-             WHERE site_id = :site AND status = 'published' AND public_scope = 'public' AND has_body = 1
+             WHERE site_id = :site AND status = 'published' AND " . PublicScope::sql() . " AND has_body = 1
              ORDER BY published_at DESC, article_id DESC",
             ['site' => $this->siteId]
         );
@@ -354,11 +355,11 @@ final class Publisher
     {
         $rows = $this->db->select(
             'SELECT article_id FROM cms_article
-             WHERE site_id = :site AND status = :status AND public_scope = :scope AND has_body = 1
+             WHERE site_id = :site AND status = :status AND ' . PublicScope::sql() . ' AND has_body = 1
              ORDER BY published_at DESC, article_id DESC',
-            // 归档（public_scope=archive）的稿件只留后台，不产静态页：口径见
-            // docs/稿库与内容状态设计.md 第 2 节（近 3 年公开，更早后台留存）。
-            ['site' => $this->siteId, 'status' => 'published', 'scope' => 'public']
+            // 归档稿是否产静态页跟随公开口径：年限口径下只留后台，放开年限后照常出页
+            // （见 docs/api-contract.md 第 2 节）。
+            ['site' => $this->siteId, 'status' => 'published']
         );
 
         $articles = [];
@@ -721,7 +722,7 @@ final class Publisher
         }
         $rows = $this->db->select(
             "SELECT a.article_id, a.title FROM cms_article a
-             WHERE a.site_id = :site AND a.status = 'published' AND a.public_scope = 'public' AND a.has_body = 1
+             WHERE a.site_id = :site AND a.status = 'published' AND " . PublicScope::sql('a') . " AND a.has_body = 1
                AND NOT EXISTS (SELECT 1 FROM sys_channel c
                                WHERE c.site_id = a.site_id AND c.type_code = a.channel_type
                                  AND (c.home_sourced = 1 OR c.layout = 'leaders'))
@@ -743,7 +744,7 @@ final class Publisher
         }
         $rows = $this->db->select(
             "SELECT article_id, title, thumb FROM cms_article
-             WHERE site_id = :site AND status = 'published' AND public_scope = 'public'
+             WHERE site_id = :site AND status = 'published' AND " . PublicScope::sql() . "
                AND channel_type = :type AND thumb <> ''
              ORDER BY published_at DESC, article_id DESC
              LIMIT " . max(1, $limit),

@@ -64,7 +64,7 @@ php tools/migrate/legacy_import.php --in tools/migrate/out/articles.final.jsonl 
 
 - 迁移脚本幂等：按 `article_id` upsert，可反复执行；`--dry-run` 不写库。
 - 只迁主站口径；县区内容与未映射栏目按口径排除，分别写进报告。
-- 归档稿件（`public_scope=archive`）不产静态页、不登记 301；发布了也不会出现在前台。
+- 归档稿件（`public_scope=archive`）在年限口径下不产静态页、不登记 301；是否按年限过滤由 `backend/config/config.php` 的 `content.enforce_public_scope` 决定（当前默认放开，归档稿照常对外）。
 - 生产执行前先备份数据库；回滚按 `imported_ids.txt` 处理。
 - **迁移入库后不要再跑 `backend/bin/seed.php`**：它按样例快照重灌，会覆盖同号稿件与栏目归属；`seed.php` 已有安全闸会拦下，确要重灌需加 `--force`。
 - 涉密稿件不发外网；图片一律从旧站服务器自取，不调用任何第三方接口。

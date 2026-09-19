@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace HechiZx\Repository;
 
 use HechiZx\Content\BodyNormalizer;
+use HechiZx\Content\PublicScope;
 use HechiZx\Support\Db;
 use HechiZx\Support\Json;
 use HechiZx\Publish\StaticPaths;
@@ -99,9 +100,9 @@ final class ChannelRepository
             'SELECT ac.channel_type AS type_code, COUNT(*) AS n
              FROM cms_article_channel ac
              JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
-             WHERE ac.site_id = :site AND a.status = :status AND a.public_scope = :scope
+             WHERE ac.site_id = :site AND a.status = :status AND ' . PublicScope::sql('a') . '
              GROUP BY ac.channel_type',
-            ['site' => $this->siteId, 'status' => 'published', 'scope' => 'public']
+            ['site' => $this->siteId, 'status' => 'published']
         );
         $counts = [];
         foreach ($rows as $row) {
@@ -116,8 +117,8 @@ final class ChannelRepository
             'SELECT COUNT(*) FROM cms_article_channel ac
              JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
              WHERE ac.site_id = :site AND ac.channel_type = :type
-               AND a.status = :status AND a.public_scope = :scope',
-            ['site' => $this->siteId, 'type' => $type, 'status' => 'published', 'scope' => 'public']
+               AND a.status = :status AND ' . PublicScope::sql('a'),
+            ['site' => $this->siteId, 'type' => $type, 'status' => 'published']
         );
     }
 
@@ -132,9 +133,9 @@ final class ChannelRepository
             'SELECT a.*, ac.channel_type AS link_channel
              FROM cms_article_channel ac
              JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
-             WHERE ac.site_id = :site AND a.status = :status AND a.public_scope = :scope
+             WHERE ac.site_id = :site AND a.status = :status AND ' . PublicScope::sql('a') . '
              ORDER BY ac.channel_type ASC, ac.is_top DESC, ac.sort_no ASC, a.published_at DESC, a.article_id DESC',
-            ['site' => $this->siteId, 'status' => 'published', 'scope' => 'public']
+            ['site' => $this->siteId, 'status' => 'published']
         );
 
         $grouped = [];
@@ -157,10 +158,10 @@ final class ChannelRepository
             'SELECT a.* FROM cms_article_channel ac
              JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
              WHERE ac.site_id = :site AND ac.channel_type = :type
-               AND a.status = :status AND a.public_scope = :scope
+               AND a.status = :status AND ' . PublicScope::sql('a') . '
              ORDER BY ac.is_top DESC, ac.sort_no ASC, a.published_at DESC, a.article_id DESC
              LIMIT ' . max(0, $listSize),
-            ['site' => $this->siteId, 'type' => $type, 'status' => 'published', 'scope' => 'public']
+            ['site' => $this->siteId, 'type' => $type, 'status' => 'published']
         );
         return array_map([self::class, 'mapListItem'], $rows);
     }
@@ -439,9 +440,9 @@ final class ChannelRepository
             'SELECT ac.channel_type, ac.article_id
              FROM cms_article_channel ac
              JOIN cms_article a ON a.article_id = ac.article_id AND a.site_id = ac.site_id
-             WHERE ac.site_id = :site AND a.status = :status AND a.public_scope = :scope
+             WHERE ac.site_id = :site AND a.status = :status AND ' . PublicScope::sql('a') . '
              ORDER BY ac.channel_type ASC, ac.is_top DESC, ac.sort_no ASC, a.published_at DESC, a.article_id DESC',
-            ['site' => $this->siteId, 'status' => 'published', 'scope' => 'public']
+            ['site' => $this->siteId, 'status' => 'published']
         );
 
         $ids = [];

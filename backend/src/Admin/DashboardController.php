@@ -7,6 +7,7 @@ namespace HechiZx\Admin;
 use HechiZx\Http\HtmlResponse;
 use HechiZx\Http\RedirectResponse;
 use HechiZx\Http\Request;
+use HechiZx\Content\PublicScope;
 use HechiZx\Repository\ArticleRepository;
 use HechiZx\Repository\ChannelRepository;
 
@@ -76,7 +77,7 @@ final class DashboardController extends AdminController
         $castId = $this->db->isSqlite() ? 'CAST(a.article_id AS TEXT)' : 'CAST(a.article_id AS CHAR)';
         $articles = $count(
             "SELECT COUNT(*) FROM cms_article a
-             WHERE a.site_id = :site AND a.status = 'published' AND a.public_scope = 'public' AND a.has_body = 1
+             WHERE a.site_id = :site AND a.status = 'published' AND " . PublicScope::sql('a') . " AND a.has_body = 1
                AND a.updated_at > :since
                AND NOT EXISTS (SELECT 1 FROM sys_operation_log l
                                WHERE l.action = 'publish.article' AND l.target_id = $castId

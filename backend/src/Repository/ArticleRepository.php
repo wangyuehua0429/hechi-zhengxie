@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace HechiZx\Repository;
 
 use HechiZx\Content\ArticleWorkflow;
+use HechiZx\Content\PublicScope;
 use HechiZx\Support\Db;
 
 /**
@@ -33,8 +34,8 @@ final class ArticleRepository
         string $scope = 'all'
     ): array
     {
-        $where = ['a.site_id = :site', 'a.status = :status', 'a.public_scope = :scope'];
-        $params = ['site' => $this->siteId, 'status' => 'published', 'scope' => 'public'];
+        $where = ['a.site_id = :site', 'a.status = :status', PublicScope::sql('a')];
+        $params = ['site' => $this->siteId, 'status' => 'published'];
         $join = '';
 
         if ($channelTypes !== []) {
@@ -204,8 +205,8 @@ final class ArticleRepository
              FROM cms_article a
              LEFT JOIN sys_channel c ON c.type_code = a.channel_type AND c.site_id = a.site_id
              WHERE a.site_id = :site AND a.article_id = :id
-               AND a.status = :status AND a.public_scope = :scope',
-            ['site' => $this->siteId, 'id' => (int) $id, 'status' => 'published', 'scope' => 'public']
+               AND a.status = :status AND ' . PublicScope::sql('a'),
+            ['site' => $this->siteId, 'id' => (int) $id, 'status' => 'published']
         );
         if ($row === null) {
             return null;
