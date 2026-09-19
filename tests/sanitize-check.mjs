@@ -41,7 +41,13 @@ const GOOD_HTML = [
   '<p><a href="https://example.com">外链</a></p></div>',
 ].join("");
 
-const DANGER = /<script|onerror|onload|onclick|javascript:|data:image/i;
+/**
+ * 载荷特征。不能直接匹配 `<script`：静态页模板自身会输出同源外链脚本
+ * （`<script src="/js/…"></script>`），那是页面骨架不是载荷——2026-09-19 就是这么误报的。
+ * 这里匹配载荷自身的形态：内联脚本、事件属性、javascript: 协议、data: 图片；
+ * 带 src 的外链脚本不算载荷（若它夹带脚本体，由 alert( 这一条兜住）。
+ */
+const DANGER = /<script(?![^>]*\ssrc=)|onerror|onload|onclick|javascript:|data:image|alert\(/i;
 
 let failures = 0;
 let total = 0;
